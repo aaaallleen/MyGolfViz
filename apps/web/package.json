@@ -11,6 +11,7 @@
     "@fsa/analytics": "*",
     "@fsa/csv-parser": "*",
     "@fsa/domain": "*",
-    "@fsa/ui": "*"
+    "@fsa/ui": "*",
+    "@fsa/visualizations": "*"
   }
 }

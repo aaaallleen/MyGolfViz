@@ -88,7 +88,7 @@ describe('LoadPage', () => {
     await user.upload(input(), [fixture(F1), fixture(F2), fixture(F3)]);
     await screen.findByText('3 files · 133 shots ready');
     await user.click(screen.getByRole('button', { name: 'Analyze files' }));
-    expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Untitled session' })).toBeInTheDocument();
     expect(probe!.workingSet!.shots).toHaveLength(133);
   });
 
