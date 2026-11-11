@@ -212,3 +212,13 @@ test('face impact: positive y above centre; data-category; no provisional note',
   expect(container.querySelector('svg')).toHaveAttribute('data-category', 'iron');
   expect(container.textContent!.toLowerCase()).not.toContain('provisional');
 });
+
+test('top view rows use each value\'s own field key', async () => {
+  const { formatMeasurement } = await import('@fsa/domain');
+  const { container } = render(<HorizontalDeliveryDiagram {...top()} />);
+  const texts = Array.from(container.querySelectorAll('li strong')).map((e) => e.textContent);
+  expect(texts).toEqual([
+    formatMeasurement('clubPath', 3.1), formatMeasurement('ftt', 1.4),
+    formatMeasurement('ftp', -1.7), formatMeasurement('launchH', 1.9),
+  ]);
+});

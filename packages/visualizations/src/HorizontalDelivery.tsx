@@ -1,4 +1,4 @@
-import { formatMeasurement } from '@fsa/domain';
+import { formatMeasurement, type MeasurementKey } from '@fsa/domain';
 import { BALL, BALL_EDGE, BORDER, CLUB, DISPLAY_FONT, FONT, INK, MUTED, SOFT, SURFACE } from './theme';
 
 export interface HorizontalDeliveryProps {
@@ -19,7 +19,7 @@ const dir = (deg: number, k: number) => {
 };
 const at = (d: { x: number; y: number }, t: number) => ({ x: f1(OX + d.x * t), y: f1(OY + d.y * t) });
 
-function Row({ label, value, swatch }: { label: string; value: number | null; swatch?: React.CSSProperties }) {
+function Row({ label, fieldKey, value, swatch }: { label: string; fieldKey: MeasurementKey; value: number | null; swatch?: React.CSSProperties }) {
   if (value === null) return <li style={{ color: MUTED, fontSize: 14 }}>{label} · Not measured</li>;
   return (
     <li style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -27,7 +27,7 @@ function Row({ label, value, swatch }: { label: string; value: number | null; sw
         {swatch && <span aria-hidden="true" style={{ width: 14, height: 3, ...swatch }} />}
         {label}
       </span>{' '}
-      <strong style={{ fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>{formatMeasurement('clubPath', value)}</strong>
+      <strong style={{ fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>{formatMeasurement(fieldKey, value)}</strong>
     </li>
   );
 }
@@ -41,7 +41,7 @@ export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, 
   const launch = launchH === null ? null : dir(launchH, k);
   const aria = none
     ? 'Top view at impact. Club delivery not measured for this shot.'
-    : `Top view at impact: club path ${formatMeasurement('clubPath', clubPath)}, face to target ${formatMeasurement('clubPath', faceToTarget)}, face to path ${formatMeasurement('clubPath', faceToPath)}.`;
+    : `Top view at impact: club path ${formatMeasurement('clubPath', clubPath)}, face to target ${formatMeasurement('ftt', faceToTarget)}, face to path ${formatMeasurement('ftp', faceToPath)}.`;
 
   return (
     <div className="fsa-horizontal-delivery" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -85,10 +85,10 @@ export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, 
         <p style={{ margin: 0, color: MUTED }}>Club delivery not measured for this shot</p>
       ) : (
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 16px' }}>
-          <Row label="Club path" value={clubPath} swatch={{ background: CLUB }} />
-          <Row label="Face to target" value={faceToTarget} swatch={{ background: INK }} />
-          <Row label="Face to path" value={faceToPath} />
-          <Row label="Launch direction" value={launchH} swatch={{ borderTop: `3px dotted ${BALL}`, boxSizing: 'border-box' }} />
+          <Row label="Club path" fieldKey="clubPath" value={clubPath} swatch={{ background: CLUB }} />
+          <Row label="Face to target" fieldKey="ftt" value={faceToTarget} swatch={{ background: INK }} />
+          <Row label="Face to path" fieldKey="ftp" value={faceToPath} />
+          <Row label="Launch direction" fieldKey="launchH" value={launchH} swatch={{ borderTop: `3px dotted ${BALL}`, boxSizing: 'border-box' }} />
         </ul>
       )}
     </div>

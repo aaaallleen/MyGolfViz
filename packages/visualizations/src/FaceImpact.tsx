@@ -1,4 +1,4 @@
-import { IMPACT_CONVENTION, formatMeasurement, type ClubCategory, type Handedness } from '@fsa/domain';
+import { formatMeasurement, type ClubCategory, type Handedness } from '@fsa/domain';
 import { FACE_OUTLINES } from './faceOutlines';
 import { BALL, BALL_EDGE, BORDER, CLUB, FACE_FILL, FONT, INK, MUTED, SURFACE } from './theme';
 
@@ -70,9 +70,6 @@ export function FaceImpactDiagram({ category, handedness, selected, others, show
           <text x={CX} y={H - 12} textAnchor="middle">Grid 0.5 in</text>
         </g>
       </svg>
-      {!IMPACT_CONVENTION.verified && (
-        <p style={{ color: MUTED, fontSize: 13 }}>Impact direction convention is provisional.</p>
-      )}
     </div>
   );
 }
