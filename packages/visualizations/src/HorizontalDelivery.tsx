@@ -9,6 +9,8 @@ export interface HorizontalDeliveryProps {
   exaggerate: 1 | 4;
   /** Which 2D layers to draw; all default to true. */
   layers?: { faceToTarget?: boolean; faceToPath?: boolean };
+  /** Heading text; defaults to "Top view · face to path". */
+  title?: string;
 }
 
 const OX = 200, OY = 250; // ball, top view; the target is straight up
@@ -35,7 +37,7 @@ function Row({ label, fieldKey, value, swatch }: { label: string; fieldKey: Meas
 }
 
 /** Top view at impact: club path, face and launch direction against the target line. */
-export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, launchH, exaggerate, layers }: HorizontalDeliveryProps) {
+export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, launchH, exaggerate, layers, title }: HorizontalDeliveryProps) {
   const k = exaggerate;
   const showFace = layers?.faceToTarget ?? true;
   const showFtp = layers?.faceToPath ?? true;
@@ -50,7 +52,7 @@ export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, 
   return (
     <div className="fsa-horizontal-delivery" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-        <h3 style={{ margin: 0, fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>Top view · face to path</h3>
+        <h3 style={{ margin: 0, fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>{title ?? 'Top view · face to path'}</h3>
         {k !== 1 && <span style={{ fontSize: 12, color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '3px 8px' }}>Angles ×{k}</span>}
       </div>
       <svg role="img" aria-label={aria} viewBox="0 20 400 310" style={{ width: '100%', height: 'auto', display: 'block' }}>

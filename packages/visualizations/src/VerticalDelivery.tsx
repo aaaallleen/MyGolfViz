@@ -12,6 +12,8 @@ export interface VerticalDeliveryProps {
   lowPoint?: number | null;
   /** Which 2D layers to draw; default true. */
   layers?: { dynamicLoft?: boolean };
+  /** Heading text; defaults to "Impact geometry · side view". */
+  title?: string;
 }
 
 const BX = 300, BY = 330, GROUND = 346; // ball centre and ground line
@@ -42,7 +44,7 @@ const fmt = (key: 'aoa' | 'dynamicLoft' | 'launchV' | 'spinLoft' | 'lowPoint', v
   v === null ? null : formatMeasurement(key, v);
 
 /** Side view at impact: attack angle, dynamic loft and launch angle; optional club arc and low point. */
-export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, exaggerate, lowPoint, layers }: VerticalDeliveryProps) {
+export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, exaggerate, lowPoint, layers, title }: VerticalDeliveryProps) {
   const showLoft = layers?.dynamicLoft ?? true;
   const k = exaggerate;
   const none = aoa === null && dynamicLoft === null && launchV === null && spinLoft === null && (lowPoint ?? null) === null;
@@ -64,7 +66,7 @@ export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, e
   return (
     <div className="fsa-vertical-delivery" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-        <h3 style={{ margin: 0, fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>Impact geometry · side view</h3>
+        <h3 style={{ margin: 0, fontFamily: DISPLAY_FONT, fontSize: 18, fontWeight: 600 }}>{title ?? 'Impact geometry · side view'}</h3>
         {k !== 1 && <span style={{ fontSize: 12, color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '3px 8px' }}>Angles ×{k}</span>}
       </div>
       <svg role="img" aria-label={aria} viewBox="0 0 900 420" style={{ width: '100%', height: 'auto', display: 'block' }}>

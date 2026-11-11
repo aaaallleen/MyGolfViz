@@ -114,3 +114,61 @@ textarea.field__input { padding: 10px 12px; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .overview__panels > * { flex-basis: 100%; }
 }
+
+/* Shot Inspector */
+.inspector { display: flex; flex-direction: column; gap: 20px; }
+.inspector h1, .inspector h2, .inspector h3 { font-family: var(--font-display); margin: 0; }
+.inspector h1 { font-size: 34px; line-height: 1.1; }
+.inspector h2 { font-size: 18px; }
+.inspector h3 { font-size: 15px; }
+.inspector-head { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; justify-content: space-between; }
+.inspector-head__title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.inspector-head__crumb { font-size: 13px; color: var(--muted); }
+.inspector-head__crumb a { color: var(--club); text-decoration: none; }
+.inspector-head__chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); align-items: center; overflow-wrap: anywhere; }
+.inspector-head__chip-button { border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text); font: inherit; padding: 0 14px; cursor: pointer; }
+.inspector-head__nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.head-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.section-label { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.section-label__dot { width: 10px; height: 10px; border-radius: 2px; background: currentColor; }
+.section-label--ball { color: var(--ball); }
+.section-label--club { color: var(--club); }
+.ball-data, .club-data { display: flex; flex-direction: column; gap: 12px; }
+.club-data__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.ball-data__grid, .club-3d__diagrams, .club-2d__diagrams, .club-2d__angles, .impact-tab { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.ball-data__grid > *, .club-3d__diagrams > *, .club-2d__diagrams > *, .club-2d__angles > *, .impact-tab > * { min-width: 0; }
+.ball-data__readouts { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.readouts { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.readouts dl, .all-measurements dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.readouts dl > div, .all-measurements dl > div { display: flex; flex-direction: column; gap: 2px; }
+.readouts dt, .all-measurements dt { font-size: 12px; color: var(--text-2); }
+.readouts dd, .all-measurements dd { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.readouts dd.is-missing, .all-measurements dd.is-missing, .stat-list dd.is-missing { color: var(--muted); font-size: 15px; font-weight: 500; }
+.value-tag { font-family: var(--font-body); font-size: 11px; font-weight: 400; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 6px; }
+.show-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin: 0; padding: 0; border: 0; }
+.show-toggles legend { float: left; margin-right: 12px; padding: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; line-height: 44px; }
+.show-toggles__opt { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text-2); }
+.show-toggles__opt input { width: 18px; height: 18px; accent-color: var(--club); }
+.club-3d, .club-2d { display: flex; flex-direction: column; gap: 16px; }
+.phone-only { display: none; }
+.stat-list--stack { grid-template-columns: 1fr; }
+.stat-list__delta { font-size: 13px; font-weight: 500; color: var(--muted); }
+.impact-tab__missing { display: flex; flex-direction: column; gap: 4px; }
+.all-measurements > summary { min-height: 48px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.all-measurements__group { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.all-measurements__flags { margin: 0; padding-left: 20px; color: var(--text-2); }
+@media (min-width: 1024px) {
+  .ball-data__grid { grid-template-columns: 3fr 2fr; }
+  .ball-data__readouts { grid-template-columns: 1fr 2fr; }
+  .club-3d__diagrams { grid-template-columns: 1fr 1fr; }
+  .club-2d__diagrams { grid-template-columns: repeat(3, 1fr); }
+  .club-2d__angles { grid-template-columns: 1fr 1fr; }
+  .impact-tab { grid-template-columns: 3fr 2fr; }
+}
+@media (max-width: 639px) {
+  .inspector h1 { font-size: 26px; }
+  .head-tiles { grid-template-columns: repeat(2, 1fr); }
+  .phone-only { display: block; }
+  .is-hidden-phone { display: none; }
+  .inspector-head__nav select { flex: 1 1 100%; }
+}
