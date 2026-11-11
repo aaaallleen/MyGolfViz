@@ -72,6 +72,19 @@ describe('OverviewPage', () => {
     expect(tile('Carry')).toHaveTextContent(/n 34$/);
   });
 
+  test('eight KPI labels in order, with Mean lateral', () => {
+    renderWithData(ALL);
+    expect(Array.from(document.querySelectorAll('.fsa-kpi__label')).map((x) => x.textContent)).toEqual(
+      ['Carry', 'Total', 'Ball speed', 'Club speed', 'Smash factor', 'Spin', 'Mean lateral', 'Club path'],
+    );
+  });
+
+  test('chips have accessible names like "Driver, 34 shots"', () => {
+    renderWithData(ALL);
+    expect(screen.getByRole('button', { name: 'All, 133 shots' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Driver, 34 shots' })).toBeInTheDocument();
+  });
+
   test('All clubs: Carry n 132 of 133', () => {
     renderWithData(ALL);
     const carry = screen.getByText('Carry', { selector: '.fsa-kpi__label' }).closest('.fsa-kpi') as HTMLElement;
@@ -95,7 +108,10 @@ describe('OverviewPage', () => {
     await user.click(document.querySelector(`circle[data-shot-id="${target.id}"]`)!);
     expect(r.store().selectedId).toBe(target.id);
     const row = tableRows(r.container).find((x) => x.dataset.shotId === target.id)!;
-    expect(row).toHaveAttribute('aria-selected', 'true');
+    expect(row).toHaveAttribute('aria-current', 'true')
+    expect(tableRows(r.container).filter((x) => x.hasAttribute('aria-selected'))).toHaveLength(0)
+    expect(tableRows(r.container).filter((x) => x.hasAttribute('aria-current'))).toHaveLength(1)
+    expect(r.container.querySelector(`.shots-cards [data-shot-id="${target.id}"]`)).toHaveAttribute('aria-current', 'true');
     expect(screen.getByLabelText('Choose shot')).toHaveValue(target.id);
   });
 

@@ -36,7 +36,7 @@ test('SegmentedControl: role=group named by label; selected option aria-pressed=
 test("FilterChip renders 'Driver' and '34' with aria-pressed", async () => {
   const onClick = vi.fn();
   render(<FilterChip pressed label="Driver" count={34} onClick={onClick} />);
-  const chip = screen.getByRole('button', { name: /Driver/ });
+  const chip = screen.getByRole('button', { name: 'Driver, 34 shots' });
   expect(chip).toHaveAttribute('aria-pressed', 'true');
   expect(within(chip).getByText('Driver')).toBeInTheDocument();
   expect(within(chip).getByText('34')).toBeInTheDocument();
@@ -122,6 +122,11 @@ test('SelectField input is reachable via getByLabelText(label)', async () => {
   expect(select).toHaveValue('d');
   await userEvent.selectOptions(select, 'i');
   expect(onChange).toHaveBeenCalledWith('i');
+});
+
+test('FilterChip accessible name separates label and count and pluralizes', () => {
+  render(<FilterChip pressed={false} label="Wedge" count={1} onClick={() => {}} />);
+  expect(screen.getByRole('button', { name: 'Wedge, 1 shot' })).toBeInTheDocument();
 });
 
 test('Button, SegmentedControl options, FilterChip, SelectField and tabs carry class fsa-touch', () => {

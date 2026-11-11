@@ -21,7 +21,7 @@ export function KpiGrid({ shots }: { shots: readonly Shot[] }) {
         return (
           <KpiTile
             key={key}
-            label={def.label}
+            label={key === 'lateral' ? 'Mean lateral' : def.label}
             value={split ? split.value : null}
             {...(split && split.unit ? { unit: split.unit } : {})}
             sub={sub}

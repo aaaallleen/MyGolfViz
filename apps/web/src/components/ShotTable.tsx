@@ -60,7 +60,7 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
                 key={s.id}
                 data-shot-id={s.id}
                 tabIndex={0}
-                aria-selected={s.id === selectedId}
+                {...(s.id === selectedId ? { 'aria-current': 'true' as const } : {})}
                 title={rowTitle(s, files)}
                 onClick={() => onSelect(s.id)}
                 onKeyDown={(e) => onKey(e, s.id)}

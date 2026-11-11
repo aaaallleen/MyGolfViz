@@ -101,10 +101,10 @@ textarea.field__input { padding: 10px 12px; }
 .shots-table .is-left { text-align: left; }
 .shots-table th[scope='rowgroup'] { font-family: var(--font-display); background: var(--bg); }
 .shots-table tbody tr[data-shot-id] { cursor: pointer; }
-.shots-table tr[aria-selected='true'] { background: var(--surface-raised); box-shadow: inset 3px 0 0 var(--text); }
+.shots-table tr[aria-current='true'] { background: var(--surface-raised); box-shadow: inset 3px 0 0 var(--text); }
 .shots-cards { list-style: none; margin: 0; padding: 0; display: none; flex-direction: column; gap: 8px; }
 .shot-card { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; text-align: left; border: 1px solid var(--border); border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; }
-.shot-card[aria-pressed='true'] { background: var(--surface-raised); border-color: var(--text); }
+.shot-card[aria-current='true'] { background: var(--surface-raised); border-color: var(--text); }
 .shot-card__head { font-weight: 600; }
 .shot-card__vals { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; font-size: 13px; color: var(--text-2); }
 @media (max-width: 639px) {

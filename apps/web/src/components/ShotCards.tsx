@@ -15,7 +15,7 @@ export function ShotCards({ shots, files, selectedId, onSelect }: {
             type="button"
             className="shot-card fsa-touch"
             data-shot-id={s.id}
-            aria-pressed={s.id === selectedId}
+            {...(s.id === selectedId ? { 'aria-current': 'true' as const } : {})}
             title={rowTitle(s, files)}
             onClick={() => onSelect(s.id)}
           >
