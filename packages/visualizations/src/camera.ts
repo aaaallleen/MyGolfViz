@@ -1,5 +1,5 @@
-import type { Vec3 } from '@fsa/domain';
-import type { ReplayScene } from '@fsa/analytics';
+import type { Handedness, Vec3 } from '@fsa/domain';
+import { CLUB_ARC_RADIUS_YD, type ReplayScene } from '@fsa/analytics';
 
 export type CameraPreset = 'dtl' | 'perspective' | 'side' | 'top';
 export interface Camera { eye: Vec3; target: Vec3; up: Vec3; focal: number }
@@ -28,25 +28,15 @@ function framedPoints(scene: ReplayScene): Vec3[] {
   return pts;
 }
 
-export function cameraFor(preset: CameraPreset, scene: ReplayScene, viewportWidth: number): Camera {
-  const g = scene.handedness === 'right' ? -1 : 1;
-  const pts = framedPoints(scene);
+const bounds = (pts: Vec3[]) => {
   const lo: Vec3 = [Infinity, Infinity, Infinity], hi: Vec3 = [-Infinity, -Infinity, -Infinity];
   for (const p of pts) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k]!, p[k]!); hi[k] = Math.max(hi[k]!, p[k]!); }
-  const mid: Vec3 = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
-  const Y = hi[1], Z = hi[2];
-  const M = Math.max(hi[1] - lo[1], 30); // overall scale in yards
-  const behind = Math.max(0, -lo[1]);
+  return { lo, hi, mid: [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2] as Vec3 };
+};
 
-  let eye: Vec3, up: Vec3 = [0, 0, 1];
-  switch (preset) {
-    case 'dtl': eye = [2.5 * g, -(behind + 10), 3]; break;
-    case 'perspective': eye = [0.45 * M * g, -(behind + 0.45 * M), 0.3 * M + Z]; break;
-    case 'side': eye = [-(0.8 * M + 20) * g, mid[1], 1.5]; break;
-    case 'top': eye = [mid[0], mid[1], Z + M]; up = [0, 1, 0]; break;
-  }
-  let target: Vec3 = preset === 'top' ? [mid[0], mid[1], 0] : mid;
-
+/** Re-centre the target on the framed points, then fit focal so every point sits within FILL of the half-extents. */
+function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewportWidth: number): Camera {
+  let target = initialTarget;
   const offsets = (cam: Camera) => {
     const out: { x: number; y: number; depth: number }[] = [];
     for (const p of pts) {
@@ -76,6 +66,60 @@ export function cameraFor(preset: CameraPreset, scene: ReplayScene, viewportWidt
   }
   return { eye, target, up, focal: Math.min(fit, 3 * viewportWidth) };
 }
+
+function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness, viewportWidth: number): Camera {
+  const g = handedness === 'right' ? -1 : 1;
+  const { lo, hi, mid } = bounds(pts);
+  const Z = hi[2];
+  const M = Math.max(hi[1] - lo[1], 30); // overall scale in yards
+  const behind = Math.max(0, -lo[1]);
+  let eye: Vec3, up: Vec3 = [0, 0, 1];
+  switch (preset) {
+    case 'dtl': eye = [2.5 * g, -(behind + 10), 3]; break;
+    case 'perspective': eye = [0.45 * M * g, -(behind + 0.45 * M), 0.3 * M + Z]; break;
+    case 'side': eye = [-(0.8 * M + 20) * g, mid[1], 1.5]; break;
+    case 'top': eye = [mid[0], mid[1], Z + M]; up = [0, 1, 0]; break;
+  }
+  const target: Vec3 = preset === 'top' ? [mid[0], mid[1], 0] : mid;
+  return fitCamera(eye, target, up, pts, viewportWidth);
+}
+
+export function cameraFor(preset: CameraPreset, scene: ReplayScene, viewportWidth: number): Camera {
+  return presetCamera(preset, framedPoints(scene), scene.handedness, viewportWidth);
+}
+
+/** Frames the origin and every point of every flight passed in. */
+export function flightCamera(
+  preset: CameraPreset, flights: Vec3[][], handedness: Handedness, viewportWidth: number,
+): Camera {
+  const pts: Vec3[] = [[0, 0, 0]];
+  for (const f of flights) pts.push(...f);
+  if (pts.length === 1) pts.push([-5, -5, 0], [5, 5, 3]);
+  return presetCamera(preset, pts, handedness, viewportWidth);
+}
+
+/** Corners of the swing-plane quad the 3D component draws: origin ± u·R, and those points + w·R. */
+export function planeQuad(scene: ReplayScene): Vec3[] {
+  const pl = scene.plane;
+  if (!pl) return [];
+  const R = CLUB_ARC_RADIUS_YD;
+  const at = (su: number, sw: number): Vec3 =>
+    [0, 1, 2].map((k) => su * pl.u[k]! * R + sw * pl.w[k]! * R) as Vec3;
+  return [at(-1, 0), at(1, 0), at(1, 1), at(-1, 1)];
+}
+
+/** Fixed elevated 3/4 view from the golfer side, framing origin, club arc and plane quad only. */
+export function clubCamera(scene: ReplayScene, viewportWidth: number): Camera {
+  const g = scene.handedness === 'right' ? -1 : 1;
+  const pts: Vec3[] = [[0, 0, 0], ...(scene.clubArc ?? []), ...planeQuad(scene)];
+  if (pts.length === 1) pts.push([-R_FALLBACK, -R_FALLBACK, 0], [R_FALLBACK, R_FALLBACK, R_FALLBACK]);
+  const { lo, hi, mid } = bounds(pts);
+  const S = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], 1);
+  const eye: Vec3 = [mid[0] + g * 1.2 * S, mid[1] - 1.0 * S, mid[2] + 0.5 * S];
+  return fitCamera(eye, mid, [0, 0, 1], pts, viewportWidth);
+}
+
+const R_FALLBACK = CLUB_ARC_RADIUS_YD;
 
 export function projectPoint(
   p: Vec3, cam: Camera, viewport: { width: number; height: number },

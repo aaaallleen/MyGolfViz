@@ -98,3 +98,39 @@ export function replayFrame(scene: ReplayScene, progress: number): { clubHead: V
   }
   return { clubHead, ball: scene.landing ?? origin };
 }
+
+export type ClubPhase = 'Downswing' | 'Impact' | 'Follow-through';
+
+export function clubPhase(progress: number): ClubPhase {
+  if (progress < 0.60) return 'Downswing';
+  if (progress < 0.66) return 'Impact';
+  return 'Follow-through';
+}
+
+export function clubFrame(scene: ReplayScene, progress: number): Vec3 | null {
+  const arc = scene.clubArc;
+  if (!arc) return null;
+  const p = clamp(progress, 0, 1);
+  const phase = clubPhase(p);
+  if (phase === 'Downswing') return along(arc, 0, scene.impactIndex, p / 0.60);
+  if (phase === 'Impact') return [0, 0, 0];
+  return along(arc, scene.impactIndex, arc.length - 1, (p - 0.66) / 0.34);
+}
+
+export type FlightPhase = 'Launch' | 'Ball flight' | 'Landing';
+
+export function flightPhase(progress: number): FlightPhase {
+  if (progress < 0.05) return 'Launch';
+  if (progress < 0.95) return 'Ball flight';
+  return 'Landing';
+}
+
+export function flightFrame(scene: ReplayScene, progress: number): Vec3 {
+  const origin: Vec3 = [0, 0, 0];
+  const p = clamp(progress, 0, 1);
+  const phase = flightPhase(p);
+  const fl = scene.ballFlight;
+  if (!fl || phase === 'Launch') return origin;
+  if (phase === 'Landing') return scene.landing ?? origin;
+  return along(fl, 0, fl.length - 1, (p - 0.05) / 0.90);
+}
