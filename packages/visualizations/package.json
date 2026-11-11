@@ -4,5 +4,13 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "types": "src/index.ts"
+  "types": "src/index.ts",
+  "dependencies": {
+    "@fsa/analytics": "*",
+    "@fsa/domain": "*",
+    "@fsa/ui": "*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
 }
