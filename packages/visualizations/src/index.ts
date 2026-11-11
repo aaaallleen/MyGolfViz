@@ -6,3 +6,4 @@ export { VerticalDeliveryDiagram, type VerticalDeliveryProps } from './VerticalD
 export { SpinBallDiagram, SPIN_DISPLAY_SLOWDOWN, type SpinBallDiagramProps } from './SpinBall';
 export { FaceImpactDiagram, type FaceImpactDiagramProps } from './FaceImpact';
 export { FACE_OUTLINES, type FaceOutline } from './faceOutlines';
+export { cameraFor, projectPoint, type Camera, type CameraPreset } from './camera';
