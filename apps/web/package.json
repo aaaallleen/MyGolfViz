@@ -6,5 +6,10 @@
   "scripts": {
     "dev": "vite --mode public",
     "build:public": "vite build --mode public"
+  },
+  "dependencies": {
+    "@fsa/analytics": "*",
+    "@fsa/csv-parser": "*",
+    "@fsa/domain": "*"
   }
 }
