@@ -1,6 +1,7 @@
 import type { TrajectoryCurve } from '@fsa/analytics';
 import { ProvenanceTag } from '@fsa/ui';
 import { linear, niceTicks } from './scale';
+import { BALL, INK, MUTED, GRID, SURFACE, FONT } from './theme';
 
 export interface TrajectoryPlotProps {
   curves: TrajectoryCurve[];
@@ -9,8 +10,6 @@ export interface TrajectoryPlotProps {
 
 const W = 560, H = 220;
 const L = 40, R = 540, T = 20, B = 180;
-const AMBER = '#F5A742', INK = '#EAF0EC', MUTED = '#9BA9A1', GRID = '#26312C', BG = '#101714';
-const FONT = 'Inter, sans-serif';
 
 function apex(c: TrajectoryCurve): number {
   let max = 0;
@@ -47,13 +46,13 @@ export function TrajectoryPlot({ curves, selectedId }: TrajectoryPlotProps) {
         <span style={{ fontSize: 13, color: MUTED }}>Drawn from launch angle, apex height, descent angle and carry</span>
       </div>
       <svg role="img" aria-label={aria} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        <rect x={0} y={0} width={W} height={H} rx={8} fill={BG} />
+        <rect x={0} y={0} width={W} height={H} rx={8} fill={SURFACE} />
         <g stroke={GRID} strokeWidth={1}>
           {yTicks.map((t) => <line key={`gy${t}`} x1={L} y1={sy(t / 3)} x2={R} y2={sy(t / 3)} />)}
           {xTicks.map((t) => <line key={`gx${t}`} x1={sx(t)} y1={T} x2={sx(t)} y2={B} />)}
         </g>
         <line x1={L} y1={B} x2={R} y2={B} stroke={MUTED} strokeWidth={1.5} />
-        <g fill="none" stroke={AMBER} strokeOpacity={0.45} strokeWidth={1.5}>
+        <g fill="none" stroke={BALL} strokeOpacity={0.45} strokeWidth={1.5}>
           {ordered.map((c) => {
             const isSel = c === sel;
             return (

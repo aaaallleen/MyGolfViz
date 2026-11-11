@@ -1,5 +1,6 @@
 import type { DispersionStats } from '@fsa/analytics';
 import { linear, niceTicks } from './scale';
+import { BALL, INK, MUTED, GRID, SURFACE, FONT } from './theme';
 
 export interface DispersionPlotProps {
   stats: DispersionStats;
@@ -10,8 +11,6 @@ export interface DispersionPlotProps {
 
 const W = 560, H = 440;
 const L = 40, R = 520, T = 40, B = 400;
-const AMBER = '#F5A742', INK = '#EAF0EC', MUTED = '#9BA9A1', GRID = '#26312C', BG = '#101714';
-const FONT = 'Inter, sans-serif';
 
 const NOTE = {
   carry: 'Actual reported landing position',
@@ -70,7 +69,7 @@ export function DispersionPlot({ stats, selectedId, onSelect, labelFor }: Disper
   return (
     <div className="fsa-dispersion">
       <svg role="img" aria-label={aria} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        <rect x={0} y={0} width={W} height={H} rx={8} fill={BG} />
+        <rect x={0} y={0} width={W} height={H} rx={8} fill={SURFACE} />
         <g stroke={GRID} strokeWidth={1}>
           {yTicks.map((t) => <line key={`gy${t}`} x1={L} y1={sy(t)} x2={R} y2={sy(t)} />)}
           {xTicks.map((t) => <line key={`gx${t}`} x1={sx(t)} y1={T} x2={sx(t)} y2={B} />)}
@@ -84,9 +83,9 @@ export function DispersionPlot({ stats, selectedId, onSelect, labelFor }: Disper
         </g>
         {ellipse && ellipseTransform && (
           <circle data-testid="ellipse" cx={0} cy={0} r={1} transform={ellipseTransform}
-            fill={AMBER} fillOpacity={0.1} stroke={AMBER} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            fill={BALL} fillOpacity={0.1} stroke={BALL} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
         )}
-        <g fill={AMBER} fillOpacity={0.8}>
+        <g fill={BALL} fillOpacity={0.8}>
           {points.map((p) => {
             const isSel = p.shotId === selectedId;
             return (
