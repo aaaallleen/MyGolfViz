@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
+import { ViewErrorBoundary } from '../components/ViewErrorBoundary';
 import { Nav } from './Nav';
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -15,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <Nav />
       </header>
-      <main className="app-main">{children}</main>
+      <main className="app-main"><ViewErrorBoundary key={pathname}>{children}</ViewErrorBoundary></main>
     </div>
   );
 }

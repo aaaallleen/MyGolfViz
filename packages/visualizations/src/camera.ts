@@ -39,9 +39,18 @@ function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewpo
   let cam: Camera = { eye, target, up, focal: 1 };
   const o = offsets(cam);
   if (o.length > 0) {
-    const cx = (Math.min(...o.map((q) => q.x)) + Math.max(...o.map((q) => q.x))) / 2;
-    const cy = (Math.min(...o.map((q) => q.y)) + Math.max(...o.map((q) => q.y))) / 2;
-    const dAvg = o.reduce((a, q) => a + q.depth, 0) / o.length;
+    // Plain loops: spreading ~100k+ points into Math.min/max exceeds engine argument limits.
+    let xLo = Infinity, xHi = -Infinity, yLo = Infinity, yHi = -Infinity, dSum = 0;
+    for (const q of o) {
+      if (q.x < xLo) xLo = q.x;
+      if (q.x > xHi) xHi = q.x;
+      if (q.y < yLo) yLo = q.y;
+      if (q.y > yHi) yHi = q.y;
+      dSum += q.depth;
+    }
+    const cx = (xLo + xHi) / 2;
+    const cy = (yLo + yHi) / 2;
+    const dAvg = dSum / o.length;
     const f = normalize(sub(target, eye));
     const r = normalize(cross(f, up));
     const v = cross(r, f);
@@ -79,7 +88,7 @@ export function flightCamera(
   preset: CameraPreset, flights: Vec3[][], handedness: Handedness, viewportWidth: number,
 ): Camera {
   const pts: Vec3[] = [[0, 0, 0]];
-  for (const f of flights) pts.push(...f);
+  for (const f of flights) for (const p of f) pts.push(p);
   if (pts.length === 1) pts.push([-5, -5, 0], [5, 5, 3]);
   return presetCamera(preset, pts, handedness, viewportWidth);
 }

@@ -13,15 +13,15 @@ export function SessionDetailsForm({ value, onChange }: SessionDetailsFormProps)
     <div className="details-form">
       <label className="field" htmlFor={`${id}-name`}>
         <span>Session name</span>
-        <input id={`${id}-name`} type="text" className="field__input fsa-touch" placeholder="Untitled session" value={value.name} onChange={(e) => onChange({ name: e.target.value })} />
+        <input id={`${id}-name`} type="text" autoComplete="off" className="field__input fsa-touch" placeholder="Untitled session" value={value.name} onChange={(e) => onChange({ name: e.target.value })} />
       </label>
       <label className="field" htmlFor={`${id}-date`}>
         <span>Date</span>
-        <input id={`${id}-date`} type="date" className="field__input fsa-touch" value={value.date ?? ''} onChange={(e) => onChange({ date: e.target.value || null })} />
+        <input id={`${id}-date`} type="date" autoComplete="off" className="field__input fsa-touch" value={value.date ?? ''} onChange={(e) => onChange({ date: e.target.value || null })} />
       </label>
       <label className="field field--wide" htmlFor={`${id}-notes`}>
         <span>Notes</span>
-        <textarea id={`${id}-notes`} className="field__input" rows={3} value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} />
+        <textarea id={`${id}-notes`} autoComplete="off" className="field__input" rows={3} value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} />
       </label>
       <SegmentedControl
         label="Golfer"

@@ -75,13 +75,12 @@ export function Club2DTab({ shot, visibleShots }: { shot: Shot; visibleShots: re
             {ANGLES.map(({ key, label }) => {
               const mean = summarize(sameClub.map((s) => s.m[key])).mean;
               const v = m[key];
-              const delta = v === null || mean === null ? null : v - mean;
               return (
                 <div key={key}>
-                  <dt>{label}</dt>
-                  <dd className={mean === null ? 'is-missing' : undefined}>
-                    {mean === null ? NOT_MEASURED : formatMeasurement(key, mean)}
-                    {delta !== null && <span className="stat-list__delta">{` (${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}° vs this shot)`}</span>}
+                  <dt>{label}</dt>{' '}
+                  <dd className={v === null ? 'is-missing' : undefined}>
+                    {v === null ? NOT_MEASURED : formatMeasurement(key, v)}
+                    <span className="stat-list__delta">{` vs ${mean === null ? `no ${shot.club} average` : formatMeasurement(key, mean)}`}</span>
                   </dd>
                 </div>
               );

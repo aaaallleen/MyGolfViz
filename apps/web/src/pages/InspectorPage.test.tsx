@@ -1,6 +1,8 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test } from 'vitest';
+import { summarize } from '@fsa/analytics';
+import { formatMeasurement } from '@fsa/domain';
 import { renderWithData } from '../test/renderWithData';
 
 const F1 = 'FlightScope Golf Session Sept 19 2022.csv';
@@ -155,6 +157,20 @@ describe('InspectorPage', () => {
     expect(t).toMatch(/Driver averages from \d+ of \d+ shots that have club data\./);
     expect(screen.getByRole('button', { name: 'True scale' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Exaggerated ×2' })).toBeInTheDocument();
+  });
+
+  test('2D tab: session average rows read "{this shot} vs {average}" with no delta', () => {
+    const v = open();
+    const api = v.store();
+    const shot = api.visibleShots.find((s) => s.id === api.selectedId)!;
+    const same = api.visibleShots.filter((s) => s.club === shot.club);
+    expect(shot.m.dynamicLoft).not.toBeNull();
+    const mean = summarize(same.map((s) => s.m.dynamicLoft)).mean;
+    const heading = within(panel()).getByRole('heading', { name: 'Against session average' });
+    const row = within(heading.parentElement!).getByText('Dynamic loft').parentElement!;
+    expect(row.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+      `Dynamic loft ${formatMeasurement('dynamicLoft', shot.m.dynamicLoft)} vs ${formatMeasurement('dynamicLoft', mean)}`);
+    expect(panel().textContent).not.toContain('vs this shot');
   });
 
   test("File 1 Shot 14, 2D tab: Not measured copy, launch 8.9° R, no zero fallbacks", () => {

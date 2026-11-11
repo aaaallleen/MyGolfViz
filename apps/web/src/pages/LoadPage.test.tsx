@@ -102,6 +102,15 @@ describe('LoadPage', () => {
     expect(screen.getByRole('button', { name: 'Load Session CSV' })).toHaveFocus();
   });
 
+  test('session detail fields opt out of browser autofill history', async () => {
+    const { user, input } = setup();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    for (const label of ['Session name', 'Date', 'Notes']) {
+      expect(screen.getByLabelText(label)).toHaveAttribute('autocomplete', 'off');
+    }
+  });
+
   test('details are never prefilled from files', async () => {
     const { user, input } = setup();
     await user.upload(input(), [fixture(F1), fixture(F2)]);

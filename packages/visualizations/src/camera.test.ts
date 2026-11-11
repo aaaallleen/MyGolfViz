@@ -96,3 +96,13 @@ describe('clubCamera', () => {
     expect(clubCamera(buildReplayScene(shot, 'left'), 800).eye[0]).toBeGreaterThan(0);
   });
 });
+
+describe('flightCamera at scale', () => {
+  test('frames more than 134,000 points without spreading them into Math.min/max', () => {
+    const one = scene.ballFlight!;
+    const flights = Array.from({ length: 2200 }, () => Array.from({ length: 61 }, (_, i) => one[i % one.length]!));
+    const c = flightCamera('perspective', flights, 'right', 800);
+    expect(Number.isFinite(c.focal)).toBe(true);
+    for (const v of [...c.eye, ...c.target]) expect(Number.isFinite(v)).toBe(true);
+  });
+});
