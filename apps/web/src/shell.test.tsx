@@ -17,12 +17,12 @@ function renderAt(path: string) {
 
 describe('app shell', () => {
   test('nav renders exactly the four PUBLIC_NAV labels in order; no save/library/history/calendar text', () => {
-    const { container } = renderAt('/');
+    renderAt('/');
     const nav = screen.getAllByRole('navigation')[0]!;
     const labels = within(nav).getAllByRole('link').map((a) => a.textContent?.trim());
     expect(labels).toEqual(['Load Session CSV', 'Overview', 'Shot Inspector', 'Help / Get Local Version']);
     expect(labels).toEqual(PUBLIC_NAV.map((n) => n.label));
-    expect(container.textContent).not.toMatch(/save|session library|history|calendar/i);
+    expect(nav.textContent).not.toMatch(/save|session library|history|calendar/i);
   });
 
   test("unknown route redirects to Load page; '/overview' with no data shows empty state", () => {

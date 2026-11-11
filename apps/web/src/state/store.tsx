@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import type { LandingMode } from '@fsa/analytics';
@@ -40,26 +40,38 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
   const [state, dispatch] = useReducer(reducer, initial ?? initialState);
   const counter = useRef(0);
 
+  // Bumped by clear(): in-flight addFiles calls from an older generation drop their results.
+  const generation = useRef(0);
+  const [pending, setPending] = useState(0);
+
   const addFiles = useCallback(async (files: readonly File[]) => {
-    dispatch({ type: 'setBusy', busy: true });
+    const gen = generation.current;
+    setPending((n) => n + 1);
     try {
       const incoming: IncomingFile[] = [];
       for (const f of files) incoming.push(await readIncoming(f));
-      dispatch({ type: 'stage', incoming, makeKey: () => `f${++counter.current}` });
+      if (gen === generation.current) dispatch({ type: 'stage', incoming, makeKey: () => `f${++counter.current}` });
     } finally {
-      dispatch({ type: 'setBusy', busy: false });
+      if (gen === generation.current) setPending((n) => n - 1);
     }
+  }, []);
+
+  const clear = useCallback(() => {
+    generation.current += 1;
+    setPending(0);
+    dispatch({ type: 'clear' });
   }, []);
 
   const value = useMemo<WorkingSetApi>(
     () => ({
       ...state,
+      busy: pending > 0,
       visibleShots: visibleOf(state),
       addFiles,
       setInclude: (key, include) => dispatch({ type: 'setInclude', key, include }),
       removeStaged: (key) => dispatch({ type: 'removeStaged', key }),
       analyze: () => dispatch({ type: 'analyze' }),
-      clear: () => dispatch({ type: 'clear' }),
+      clear,
       setDetails: (patch) => dispatch({ type: 'setDetails', patch }),
       setClub: (club) => dispatch({ type: 'setClub', club }),
       setFile: (fileId) => dispatch({ type: 'setFile', fileId }),
@@ -68,7 +80,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setLandingMode: (mode) => dispatch({ type: 'setLandingMode', mode }),
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
     }),
-    [state, addFiles],
+    [state, pending, addFiles, clear],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

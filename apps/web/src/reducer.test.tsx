@@ -67,4 +67,36 @@ describe('store', () => {
     expect(result.current.staged[0]!.parse.shots).toHaveLength(16);
     expect(buildWorkingSet(result.current.staged).shots).toHaveLength(16);
   });
+
+  const wrapper = ({ children }: { children: ReactNode }) => <WorkingSetProvider>{children}</WorkingSetProvider>;
+  const mkFile = () => new File([new Uint8Array(readFileSync(FIXTURE))], 'x.csv', { type: 'text/csv' });
+
+  test('clear() during an in-flight addFiles leaves nothing staged', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    let p!: Promise<void>;
+    act(() => { p = result.current.addFiles([mkFile()]); });
+    act(() => { result.current.clear(); });
+    await act(async () => { await p; });
+    expect(result.current.staged).toEqual([]);
+    expect(result.current.workingSet).toBeNull();
+    expect(result.current.busy).toBe(false);
+  });
+
+  test('busy stays true until all overlapping addFiles calls finish', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    let pA!: Promise<void>;
+    let pB!: Promise<void>;
+    act(() => {
+      pA = result.current.addFiles([mkFile()]);
+      pB = result.current.addFiles([mkFile(), mkFile(), mkFile()]);
+    });
+    expect(result.current.busy).toBe(true);
+    let bDone = false;
+    void pB.then(() => { bDone = true; });
+    await act(async () => { await pA; });
+    expect(bDone).toBe(false);
+    expect(result.current.busy).toBe(true);
+    await act(async () => { await pB; });
+    expect(result.current.busy).toBe(false);
+  });
 });
