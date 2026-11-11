@@ -60,13 +60,12 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    ("0.62 in toe · 0.44 in high"). Lateral impact: + toe, − heel, 0 centered (confirmed by the
    product owner). Vertical impact: + high. Face drawn face-on as in frames 05/08: for a right-hander the toe is
    on the left; a left-hander is mirrored.
-3. **Inspector tabs follow the frames:** "Face impact", "3D reconstruction", "2D reconstruction".
-   The 3D replay is illustrative (banner always shown), and its timeline shows phase names, not
-   seconds (frame 06's "Impact · 0.00 s" becomes "Impact").
-   **Ball data** (spec §7.2 ball spin) is its own single-view section placed *above* the
-   "Club data" section, styled like the "Club data" label but with the orange ball dot. It shows a
-   spinning sphere (spin axis tilt, rotation ring and direction, slowed 50×) with total spin, spin axis,
-   derived backspin/sidespin, and launch and flight readouts.
+3. **Inspector structure (product owner, 2026-11-11).**
+   - **Ball data** comes first: a 3D ball-flight viewer with frame 06's camera buttons (DTL, Perspective, Side, Top), the selected shot bold, other visible shots faint behind a "Show other shots" toggle, and a flight replay (Launch · Ball flight · Landing). Beside it are the spinning ball and the launch/flight readouts.
+   - **Club data** has the tabs "Face impact", "3D reconstruction" and "2D reconstruction".
+   - The 3D tab is a club-only scene with frame 06's downswing replay (Downswing · Impact · Follow-through) and "Show" toggles Top view, AoA, V-plane, Side view. Top view and Side view toggle the two angle diagrams under the scene.
+   - The 2D tab has "Show" toggles Face to target, Face to path, Dynamic loft, Spin axis. These show or hide those layers and the flat spin-axis panel.
+   - Replays show phase names, not seconds; frame 06's "Impact · 0.00 s" becomes "Impact".
 4. **Session details follow the frames.** The session name, date ("7 Nov 2026 (set by you)"), notes and the
    "Right-handed" chip are shown as designed. In the Cloud Viewer the user types them on the Load page
    or via "Edit details"; they are kept in tab memory only and never prefilled from file names.
