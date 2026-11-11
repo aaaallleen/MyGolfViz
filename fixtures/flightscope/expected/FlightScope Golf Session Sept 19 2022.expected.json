@@ -1,0 +1,43 @@
+{
+  "file": "FlightScope Golf Session Sept 19 2022.csv",
+  "sha256": "bb1cb2f252566342c034f6d9f6b3541894e7ccef1f0cd36ae82fd5ffd2975cdb",
+  "parserVersion": "1.0.0",
+  "columnCount": 32,
+  "shotCount": 16,
+  "summaryRowCount": 2,
+  "summaryRows": [
+    { "club": "Driver", "kind": "Avg", "sourceRow": 18 },
+    { "club": "Driver", "kind": "Dev", "sourceRow": 19 }
+  ],
+  "clubs": { "Driver": 16 },
+  "nonNullCounts": { "clubPath": 14, "impactLateral": 3 },
+  "missingColumns": [],
+  "unrecognizedColumns": [],
+  "flags": { "no_measurements": [], "check_face_to_path": [], "check_smash": [] },
+  "shots": [
+    {
+      "sourceRow": 2, "shotLabel": "1", "club": "Driver", "shotType": "Straight", "mode": "Outdoor", "location": "View",
+      "m": {
+        "ballSpeed": 142.5, "clubSpeed": 113.5, "smash": 1.25, "carry": 198.9, "total": 199.5, "roll": 0.6,
+        "swingH": 7, "spin": 5162, "height": 149.7, "flightTime": 7.6, "aoa": -1.3, "spinLoft": 28.3,
+        "swingV": 50.5, "spinAxis": 1, "lateral": 10.4, "ftp": 0.5, "ftt": 8.6, "dynamicLoft": 27,
+        "clubPath": 8.1, "launchH": 2.2, "launchV": 19.1, "lowPoint": 1.5, "descentV": 54.6, "curve": 2.6,
+        "impactLateral": null, "impactVertical": null, "altitude": 55.8
+      }
+    },
+    {
+      "sourceRow": 15, "shotLabel": "14", "club": "Driver", "shotType": "Push/Slice", "mode": "Outdoor", "location": "View",
+      "m": {
+        "swingH": null, "aoa": null, "spinLoft": null, "swingV": null, "ftp": null, "ftt": null,
+        "dynamicLoft": null, "clubPath": null, "lowPoint": 0, "launchH": 8.9
+      }
+    },
+    {
+      "sourceRow": 16, "shotLabel": "15", "club": "Driver", "shotType": "Hook", "mode": "Outdoor", "location": "View",
+      "m": {
+        "spinAxis": -45, "lateral": -44.7, "ftp": -13.8, "ftt": -4.1, "clubPath": 9.6, "launchH": -0.3,
+        "lowPoint": -4.7, "curve": -44, "impactLateral": 0.23, "impactVertical": 0.84
+      }
+    }
+  ]
+}

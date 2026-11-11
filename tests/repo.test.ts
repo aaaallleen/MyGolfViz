@@ -25,7 +25,7 @@ describe('repo scaffold', () => {
   test('fixtures are byte-identical copies of the demo exports', () => {
     const dir = join(ROOT, 'fixtures', 'flightscope');
     expect(existsSync(dir)).toBe(true);
-    expect(readdirSync(dir).sort()).toEqual(Object.keys(FIXTURE_SHA256).sort());
+    expect(readdirSync(dir).filter((f) => f.endsWith('.csv')).sort()).toEqual(Object.keys(FIXTURE_SHA256).sort());
     for (const [name, sha] of Object.entries(FIXTURE_SHA256)) {
       const hash = createHash('sha256').update(readFileSync(join(dir, name))).digest('hex');
       expect(hash, name).toBe(sha);

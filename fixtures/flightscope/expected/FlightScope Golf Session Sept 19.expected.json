@@ -1,0 +1,31 @@
+{
+  "file": "FlightScope Golf Session Sept 19.csv",
+  "sha256": "d84e6080c57fd31690c06465ea8d72ae7de93dda5a89bc14ced8498a8e4b2b95",
+  "parserVersion": "1.0.0",
+  "columnCount": 32,
+  "shotCount": 26,
+  "summaryRowCount": 6,
+  "summaryRows": [
+    { "club": "4 Hybrid", "kind": "Avg", "sourceRow": 5 },
+    { "club": "4 Hybrid", "kind": "Dev", "sourceRow": 6 },
+    { "club": "7 Iron", "kind": "Avg", "sourceRow": 24 },
+    { "club": "7 Iron", "kind": "Dev", "sourceRow": 25 },
+    { "club": "8 Iron", "kind": "Avg", "sourceRow": 32 },
+    { "club": "8 Iron", "kind": "Dev", "sourceRow": 33 }
+  ],
+  "clubs": { "4 Hybrid": 3, "7 Iron": 17, "8 Iron": 6 },
+  "nonNullCounts": { "clubPath": 26, "impactLateral": 22 },
+  "missingColumns": [],
+  "unrecognizedColumns": [],
+  "flags": { "no_measurements": [], "check_face_to_path": [], "check_smash": [] },
+  "shots": [
+    {
+      "sourceRow": 2, "shotLabel": "1", "club": "4 Hybrid", "shotType": "Hook", "mode": "Outdoor", "location": "View",
+      "m": { "impactLateral": null }
+    },
+    {
+      "sourceRow": 4, "shotLabel": "3", "club": "4 Hybrid", "shotType": "Hook", "mode": "Outdoor", "location": "View",
+      "m": { "impactLateral": 0.62, "impactVertical": 0.44, "spinAxis": -42.4, "lateral": -46.9 }
+    }
+  ]
+}
