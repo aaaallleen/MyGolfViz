@@ -1,11 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { FaceImpactDiagram } from './FaceImpact';
 import { HorizontalDeliveryDiagram } from './HorizontalDelivery';
 import { SPIN_DISPLAY_SLOWDOWN, SpinBallDiagram } from './SpinBall';
 import { VerticalDeliveryDiagram } from './VerticalDelivery';
 
-afterEach(cleanup);
 const num = (el: Element, a: string) => Number(el.getAttribute(a));
 const role = (c: HTMLElement, r: string) => c.querySelector(`[data-role="${r}"]`);
 const roles = (c: HTMLElement, r: string) => Array.from(c.querySelectorAll(`[data-role="${r}"]`));

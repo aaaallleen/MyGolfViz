@@ -7,3 +7,4 @@ export { SpinBallDiagram, SPIN_DISPLAY_SLOWDOWN, type SpinBallDiagramProps } fro
 export { FaceImpactDiagram, type FaceImpactDiagramProps } from './FaceImpact';
 export { FACE_OUTLINES, type FaceOutline } from './faceOutlines';
 export { cameraFor, projectPoint, type Camera, type CameraPreset } from './camera';
+export { ShotReplay3D, type ShotReplay3DProps } from './ShotReplay3D';
