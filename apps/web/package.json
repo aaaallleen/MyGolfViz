@@ -1,0 +1,10 @@
+{
+  "name": "@fsa/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode public",
+    "build:public": "vite build --mode public"
+  }
+}
