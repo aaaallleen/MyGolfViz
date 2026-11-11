@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     projects: [
-      ...['packages/domain', 'packages/csv-parser', 'packages/analytics', 'tests'].map((dir) => ({
+      ...['packages/domain', 'packages/csv-parser', 'packages/analytics', 'tests', 'scripts'].map((dir) => ({
         test: { name: dir, root: dir, environment: 'node' as const, include: ['**/*.test.{ts,tsx}'] },
       })),
       ...['packages/ui', 'packages/visualizations', 'apps/web'].map((dir) => ({

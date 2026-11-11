@@ -13,7 +13,12 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "dev": "npm run dev -w @fsa/web",
-    "build:public": "npm run build:public -w @fsa/web"
+    "build:public": "npm run build:public -w @fsa/web",
+    "verify:public": "node scripts/verify-public-build.mjs apps/web/dist",
+    "build:e2e": "PAGES_BASE=/fsa-e2e/ npm run build:public",
+    "preview:e2e": "PAGES_BASE=/fsa-e2e/ npm run preview -w @fsa/web -- --port 4173 --strictPort",
+    "e2e": "playwright test",
+    "ci:public": "npm run typecheck && npm test && npm run build:public && npm run verify:public && npm run e2e"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -24,6 +29,7 @@
     "react-router": "^8.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.9",
