@@ -32,6 +32,11 @@ describe('golden fixtures', () => {
     for (const [key, n] of Object.entries(exp.nonNullCounts as Record<string, number>)) {
       expect(r.shots.filter((s) => s.m[key as MeasurementKey] !== null).length, key).toBe(n);
     }
+    expect(r.warnings.filter((w) => w.code === 'invalid_value')).toEqual([]);
+    const expectedWarnings = (exp.flags.no_measurements as number[]).map((row) => ({ code: 'no_measurements', row }));
+    expect(r.warnings.map((w) => ({ code: w.code, row: w.row }))).toEqual(
+      expectedWarnings.map((w) => ({ code: w.code, row: w.row })),
+    );
     expect(r.columns.missing).toEqual(exp.missingColumns);
     expect(r.columns.unrecognized).toEqual(exp.unrecognizedColumns);
     for (const [flag, rows] of Object.entries(exp.flags as Record<string, number[]>)) {

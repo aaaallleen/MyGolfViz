@@ -135,4 +135,15 @@ describe('parseFlightScopeCsv', () => {
     expect(r.shots[0]!.sourceRow).toBe(3);
     expect(r.shots[0]!.club).toBe('Unknown club');
   });
+
+  test('a Dev row with unsigned spreads gives no warning, but the same value in a shot row is invalid_value', () => {
+    const swingH = col('Swing H (°)');
+    const dev = parseFlightScopeCsv(withCell(19, swingH, '4.4'), 'd.csv');
+    expect(dev.warnings.filter((w) => w.code === 'invalid_value')).toEqual([]);
+    expect(dev.summaryRows.find((s) => s.kind === 'Dev')?.raw['Swing H (°)']).toBe('4.4');
+    const shot = parseFlightScopeCsv(withCell(2, swingH, '4.4'), 'd.csv');
+    const w = shot.warnings.filter((x) => x.code === 'invalid_value');
+    expect(w).toHaveLength(1);
+    expect(w[0]!.row).toBe(2);
+  });
 });

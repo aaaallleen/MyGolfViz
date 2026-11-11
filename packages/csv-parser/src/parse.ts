@@ -136,23 +136,22 @@ export function parseFlightScopeCsv(text: string, fileName: string): ParseResult
     header.forEach((h, j) => { if (!(h in raw)) raw[h] = rec[j]!; });
 
     const texts: Partial<Record<TextKey, string | null>> = {};
-    const m = Object.fromEntries(MEASUREMENT_KEYS.map((k) => [k, null])) as Measurements;
-    for (const c of cols) {
-      const cell = rec[c.index]!;
-      if (c.type === 'text') {
-        texts[c.key] = normalizeText(cell);
-        continue;
-      }
-      const r = parseCell(cell, c.def, c.sourceUnit);
-      if (r.ok) m[c.def.key] = r.value;
-      else warnings.push({ code: r.reason, message: `Row ${sourceRow}, column "${c.header}": cannot read "${cell}"`, row: sourceRow, column: c.header });
-    }
+    for (const c of cols) if (c.type === 'text') texts[c.key] = normalizeText(rec[c.index]!);
 
     const club = texts.club ?? null;
     const kindText = [club, texts.shotLabel ?? null].map((t) => t?.toLowerCase()).find((t) => t === 'avg' || t === 'dev');
     if (kindText) {
       summaryRows.push({ club: club ?? 'Unknown club', kind: kindText === 'avg' ? 'Avg' : 'Dev', sourceRow, raw });
       continue;
+    }
+
+    const m = Object.fromEntries(MEASUREMENT_KEYS.map((k) => [k, null])) as Measurements;
+    for (const c of cols) {
+      if (c.type !== 'measurement') continue;
+      const cell = rec[c.index]!;
+      const r = parseCell(cell, c.def, c.sourceUnit);
+      if (r.ok) m[c.def.key] = r.value;
+      else warnings.push({ code: r.reason, message: `Row ${sourceRow}, column "${c.header}": cannot read "${cell}"`, row: sourceRow, column: c.header });
     }
 
     const flags: QualityFlag[] = [];
