@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>iPhone shot inspector, 2D reconstruction</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="width: 390px; height: 1080px; box-sizing: border-box; overflow: hidden; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid #26312C">
+<a href="PhoneSession.dc.html" aria-label="Back to session" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></a>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Shot 7 · Driver</h1>
+<div style="font-size: 13px; color: #9BA9A1">File 1 · row 9 · 7 of 34</div>
+</div>
+<button type="button" aria-label="Previous shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<button type="button" aria-label="Next shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+</header>
+
+<main style="flex-grow: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #9BA9A1">{{t.label}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; line-height: 1.1">{{t.value}} <span style="font-size: 13px; color: #9BA9A1; font-weight: 500">{{t.unit}}</span></span></div>
+</sc-for>
+</div>
+
+<div role="group" aria-label="Club data view" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<a href="#impact" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">Impact</a>
+<a href="#3d" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">3D</a>
+<a href="PhoneInspector.dc.html" aria-current="page" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; background: #62B6F7; color: #0D1210; font-weight: 600; text-decoration: none">2D</a>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Side view</h2>
+<span style="font-size: 12px; color: #9BA9A1; border: 1px solid #3A4740; border-radius: 6px; padding: 3px 8px">Angles ×2</span>
+</div>
+<svg role="img" aria-label="Side view at impact: club rising 2.6 degrees, dynamic loft 14.9 degrees, ball launching at 12.8 degrees." viewBox="0 130 400 170" style="width: 100%; height: auto; display: block">
+<rect x="0" y="130" width="400" height="170" rx="8" fill="#101714"></rect>
+<line x1="20" y1="270" x2="380" y2="270" stroke="#9BA9A1" stroke-width="1.5"></line>
+<line x1="20" y1="267" x2="120" y2="256" stroke="#62B6F7" stroke-width="4" stroke-linecap="round"></line>
+<line x1="132" y1="254.9" x2="369" y2="233.4" stroke="#62B6F7" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="6 6"></line>
+<line x1="120" y1="256" x2="336.5" y2="152.3" stroke="#F5A742" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 8"></line>
+<line x1="120" y1="256" x2="276.2" y2="166.5" stroke="#EAF0EC" stroke-width="2.5" stroke-linecap="round"></line>
+<line x1="92.7" y1="232.5" x2="114.1" y2="269.8" stroke="#EAF0EC" stroke-width="8" stroke-linecap="round"></line>
+<circle cx="120" cy="256" r="13" fill="#F5A742" stroke="#0D1210" stroke-width="2"></circle>
+</svg>
+<dl style="margin: 0; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px; border-bottom: 1px solid #26312C"><dt style="display: flex; align-items: center; gap: 8px; color: #C9D3CD"><span style="width: 16px; height: 3px; background: #EAF0EC"></span>Dynamic loft</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">14.9°</dd></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px; border-bottom: 1px solid #26312C"><dt style="display: flex; align-items: center; gap: 8px; color: #C9D3CD"><span style="width: 16px; height: 3px; background: transparent; border-top: 3px dotted #F5A742; box-sizing: border-box"></span>Launch angle</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">12.8°</dd></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px; border-bottom: 1px solid #26312C"><dt style="display: flex; align-items: center; gap: 8px; color: #C9D3CD"><span style="width: 16px; height: 3px; background: #62B6F7"></span>Angle of attack</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">2.6° up</dd></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 46px"><dt style="color: #C9D3CD">Spin loft · as reported</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">12.3°</dd></div>
+</dl>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; font-size: 13px; color: #C9D3CD">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #EAF0EC"></span>Measured</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; border: 2px solid #EAF0EC; box-sizing: border-box"></span>Derived</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; border: 2px dashed #9BA9A1; box-sizing: border-box"></span>Illustrative</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 2px; background: #9BA9A1"></span>Unavailable</span>
+</div>
+
+<details style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 2px 14px">
+<summary style="min-height: 48px; display: flex; align-items: center; gap: 10px; font-weight: 600">
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg>
+All measurements <span style="color: #9BA9A1; font-weight: 400">· 18</span></summary>
+<p style="margin: 0 0 14px; color: #9BA9A1; font-size: 13px">The full ball and club value list opens here.</p>
+</details>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:1080}}">
+class Component extends DCLogic {
+renderVals() {
+const tiles = [
+['Carry','251.3','yd'],['Spin','2,540','rpm'],['Club path','3.1° R',''],['Face to path','1.7° L',''],['Attack angle','2.6° up',''],['Impact','6 toe · 4 high','mm']
+].map((t) => ({ label: t[0], value: t[1], unit: t[2] }));
+return { tiles };
+}
+}
+</script>
+
+
+</body></html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>iPhone session dashboard</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="width: 390px; height: 1640px; box-sizing: border-box; overflow: hidden; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" aria-label="Back to sessions" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></a>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Driver Range Practice</h1>
+<div style="font-size: 13px; color: #9BA9A1">7 Nov 2026 · 3 files · 48 shots</div>
+</div>
+<a href="Import.dc.html" aria-label="Load Session CSV" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; background: #EAF0EC"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M8 11V2M4 6l4-4 4 4M2 14h12"></path></svg></a>
+</header>
+
+<main style="flex-grow: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">All 48</button>
+<button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #EAF0EC; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Driver 34</button>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">3 Wood 14</button>
+</div>
+<select aria-label="Source file" style="min-height: 46px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit">
+<option>All files · 3</option>
+<option>File 1 · 16 shots</option>
+<option>File 2 · 18 shots</option>
+<option>File 3 · 14 shots</option>
+</select>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: {{t.color}}">{{t.label}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 600; line-height: 1.1">{{t.value}} <span style="font-size: 13px; color: #9BA9A1; font-weight: 500">{{t.unit}}</span></span><span style="font-size: 12px; color: #9BA9A1">{{t.sub}}</span></div>
+</sc-for>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Dispersion</h2>
+<div role="group" aria-label="Landing position" style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #101714">
+<button type="button" aria-pressed="true" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Carry</button>
+<button type="button" aria-pressed="false" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: #C9D3CD; font: inherit">Total</button>
+</div>
+</div>
+<svg role="img" aria-label="Top-down dispersion plot of carry against lateral landing; shot 7 selected at 251 yards, 4 yards right." viewBox="0 0 332 280" style="width: 100%; height: auto; display: block">
+<rect x="0" y="0" width="332" height="280" rx="8" fill="#101714"></rect>
+<g stroke="#26312C" stroke-width="1">
+<line x1="34" y1="250" x2="322" y2="250"></line>
+<line x1="34" y1="180" x2="322" y2="180"></line>
+<line x1="34" y1="110" x2="322" y2="110"></line>
+<line x1="34" y1="40" x2="322" y2="40"></line>
+</g>
+<line x1="178" y1="14" x2="178" y2="258" stroke="#9BA9A1" stroke-width="1.5" stroke-dasharray="6 5"></line>
+<g fill="#9BA9A1" font-size="12" font-family="Inter, sans-serif">
+<text x="6" y="254">200</text>
+<text x="6" y="184">225</text>
+<text x="6" y="114">250</text>
+<text x="6" y="44">275</text>
+<text x="52" y="272">30 L</text>
+<text x="158" y="272">Target</text>
+<text x="280" y="272">30 R</text>
+</g>
+<ellipse cx="182" cy="118" rx="62" ry="38" transform="rotate(-14 182 118)" fill="#F5A742" fill-opacity="0.10" stroke="#F5A742" stroke-width="1.5"></ellipse>
+<g fill="#F5A742" fill-opacity="0.8">
+<circle cx="155" cy="130" r="6"></circle><circle cx="212" cy="94" r="6"></circle><circle cx="132" cy="144" r="6"></circle><circle cx="182" cy="113" r="6"></circle><circle cx="232" cy="77" r="6"></circle><circle cx="166" cy="124" r="6"></circle><circle cx="109" cy="158" r="6"></circle><circle cx="201" cy="99" r="6"></circle><circle cx="220" cy="119" r="6"></circle><circle cx="186" cy="136" r="6"></circle><circle cx="162" cy="88" r="6"></circle><circle cx="143" cy="110" r="6"></circle><circle cx="197" cy="150" r="6"></circle><circle cx="190" cy="68" r="6"></circle><circle cx="239" cy="127" r="6"></circle><circle cx="94" cy="172" r="6"></circle>
+</g>
+<circle cx="194" cy="106" r="9" fill="#EAF0EC" stroke="#0D1210" stroke-width="2"></circle>
+</svg>
+<div style="font-size: 13px; color: #9BA9A1; line-height: 1.45">Lateral error 8.9 yd · Carry SD 9.8 yd<br>1σ ellipse, about 39% of shots</div>
+</div>
+
+<div style="background: #1B2420; border: 1px solid #3A4740; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" aria-label="Previous shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<div style="flex-grow: 1; text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Driver · shot 7</div>
+<button type="button" aria-label="Next shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600; color: #F5A742">Carry</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">251.3 yd</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600; color: #F5A742">Lateral</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">4.2 yd R</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600; color: #62B6F7">Club path</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">3.1° R</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600; color: #62B6F7">Face to path</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">1.7° L</span></div>
+</div>
+<a href="PhoneInspector.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 8px; background: #62B6F7; color: #0D1210; font-weight: 600; text-decoration: none">Inspect shot</a>
+</div>
+
+<div style="display: flex; flex-direction: column">
+<h2 style="margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Shots · Driver</h2>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<a href="PhoneInspector.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 10px; border-bottom: 1px solid #1F2925; background: {{r.bg}}; border-radius: 8px; text-decoration: none; color: #EAF0EC">
+<span style="width: 24px; font-weight: 600; color: #9BA9A1">{{r.n}}</span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">{{r.carry}} yd · {{r.lat}}</span><span style="font-size: 13px; color: #9BA9A1">Path {{r.path}} · Face to path {{r.ftp}}</span></span>
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg>
+</a>
+</sc-for>
+<button type="button" style="margin-top: 10px; min-height: 46px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500">Show all 34 shots</button>
+</div>
+
+</main>
+
+<nav aria-label="Session views" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #26312C; padding: 6px 8px 14px">
+<a href="PhoneSession.dc.html" aria-current="page" style="display: flex; align-items: center; justify-content: center; min-height: 48px; text-decoration: none; color: #EAF0EC; font-size: 13px; font-weight: 600">Overview</a>
+<a href="#shots" style="display: flex; align-items: center; justify-content: center; min-height: 48px; text-decoration: none; color: #9BA9A1; font-size: 13px">Shots</a>
+<a href="#files" style="display: flex; align-items: center; justify-content: center; min-height: 48px; text-decoration: none; color: #9BA9A1; font-size: 13px">Files</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:1640}}">
+class Component extends DCLogic {
+renderVals() {
+const B = '#F5A742', C = '#62B6F7';
+const tiles = [
+['Carry','247.6','yd','± 9.8 · n 34',B],['Ball speed','151.2','mph','± 3.4 · n 34',B],
+['Spin','2,610','rpm','± 240 · n 34',B],['Club speed','103.8','mph','± 1.9 · n 34',C],
+['Smash','1.46','','± 0.03 · n 34',C],['Club path','2.4','° R','n 29 of 34',C]
+].map((t) => ({ label: t[0], value: t[1], unit: t[2], sub: t[3], color: t[4] }));
+const rows = [
+[4,'249.0','1.0 R','not measured','not measured'],
+[5,'262.0','14.0 R','4.6° R','0.2° R'],
+[6,'245.0','3.0 L','2.0° R','2.2° L'],
+[7,'251.3','4.2 R','3.1° R','1.7° L'],
+[8,'233.0','18.0 L','0.8° L','3.6° L'],
+[9,'254.0','6.0 R','2.9° R','0.6° L']
+].map((r) => ({ n: r[0], carry: r[1], lat: r[2], path: r[3], ftp: r[4], bg: r[0] === 7 ? '#22302A' : 'transparent' }));
+return { tiles, rows };
+}
+}
+</script>
+
+
+</body></html>

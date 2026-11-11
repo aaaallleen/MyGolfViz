@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Import completed</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EAF0EC; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#F5A742" stroke-width="2"></circle><path d="M3 13 Q11 2 19 9" fill="none" stroke="#62B6F7" stroke-width="2"></path></svg>
+FlightScope Analytics
+</a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+</header>
+
+<main style="max-width: 640px; margin: 0 auto; padding: 56px 32px; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" fill="#EAF0EC"></circle><path d="M9.5 16.5l4.5 4.5 8.5-9" stroke="#0D1210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 600; line-height: 1.1">Import completed</h1>
+</div>
+<div style="font-size: 18px; color: #C9D3CD">Driver Range Practice</div>
+</div>
+
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 18px; display: flex; flex-direction: column-reverse; gap: 6px"><dt style="color: #9BA9A1">Files imported</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600; line-height: 1">2</dd></div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 18px; display: flex; flex-direction: column-reverse; gap: 6px"><dt style="color: #9BA9A1">Shots added</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600; line-height: 1">34</dd></div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 18px; display: flex; flex-direction: column-reverse; gap: 6px"><dt style="color: #9BA9A1">Files not imported</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600; line-height: 1">3</dd></div>
+</dl>
+
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; color: #C9D3CD">
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px"><span style="overflow-wrap: anywhere">FS_3W_export.csv</span><span style="color: #9BA9A1">Skipped · already in this session</span></li>
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px"><span style="overflow-wrap: anywhere">FS_Wedges_export.csv</span><span style="color: #9BA9A1">Not selected · stays in Wedge gapping only</span></li>
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px"><span style="overflow-wrap: anywhere">notes_export.csv</span><span style="color: #9BA9A1">Rejected · not a shot export</span></li>
+</ul>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px; padding-top: 24px; border-top: 1px solid #26312C">
+<a href="Main.dc.html" style="display: flex; align-items: center; min-height: 48px; padding: 0 24px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">Open session</a>
+<a href="Import.dc.html" style="display: flex; align-items: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid #3A4740; color: #EAF0EC; font-weight: 500; text-decoration: none; box-sizing: border-box">Load more files</a>
+</div>
+
+<p style="margin: 0; font-size: 13px; color: #9BA9A1; line-height: 1.5">The session now holds 82 shots from 5 files. Averages and dispersion have been recalculated.</p>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+
+
+</body></html>

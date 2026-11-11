@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>iPad session dashboard</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="width: 820px; height: 1180px; box-sizing: border-box; overflow: hidden; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; gap: 16px; padding: 8px 20px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" aria-label="Back to sessions" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+<a href="Import.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">Load Session CSV</a>
+</header>
+
+<main style="flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 600; line-height: 1.1">Driver Range Practice</h1>
+<div style="color: #9BA9A1">7 Nov 2026 · 3 files · 48 shots</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">All 48</button>
+<button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #EAF0EC; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Driver 34</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">3 Wood 14</button>
+<select aria-label="Source file" style="margin-left: auto; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit">
+<option>All files</option>
+<option>File 1 · 16 shots</option>
+<option>File 2 · 18 shots</option>
+<option>File 3 · 14 shots</option>
+</select>
+<a href="#files" style="display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; color: #EAF0EC; font-weight: 500; text-decoration: none; box-sizing: border-box">Manage files</a>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="8">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; color: {{t.color}}">{{t.label}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 600; line-height: 1.1">{{t.value}} <span style="font-size: 13px; color: #9BA9A1; font-weight: 500">{{t.unit}}</span></span><span style="font-size: 12px; color: #9BA9A1">{{t.sub}}</span></div>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Dispersion</h2>
+<div role="group" aria-label="Landing position" style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #101714">
+<button type="button" aria-pressed="true" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Carry</button>
+<button type="button" aria-pressed="false" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: #C9D3CD; font: inherit">Total</button>
+</div>
+</div>
+<svg role="img" aria-label="Top-down dispersion plot of carry against lateral landing; shot 7 selected at 251 yards, 4 yards right." viewBox="0 0 332 280" style="width: 100%; height: auto; display: block">
+<rect x="0" y="0" width="332" height="280" rx="8" fill="#101714"></rect>
+<g stroke="#26312C" stroke-width="1">
+<line x1="34" y1="250" x2="322" y2="250"></line>
+<line x1="34" y1="180" x2="322" y2="180"></line>
+<line x1="34" y1="110" x2="322" y2="110"></line>
+<line x1="34" y1="40" x2="322" y2="40"></line>
+</g>
+<line x1="178" y1="14" x2="178" y2="258" stroke="#9BA9A1" stroke-width="1.5" stroke-dasharray="6 5"></line>
+<g fill="#9BA9A1" font-size="11" font-family="Inter, sans-serif">
+<text x="6" y="254">200</text>
+<text x="6" y="184">225</text>
+<text x="6" y="114">250</text>
+<text x="6" y="44">275</text>
+<text x="52" y="272">30 L</text>
+<text x="160" y="272">Target</text>
+<text x="282" y="272">30 R</text>
+</g>
+<ellipse cx="182" cy="118" rx="62" ry="38" transform="rotate(-14 182 118)" fill="#F5A742" fill-opacity="0.10" stroke="#F5A742" stroke-width="1.5"></ellipse>
+<g fill="#F5A742" fill-opacity="0.8">
+<circle cx="155" cy="130" r="5"></circle><circle cx="212" cy="94" r="5"></circle><circle cx="132" cy="144" r="5"></circle><circle cx="182" cy="113" r="5"></circle><circle cx="232" cy="77" r="5"></circle><circle cx="166" cy="124" r="5"></circle><circle cx="109" cy="158" r="5"></circle><circle cx="201" cy="99" r="5"></circle><circle cx="220" cy="119" r="5"></circle><circle cx="186" cy="136" r="5"></circle><circle cx="162" cy="88" r="5"></circle><circle cx="143" cy="110" r="5"></circle><circle cx="197" cy="150" r="5"></circle><circle cx="190" cy="68" r="5"></circle><circle cx="239" cy="127" r="5"></circle><circle cx="94" cy="172" r="5"></circle>
+</g>
+<circle cx="194" cy="106" r="8" fill="#EAF0EC" stroke="#0D1210" stroke-width="2"></circle>
+</svg>
+<div style="font-size: 13px; color: #9BA9A1; line-height: 1.45">Lateral error 8.9 yd · Carry SD 9.8 yd · 1σ ellipse, about 39% of shots</div>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" aria-label="Previous shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<select aria-label="Choose shot" style="flex-grow: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #101714; color: #EAF0EC; font: inherit; font-weight: 600">
+<option>Driver · shot 7</option>
+</select>
+<button type="button" aria-label="Next shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; flex-grow: 1; align-content: start">
+<sc-for list="{{shot}}" as="s" hint-placeholder-count="8">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600; color: {{s.color}}">{{s.label}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">{{s.value}}</span></div>
+</sc-for>
+</div>
+<a href="PadInspector.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 8px; background: #62B6F7; color: #0D1210; font-weight: 600; text-decoration: none">Inspect shot</a>
+</div>
+
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Shots · Driver</h2>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit">Columns</button>
+</div>
+<table style="width: 100%; border-collapse: collapse; text-align: right">
+<thead>
+<tr style="color: #9BA9A1; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase">
+<th scope="col" style="padding: 8px; text-align: left; font-weight: 600; border-bottom: 1px solid #26312C">Shot</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Carry</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Lateral</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Ball mph</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Spin</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Path</th>
+<th scope="col" style="padding: 8px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Face to path</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<tr style="background: {{r.bg}}">
+<td style="padding: 13px 8px; text-align: left; font-weight: 600; border-bottom: 1px solid #1F2925">{{r.n}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925">{{r.carry}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925">{{r.lat}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925">{{r.ball}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925">{{r.spin}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925; color: {{r.pathColor}}">{{r.path}}</td>
+<td style="padding: 13px 8px; border-bottom: 1px solid #1F2925; color: {{r.pathColor}}">{{r.ftp}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:820,&quot;height&quot;:1180}}">
+class Component extends DCLogic {
+renderVals() {
+const B = '#F5A742', C = '#62B6F7';
+const tiles = [
+['Carry','247.6','yd','± 9.8 · n 34',B],['Total','268.1','yd','± 11.2 · n 34',B],['Ball speed','151.2','mph','± 3.4 · n 34',B],['Spin','2,610','rpm','± 240 · n 34',B],
+['Club speed','103.8','mph','± 1.9 · n 34',C],['Smash','1.46','','± 0.03 · n 34',C],['Club path','2.4','° R','n 29 of 34',C],['Lateral','1.2','yd R','± 10.6 · n 34',B]
+].map((t) => ({ label: t[0], value: t[1], unit: t[2], sub: t[3], color: t[4] }));
+const shot = [
+['Carry','251.3 yd',B],['Ball speed','152.6 mph',B],['Launch','12.8°',B],['Spin','2,540 rpm',B],
+['Club path','3.1° R',C],['Face to path','1.7° L',C],['Attack angle','2.6° up',C],['Impact','6 toe · 4 high','#C9D3CD']
+].map((s) => ({ label: s[0], value: s[1], color: s[2] }));
+const rows = [
+[5,'262.0','14.0 R','155.1','2,390','4.6° R','0.2° R'],
+[6,'245.0','3.0 L','150.3','2,650','2.0° R','2.2° L'],
+[7,'251.3','4.2 R','152.6','2,540','3.1° R','1.7° L'],
+[8,'233.0','18.0 L','145.9','3,020','0.8° L','3.6° L']
+].map((r) => ({ n: r[0], carry: r[1], lat: r[2], ball: r[3], spin: r[4], path: r[5], ftp: r[6], bg: r[0] === 7 ? '#22302A' : 'transparent', pathColor: '#EAF0EC' }));
+return { tiles, shot, rows };
+}
+}
+</script>
+
+
+</body></html>

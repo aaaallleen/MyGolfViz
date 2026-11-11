@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Session library, list view</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EAF0EC; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#F5A742" stroke-width="2"></circle><path d="M3 13 Q11 2 19 9" fill="none" stroke="#62B6F7" stroke-width="2"></path></svg>
+FlightScope Analytics
+</a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+<a href="Import.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M8 11V2M4 6l4-4 4 4M2 14h12"></path></svg>
+Load Session CSV
+</a>
+</header>
+
+<main style="max-width: 1376px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1">Sessions</h1>
+<div style="color: #9BA9A1">4 sessions · 206 shots · 9 source files</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 6px; color: #9BA9A1; font-size: 13px; flex: 1 1 220px">Find a session
+<input type="search" placeholder="Name, club or note" style="min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit; font-size: 14px; box-sizing: border-box; width: 100%">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; color: #9BA9A1; font-size: 13px">Sort by
+<select style="min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit; font-size: 14px">
+<option>Session date · newest first</option>
+<option>Session date · oldest first</option>
+<option>Number of shots · most first</option>
+<option>Number of shots · fewest first</option>
+<option>Session name · A to Z</option>
+<option>Session name · Z to A</option>
+</select>
+</label>
+<div role="group" aria-label="View" style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<a href="Library.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border-radius: 7px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M2 4h12M2 8h12M2 12h12"></path></svg>List</a>
+<a href="LibraryCalendar.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#C9D3CD" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="12" height="11" rx="2"></rect><path d="M2 7h12M5 1.5v3M11 1.5v3"></path></svg>Calendar</a>
+</div>
+</div>
+</section>
+
+<section style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 8px 20px 12px">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; text-align: left">
+<thead>
+<tr>
+<th scope="col" aria-sort="none" style="padding: 0; border-bottom: 1px solid #26312C"><button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 12px 0 0; border: 0; background: transparent; color: #9BA9A1; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Session name
+<svg aria-hidden="true" width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="#9BA9A1" stroke-width="1.6" stroke-linecap="round"><path d="M2 5l3-3 3 3M2 9l3 3 3-3"></path></svg></button></th>
+<th scope="col" aria-sort="descending" style="padding: 0; border-bottom: 1px solid #26312C"><button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 12px; border: 0; background: transparent; color: #EAF0EC; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Session date
+<svg aria-hidden="true" width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M2 8l3 3 3-3M5 2v9"></path></svg></button></th>
+<th scope="col" aria-sort="none" style="padding: 0; border-bottom: 1px solid #26312C"><button type="button" style="display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 12px; border: 0; background: transparent; color: #9BA9A1; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Shots
+<svg aria-hidden="true" width="10" height="14" viewBox="0 0 10 14" fill="none" stroke="#9BA9A1" stroke-width="1.6" stroke-linecap="round"><path d="M2 5l3-3 3 3M2 9l3 3 3-3"></path></svg></button></th>
+<th scope="col" style="padding: 0 12px; border-bottom: 1px solid #26312C; color: #9BA9A1; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Files</th>
+<th scope="col" style="padding: 0 12px; border-bottom: 1px solid #26312C; color: #9BA9A1; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Clubs</th></tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 14px 12px 14px 0; border-bottom: 1px solid #1F2925"><a href="Main.dc.html" style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #EAF0EC; text-decoration: none">Driver Range Practice</a></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925">7 Nov 2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">48</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; color: #C9D3CD">3</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">Driver 34</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">3 Wood 14</span></div></td></tr>
+<tr>
+<td style="padding: 14px 12px 14px 0; border-bottom: 1px solid #1F2925"><a href="Main.dc.html" style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #EAF0EC; text-decoration: none">7 iron path work</a></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925">28 Oct 2026</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">71</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; color: #C9D3CD">3</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">7 Iron 71</span></div></td></tr>
+<tr>
+<td style="padding: 14px 12px 14px 0; border-bottom: 1px solid #1F2925"><a href="Main.dc.html" style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #EAF0EC; text-decoration: none">Wedge gapping</a></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; color: #9BA9A1">No date set</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">62</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925; color: #C9D3CD">2</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #1F2925"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">PW 22</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">GW 20</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">SW 20</span></div></td></tr>
+<tr>
+<td style="padding: 14px 12px 14px 0"><a href="Main.dc.html" style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #EAF0EC; text-decoration: none">Indoor net check</a></td>
+<td style="padding: 14px 12px; color: #9BA9A1">No date set</td>
+<td style="padding: 14px 12px; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">25</td>
+<td style="padding: 14px 12px; color: #C9D3CD">1</td>
+<td style="padding: 14px 12px"><div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">Driver 25</span></div></td></tr>
+</tbody>
+</table>
+</div>
+<div style="padding-top: 12px; font-size: 13px; color: #9BA9A1">Sorted by session date, newest first. Sessions with no date set are listed last when sorting by date.</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #9BA9A1; font-weight: 600">Empty library state</h2>
+<div style="border: 1.5px dashed #3A4740; border-radius: 12px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">No sessions yet</div>
+<p style="margin: 0; color: #9BA9A1; max-width: 460px; line-height: 1.5">Load one or more FlightScope CSV exports. You choose the session they belong to and what it is called.</p>
+<a href="Import.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M8 11V2M4 6l4-4 4 4M2 14h12"></path></svg>
+Load Session CSV
+</a>
+</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+
+
+</body></html>

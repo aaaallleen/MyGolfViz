@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Session dashboard</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EAF0EC; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#F5A742" stroke-width="2"></circle><path d="M3 13 Q11 2 19 9" fill="none" stroke="#62B6F7" stroke-width="2"></path></svg>
+FlightScope Analytics
+</a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+<a href="Import.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M8 11V2M4 6l4-4 4 4M2 14h12"></path></svg>
+Load Session CSV
+</a>
+</header>
+
+<main style="max-width: 1376px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<div style="font-size: 13px; color: #9BA9A1"><a href="Library.dc.html" style="text-decoration: none">Sessions</a> / Driver Range Practice</div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1">Driver Range Practice</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 6px 18px; color: #9BA9A1; font-size: 14px">
+<span>7 Nov 2026 <span style="color: #9BA9A1">(set by you)</span></span>
+<span>3 source files</span>
+<span>48 shots</span>
+<span>Outdoor</span>
+</div>
+<p style="margin: 0; max-width: 640px; color: #C9D3CD; line-height: 1.5">Three separate Mevo recordings from one range visit. Working on shallowing the attack angle with the driver.</p>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500">Edit details</button>
+<a href="Import.dc.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3A4740; color: #EAF0EC; font-weight: 500; text-decoration: none; box-sizing: border-box">Append CSV files</a>
+</div>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px 40px; padding: 16px 20px; background: #151C19; border: 1px solid #26312C; border-radius: 12px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #9BA9A1; font-weight: 600">Club</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">All <span style="color: #9BA9A1">48</span></button>
+<button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #EAF0EC; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Driver 34</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #3A4740; background: transparent; color: #C9D3CD; font: inherit">3 Wood <span style="color: #9BA9A1">14</span></button>
+</div>
+</div>
+<label style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #9BA9A1; font-weight: 600">Source file
+<select style="min-height: 44px; min-width: 260px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #0D1210; color: #EAF0EC; font: inherit; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none">
+<option>All files · 48 shots</option>
+<option>File 1 · FS_Driver_Sept 19 2022.csv · 16</option>
+<option>File 2 · FS_Driver_Sept 19 2022 (1).csv · 18</option>
+<option>File 3 · FS_3W_export.csv · 14</option>
+</select>
+</label>
+<a href="#files" style="margin-left: auto; align-self: flex-end; display: flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3A4740; color: #EAF0EC; font-weight: 500; text-decoration: none; box-sizing: border-box">Manage or remove files</a>
+</section>
+
+<section aria-label="Session averages" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Averages · Driver</h2>
+<div style="display: flex; gap: 18px; font-size: 13px; color: #9BA9A1">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 5px; background: #F5A742"></span>Ball flight</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #62B6F7"></span>Club delivery</span>
+<span>34 shots</span>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit">Choose metrics</button>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(156px, 1fr)); gap: 12px">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #F5A742; font-weight: 600">Carry</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">247.6 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">yd</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 9.8 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #F5A742; font-weight: 600">Total</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">268.1 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">yd</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 11.2 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #F5A742; font-weight: 600">Ball speed</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">151.2 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">mph</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 3.4 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #62B6F7; font-weight: 600">Club speed</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">103.8 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">mph</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 1.9 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #62B6F7; font-weight: 600">Smash factor</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">1.46</div>
+<div style="font-size: 12px; color: #9BA9A1">± 0.03 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #F5A742; font-weight: 600">Spin</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">2,610 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">rpm</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 240 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #F5A742; font-weight: 600">Lateral</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">1.2 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">yd R</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 10.6 · n 34</div>
+</div>
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #62B6F7; font-weight: 600">Club path</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1">2.4 <span style="font-size: 14px; color: #9BA9A1; font-weight: 500">° R</span></div>
+<div style="font-size: 12px; color: #9BA9A1">± 1.8 · n 29 of 34</div>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px">
+
+<div style="flex: 1 1 520px; min-width: 0; background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Dispersion · top view</h2>
+<div role="group" aria-label="Landing position" style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #101714">
+<button type="button" aria-pressed="true" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: #EAF0EC; color: #0D1210; font: inherit; font-weight: 600">Carry</button>
+<button type="button" aria-pressed="false" style="min-height: 38px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: #C9D3CD; font: inherit; font-weight: 500">Total</button>
+</div>
+</div>
+<svg role="img" aria-label="Top-down dispersion plot of carry distance against lateral landing, with a target centre line and a dispersion ellipse. Selected shot 7 lands at 251 yards, 4 yards right." viewBox="0 0 560 440" style="width: 100%; height: auto; display: block">
+<rect x="0" y="0" width="560" height="440" rx="8" fill="#101714"></rect>
+<g stroke="#26312C" stroke-width="1">
+<line x1="40" y1="400" x2="520" y2="400"></line>
+<line x1="40" y1="300" x2="520" y2="300"></line>
+<line x1="40" y1="200" x2="520" y2="200"></line>
+<line x1="40" y1="100" x2="520" y2="100"></line>
+<line x1="100" y1="40" x2="100" y2="400"></line>
+<line x1="160" y1="40" x2="160" y2="400"></line>
+<line x1="220" y1="40" x2="220" y2="400"></line>
+<line x1="340" y1="40" x2="340" y2="400"></line>
+<line x1="400" y1="40" x2="400" y2="400"></line>
+<line x1="460" y1="40" x2="460" y2="400"></line>
+</g>
+<line x1="280" y1="30" x2="280" y2="410" stroke="#9BA9A1" stroke-width="1.5" stroke-dasharray="6 5"></line>
+<g fill="#9BA9A1" font-size="12" font-family="Inter, sans-serif">
+<text x="8" y="404">200</text>
+<text x="8" y="304">225</text>
+<text x="8" y="204">250</text>
+<text x="8" y="104">275</text>
+<text x="92" y="428">30 L</text>
+<text x="212" y="428">10 L</text>
+<text x="262" y="428">Target</text>
+<text x="330" y="428">10 R</text>
+<text x="448" y="428">30 R</text>
+</g>
+<ellipse cx="287" cy="210" rx="98" ry="56" transform="rotate(-14 287 210)" fill="#F5A742" fill-opacity="0.10" stroke="#F5A742" stroke-width="1.5"></ellipse>
+<g fill="#F5A742" fill-opacity="0.8">
+<circle cx="244" cy="228" r="6"></circle>
+<circle cx="334" cy="176" r="6"></circle>
+<circle cx="208" cy="248" r="6"></circle>
+<circle cx="286" cy="204" r="6"></circle>
+<circle cx="364" cy="152" r="6"></circle>
+<circle cx="262" cy="220" r="6"></circle>
+<circle cx="172" cy="268" r="6"></circle>
+<circle cx="316" cy="184" r="6"></circle>
+<circle cx="346" cy="212" r="6"></circle>
+<circle cx="292" cy="236" r="6"></circle>
+<circle cx="256" cy="168" r="6"></circle>
+<circle cx="226" cy="200" r="6"></circle>
+<circle cx="310" cy="256" r="6"></circle>
+<circle cx="298" cy="140" r="6"></circle>
+<circle cx="376" cy="224" r="6"></circle>
+<circle cx="274" cy="192" r="6"></circle>
+<circle cx="148" cy="288" r="6"></circle>
+</g>
+<line x1="275" y1="210" x2="299" y2="210" stroke="#EAF0EC" stroke-width="1.5"></line>
+<line x1="287" y1="198" x2="287" y2="222" stroke="#EAF0EC" stroke-width="1.5"></line>
+<circle cx="305" cy="195" r="9" fill="#EAF0EC" stroke="#0D1210" stroke-width="2"></circle>
+<text x="320" y="190" fill="#EAF0EC" font-size="13" font-weight="600" font-family="Inter, sans-serif">Shot 7</text>
+</svg>
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column-reverse; gap: 2px"><dt style="font-size: 12px; color: #9BA9A1">Average lateral error</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">8.9 yd</dd></div>
+<div style="display: flex; flex-direction: column-reverse; gap: 2px"><dt style="font-size: 12px; color: #9BA9A1">Carry std dev</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">9.8 yd</dd></div>
+<div style="display: flex; flex-direction: column-reverse; gap: 2px"><dt style="font-size: 12px; color: #9BA9A1">Lateral std dev</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">10.6 yd</dd></div>
+<div style="display: flex; flex-direction: column-reverse; gap: 2px"><dt style="font-size: 12px; color: #9BA9A1">Mean landing</dt><dd style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">247.6 · 1.2 R</dd></div>
+</dl>
+<div style="font-size: 13px; color: #9BA9A1; line-height: 1.5">Ellipse: 1σ covariance ellipse of carry and lateral, holding about 39% of shots. Cross: mean landing. Select a point to highlight its row below.</div>
+</div>
+
+<div style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Trajectory · side view</h2>
+<div style="font-size: 13px; color: #9BA9A1">Reconstructed from launch, apex and carry</div>
+</div>
+<svg role="img" aria-label="Side-view trajectories of height against distance. Selected shot 7 peaks at 96 feet and carries 251 yards." viewBox="0 0 560 220" style="width: 100%; height: auto; display: block">
+<rect x="0" y="0" width="560" height="220" rx="8" fill="#101714"></rect>
+<g stroke="#26312C" stroke-width="1">
+<line x1="40" y1="120" x2="540" y2="120"></line>
+<line x1="40" y1="60" x2="540" y2="60"></line>
+<line x1="205" y1="20" x2="205" y2="180"></line>
+<line x1="370" y1="20" x2="370" y2="180"></line>
+<line x1="535" y1="20" x2="535" y2="180"></line>
+</g>
+<line x1="40" y1="180" x2="540" y2="180" stroke="#9BA9A1" stroke-width="1.5"></line>
+<g fill="none" stroke="#F5A742" stroke-opacity="0.45" stroke-width="1.5">
+<path d="M40 180 Q270 -30 441 180"></path>
+<path d="M40 180 Q300 -62 472 180"></path>
+<path d="M40 180 Q255 -10 424 180"></path>
+<path d="M40 180 Q285 -40 459 180"></path>
+<path d="M40 180 Q262 -22 432 180"></path>
+</g>
+<path d="M40 180 Q290 -50 454 180" fill="none" stroke="#EAF0EC" stroke-width="3"></path>
+<circle cx="454" cy="180" r="5" fill="#EAF0EC"></circle>
+<g fill="#9BA9A1" font-size="12" font-family="Inter, sans-serif">
+<text x="8" y="124">50 ft</text>
+<text x="8" y="64">100 ft</text>
+<text x="192" y="204">100</text>
+<text x="357" y="204">200</text>
+<text x="510" y="204">300 yd</text>
+</g>
+</svg>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; flex-grow: 1">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center">
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" aria-label="Previous shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<select aria-label="Choose shot" style="min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #101714; color: #EAF0EC; font: inherit; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">
+<option>Driver · shot 6</option>
+<option selected="">Driver · shot 7</option>
+<option>Driver · shot 8</option>
+</select>
+<button type="button" aria-label="Next shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+<span style="font-size: 13px; color: #9BA9A1">7 of 34</span>
+</div>
+<a href="Inspector.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 8px; background: #62B6F7; color: #0D1210; font-weight: 600; text-decoration: none">Open delivery inspector
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M3 7h8M7 3l4 4-4 4"></path></svg>
+</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 16px 12px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #F5A742; font-weight: 600">Carry</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">251.3 <span style="font-size: 12px; color: #9BA9A1">yd</span></span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #F5A742; font-weight: 600">Ball speed</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">152.6 <span style="font-size: 12px; color: #9BA9A1">mph</span></span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #F5A742; font-weight: 600">Launch</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">12.8°</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #F5A742; font-weight: 600">Spin</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">2,540 <span style="font-size: 12px; color: #9BA9A1">rpm</span></span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #62B6F7; font-weight: 600">Club path</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">3.1° R</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #62B6F7; font-weight: 600">Face to path</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">1.7° L</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #62B6F7; font-weight: 600">Attack angle</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">2.6° up</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #C9D3CD; font-weight: 600">Impact</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">6 toe · 4 high <span style="font-size: 12px; color: #9BA9A1">mm</span></span></div>
+</div>
+</div>
+</div>
+</section>
+
+<section style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Shots</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 13px; color: #9BA9A1">
+<span>Ordered by club · the selected row, plot point and shot preview stay in step</span>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit">Columns</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 1080px; border-collapse: collapse; text-align: right">
+<thead>
+<tr style="color: #9BA9A1; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase">
+<th scope="col" style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #26312C">Shot</th>
+<th scope="col" aria-sort="ascending" style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #26312C; color: #EAF0EC">Club ↑</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Ball mph</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Launch</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Spin</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Carry</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Total</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #F5A742">Lateral</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Club mph</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Smash</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Path</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C; color: #62B6F7">Face to path</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-bottom: 1px solid #26312C">Impact mm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="rowgroup" colspan="13" style="padding: 12px; text-align: left; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; background: #101714; border-bottom: 1px solid #26312C">Driver <span style="color: #9BA9A1; font-family: Inter, sans-serif; font-size: 13px; font-weight: 400">· 34 shots · 3 Wood follows when All is selected</span></th>
+</tr>
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="8">
+<tr style="background: {{row.bg}}">
+<td style="padding: 13px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #1F2925">{{row.n}}</td>
+<td style="padding: 13px 12px; text-align: left; border-bottom: 1px solid #1F2925">Driver</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.ball}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.launch}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.spin}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.carry}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.total}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.lat}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.club}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.smash}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.path}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925">{{row.ftp}}</td>
+<td style="padding: 13px 12px; border-bottom: 1px solid #1F2925; color: {{row.impactColor}}">{{row.impact}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: #9BA9A1">
+<span>Showing 1–8 of 34 · “Not measured” means the CSV held no value; it is never treated as zero</span>
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #9BA9A1; font: inherit">Previous</button>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit">Next</button>
+</div>
+</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1640}}">
+class Component extends DCLogic {
+renderVals() {
+const raw = [
+[1,'File 1 · row 3','149.8','11.9°','2,710','243.0','263.4','6.0 L','103.1','1.45','1.2° R','2.4° L','Not measured'],
+[2,'File 1 · row 4','153.4','13.1°','2,480','256.0','277.9','9.0 R','104.6','1.47','3.8° R','0.9° L','3 heel · 2 high'],
+[3,'File 1 · row 5','147.2','11.2°','2,890','238.0','256.1','12.0 L','102.4','1.44','0.4° R','3.1° L','Not measured'],
+[4,'File 1 · row 6','151.0','12.4°','2,600','249.0','270.2','1.0 R','103.6','1.46','Not measured','Not measured','Not measured'],
+[5,'File 1 · row 7','155.1','13.6°','2,390','262.0','284.6','14.0 R','105.3','1.47','4.6° R','0.2° R','9 toe · 1 low'],
+[6,'File 1 · row 8','150.3','12.0°','2,650','245.0','265.0','3.0 L','103.4','1.45','2.0° R','2.2° L','Not measured'],
+[7,'File 1 · row 9','152.6','12.8°','2,540','251.3','272.8','4.2 R','104.2','1.46','3.1° R','1.7° L','6 toe · 4 high'],
+[8,'File 1 · row 10','145.9','10.8°','3,020','233.0','250.7','18.0 L','101.8','1.43','0.8° L','3.6° L','Not measured']
+];
+const rows = raw.map((r) => ({
+n: r[0], src: r[1], ball: r[2], launch: r[3], spin: r[4], carry: r[5], total: r[6], lat: r[7],
+club: r[8], smash: r[9], path: r[10], ftp: r[11], impact: r[12],
+bg: r[0] === 7 ? '#22302A' : 'transparent',
+impactColor: r[12] === 'Not measured' ? '#9BA9A1' : '#EAF0EC'
+}));
+return { rows };
+}
+}
+</script>
+
+
+</body></html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Load Session CSV</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EAF0EC; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#F5A742" stroke-width="2"></circle><path d="M3 13 Q11 2 19 9" fill="none" stroke="#62B6F7" stroke-width="2"></path></svg>
+FlightScope Analytics
+</a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+</header>
+
+<main style="max-width: 880px; margin: 0 auto; padding: 40px 32px 56px; display: flex; flex-direction: column; gap: 28px">
+
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1">Load Session CSV</h1>
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: #62B6F7; color: #0D1210; white-space: nowrap">Preview</span>
+<span style="color: #C9D3CD; line-height: 1.45">5 files checked. Nothing is saved until you choose Import.</span>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<legend style="padding: 0; margin-bottom: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Add to</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+<div style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<label style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 7px; color: #C9D3CD"><input type="radio" name="dest" style="accent-color: #EAF0EC">New session</label>
+<label style="display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 7px; background: #EAF0EC; color: #0D1210; font-weight: 600"><input type="radio" name="dest" checked="" style="accent-color: #0D1210">Existing session</label>
+</div>
+<select aria-label="Existing session" style="flex: 1 1 280px; min-height: 46px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit">
+<option>Driver Range Practice</option>
+<option>Wedge gapping</option>
+<option>7 iron path work</option>
+<option>Indoor net check</option>
+</select>
+</div>
+</fieldset>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Files</h2>
+<button type="button" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"></path></svg>
+Add files</button>
+</div>
+
+<ul style="margin: 0; padding: 0; list-style: none; background: #151C19; border: 1px solid #26312C; border-radius: 12px">
+<li style="display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px; border-bottom: 1px solid #26312C">
+<label style="flex-grow: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 12px; font-weight: 500; overflow-wrap: anywhere"><input type="checkbox" checked="" style="width: 18px; height: 18px; accent-color: #EAF0EC; flex-shrink: 0">FS_Driver_Sept 19 2022 (2).csv</label>
+<span style="color: #C9D3CD; white-space: nowrap">16 shots</span>
+<button type="button" aria-label="Remove FS_Driver_Sept 19 2022 (2).csv" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+</li>
+<li style="display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px; border-bottom: 1px solid #26312C">
+<label style="flex-grow: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 12px; font-weight: 500; overflow-wrap: anywhere"><input type="checkbox" checked="" style="width: 18px; height: 18px; accent-color: #EAF0EC; flex-shrink: 0">FS_Driver_Sept 19 2022 (3).csv</label>
+<span style="color: #C9D3CD; white-space: nowrap">18 shots</span>
+<button type="button" aria-label="Remove FS_Driver_Sept 19 2022 (3).csv" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+</li>
+<li style="display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px; border-bottom: 1px solid #26312C">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9BA9A1; overflow-wrap: anywhere">FS_3W_export.csv</span>
+<span style="font-size: 13px; color: #F5A742">Already in this session · will be skipped</span>
+</div>
+<button type="button" aria-label="Remove FS_3W_export.csv" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+</li>
+<li style="display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px; border-bottom: 1px solid #26312C">
+<label style="flex-grow: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 12px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #EAF0EC; flex-shrink: 0">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-weight: 500; overflow-wrap: anywhere">FS_Wedges_export.csv</span>
+<span style="font-size: 13px; color: #F5A742">Also in “Wedge gapping” · tick to import here as well</span>
+</span>
+</label>
+<span style="color: #C9D3CD; white-space: nowrap">22 shots</span>
+<button type="button" aria-label="Remove FS_Wedges_export.csv" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+</li>
+<li style="display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9BA9A1; overflow-wrap: anywhere">notes_export.csv</span>
+<span style="font-size: 13px; color: #FF9A8A">Not a FlightScope shot export · cannot import</span>
+</div>
+<button type="button" aria-label="Remove notes_export.csv" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#9BA9A1" stroke-width="2" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+</li>
+</ul>
+
+<details style="color: #9BA9A1; font-size: 13px">
+<summary style="min-height: 44px; display: flex; align-items: center; gap: 8px; color: #C9D3CD">
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#C9D3CD" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg>
+Import details</summary>
+<p style="margin: 0; line-height: 1.6">Summary rows excluded, missing measurements and column warnings for each file appear here.</p>
+</details>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; justify-content: space-between; padding-top: 24px; border-top: 1px solid #26312C">
+<div style="font-size: 16px; font-weight: 600">2 files · 34 shots <span style="color: #9BA9A1; font-weight: 400">into Driver Range Practice</span></div>
+<div style="display: flex; gap: 8px">
+<a href="Library.dc.html" style="display: flex; align-items: center; min-height: 48px; padding: 0 18px; border-radius: 8px; border: 1px solid #3A4740; color: #EAF0EC; font-weight: 500; text-decoration: none; box-sizing: border-box">Cancel</a>
+<a href="ImportDone.dc.html" style="display: flex; align-items: center; min-height: 48px; padding: 0 24px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">Import 2 files</a>
+</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960}}">
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+
+
+</body></html>

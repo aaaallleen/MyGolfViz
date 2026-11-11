@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Session library, calendar view</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid #26312C">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EAF0EC; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="#F5A742" stroke-width="2"></circle><path d="M3 13 Q11 2 19 9" fill="none" stroke="#62B6F7" stroke-width="2"></path></svg>
+FlightScope Analytics
+</a>
+<nav style="display: flex; gap: 4px; flex-grow: 1">
+<a href="Library.dc.html" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #EAF0EC; background: #1B2420; font-weight: 500">Sessions</a>
+<a href="#trends" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Trends</a>
+<a href="#clubs" style="padding: 12px 14px; border-radius: 8px; text-decoration: none; color: #9BA9A1; font-weight: 500">Clubs</a>
+</nav>
+<a href="Import.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 8px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="2" stroke-linecap="round"><path d="M8 11V2M4 6l4-4 4 4M2 14h12"></path></svg>
+Load Session CSV
+</a>
+</header>
+
+<main style="max-width: 1376px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; line-height: 1.1">Sessions</h1>
+<div style="color: #9BA9A1">4 sessions · 206 shots · 9 source files</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 6px; color: #9BA9A1; font-size: 13px; flex: 1 1 220px">Find a session
+<input type="search" placeholder="Name, club or note" style="min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit; font-size: 14px; box-sizing: border-box; width: 100%">
+</label>
+<div role="group" aria-label="View" style="display: flex; padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<a href="Library.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#C9D3CD" stroke-width="2" stroke-linecap="round"><path d="M2 4h12M2 8h12M2 12h12"></path></svg>List</a>
+<a href="LibraryCalendar.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border-radius: 7px; background: #EAF0EC; color: #0D1210; font-weight: 600; text-decoration: none">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0D1210" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="12" height="11" rx="2"></rect><path d="M2 7h12M5 1.5v3M11 1.5v3"></path></svg>Calendar</a>
+</div>
+</div>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<div style="flex: 999 1 620px; min-width: 0; background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600">November 2026</h2>
+<div style="display: flex; align-items: center; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500">Today</button>
+<button type="button" aria-label="Previous month" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<button type="button" aria-label="Next month" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9BA9A1">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{days}}" as="day" hint-placeholder-count="42">
+<div style="min-height: 96px; box-sizing: border-box; padding: 8px; border-radius: 8px; background: {{day.bg}}; border: 1px solid {{day.border}}; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="font-size: 13px; font-weight: 600; color: {{day.numColor}}">{{day.label}}</span>
+<sc-if value="{{day.hasSession}}" hint-placeholder-val="{{false}}">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px; background: #F5A742; color: #0D1210; text-decoration: none; min-width: 0">
+<span style="font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{day.sName}}</span>
+<span style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{day.sMeta}}</span>
+</a>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: #9BA9A1">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #F5A742"></span>Session on its date</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; border: 1px solid #EAF0EC; box-sizing: border-box"></span>Today</span>
+<span>Dates are the ones you set, never read from filenames</span>
+</div>
+</div>
+
+<aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Saturday 7 November</h2>
+<span style="font-size: 13px; color: #9BA9A1">1 session</span>
+</div>
+<a href="Main.dc.html" style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 10px; background: #101714; border: 1px solid #26312C; text-decoration: none; color: #EAF0EC">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600">Driver Range Practice</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">48</span><span style="font-size: 12px; color: #9BA9A1">shots</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">3</span><span style="font-size: 12px; color: #9BA9A1">files</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">2</span><span style="font-size: 12px; color: #9BA9A1">clubs</span></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">Driver 34</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #3A4740; color: #C9D3CD">3 Wood 14</span></div>
+</a>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">No date set · 2</h2>
+<span style="font-size: 13px; color: #9BA9A1; line-height: 1.45">These sessions are not on the calendar until you give them a date.</span>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #26312C">
+<a href="Main.dc.html" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: #EAF0EC"><span style="font-weight: 600">Wedge gapping</span><span style="font-size: 12px; color: #9BA9A1">62 shots · 2 files</span></a>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500; white-space: nowrap">Set date</button>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0 0; border-top: 1px solid #26312C">
+<a href="Main.dc.html" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: #EAF0EC"><span style="font-weight: 600">Indoor net check</span><span style="font-size: 12px; color: #9BA9A1">25 shots · 1 file</span></a>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; color: #EAF0EC; font: inherit; font-weight: 500; white-space: nowrap">Set date</button>
+</div>
+</div>
+
+</aside>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1100}}">
+class Component extends DCLogic {
+renderVals() {
+const sessions = {
+'10-28': { sName: '7 iron path work', sMeta: '71 shots · 3 files' },
+'11-7': { sName: 'Driver Range Practice', sMeta: '48 shots · 3 files' }
+};
+const days = [];
+for (let i = 0; i < 42; i++) {
+const inOct = i < 6;
+const inDec = i > 35;
+const num = inOct ? 26 + i : inDec ? i - 35 : i - 5;
+const key = (inOct ? '10-' : inDec ? '12-' : '11-') + num;
+const s = sessions[key];
+const outside = inOct || inDec;
+const today = key === '11-11';
+const selected = key === '11-7';
+days.push({
+label: num === 1 ? (inDec ? '1 Dec' : '1 Nov') : String(num),
+numColor: outside ? '#7E8C84' : '#EAF0EC',
+bg: selected ? '#22302A' : outside ? 'transparent' : '#101714',
+border: today ? '#EAF0EC' : selected ? '#F5A742' : '#26312C',
+hasSession: !!s,
+sName: s ? s.sName : '',
+sMeta: s ? s.sMeta : ''
+});
+}
+return { days };
+}
+}
+</script>
+
+
+</body></html>

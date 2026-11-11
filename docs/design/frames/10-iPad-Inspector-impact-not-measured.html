@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>iPad shot inspector, impact not measured</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#0D1210}
+a{color:#62B6F7}a:hover{color:#9DD2FB}
+</style>
+</helmet>
+<div style="width: 820px; height: 1180px; box-sizing: border-box; overflow: hidden; background: #0D1210; color: #EAF0EC; font-family: Inter, system-ui, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; gap: 10px; padding: 8px 20px; border-bottom: 1px solid #26312C">
+<a href="PadSession.dc.html" aria-label="Back to session" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></a>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600">Shot 8 · Driver</h1>
+<div style="font-size: 13px; color: #9BA9A1">Driver Range Practice · File 1 · row 10</div>
+</div>
+<button type="button" aria-label="Previous shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"></path></svg></button>
+<select aria-label="Choose shot" style="min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid #3A4740; background: #151C19; color: #EAF0EC; font: inherit">
+<option>Driver · shot 8 · 233.0 yd</option>
+</select>
+<button type="button" aria-label="Next shot" style="width: 44px; height: 44px; border-radius: 8px; border: 1px solid #3A4740; background: transparent; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg></button>
+</header>
+
+<main style="flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+<div style="background: #151C19; border: 1px solid {{t.border}}; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #9BA9A1">{{t.label}}</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; line-height: 1.1; color: {{t.color}}">{{t.value}} <span style="font-size: 13px; color: #9BA9A1; font-weight: 500">{{t.unit}}</span></span></div>
+</sc-for>
+</div>
+
+<div role="group" aria-label="Club data view" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 10px; border: 1px solid #3A4740; background: #151C19">
+<a href="PadInspector.dc.html" aria-current="page" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; background: #62B6F7; color: #0D1210; font-weight: 600; text-decoration: none">Face impact</a>
+<a href="#3d" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">3D reconstruction</a>
+<a href="#2d" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 7px; color: #C9D3CD; font-weight: 500; text-decoration: none">2D reconstruction</a>
+</div>
+
+<div style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 10px; background: #1B2420; border: 1px solid #3A4740">
+<span style="width: 28px; height: 3px; background: #9BA9A1; flex-shrink: 0"></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">Impact not measured for this shot</span>
+<span style="font-size: 13px; color: #9BA9A1">CSV row 10 has no impact values. No marker is drawn and nothing is estimated.</span>
+</div>
+</div>
+<svg role="img" aria-label="Driver face seen face-on with no marker for this shot. Twelve fainter dots show the session's other Driver impacts." viewBox="0 20 800 400" style="width: 100%; height: auto; display: block">
+<rect x="0" y="20" width="800" height="400" rx="8" fill="#101714"></rect>
+<path d="M150 215 C150 120 230 72 410 66 C590 72 668 122 672 215 C668 308 574 360 410 364 C246 360 150 308 150 215 Z" fill="#1B2420" stroke="#EAF0EC" stroke-width="2.5"></path>
+<g stroke="#3A4740" stroke-width="1">
+<line x1="310" y1="80" x2="310" y2="350"></line>
+<line x1="510" y1="80" x2="510" y2="350"></line>
+<line x1="210" y1="115" x2="210" y2="315"></line>
+<line x1="610" y1="115" x2="610" y2="315"></line>
+<line x1="190" y1="165" x2="640" y2="165"></line>
+<line x1="190" y1="265" x2="640" y2="265"></line>
+</g>
+<line x1="410" y1="66" x2="410" y2="364" stroke="#9BA9A1" stroke-width="1.5" stroke-dasharray="6 6"></line>
+<line x1="150" y1="215" x2="672" y2="215" stroke="#9BA9A1" stroke-width="1.5" stroke-dasharray="6 6"></line>
+<g fill="#62B6F7" fill-opacity="0.45">
+<circle cx="433" cy="228" r="11"></circle><circle cx="360" cy="202" r="11"></circle><circle cx="395" cy="242" r="11"></circle><circle cx="337" cy="178" r="11"></circle><circle cx="457" cy="205" r="11"></circle><circle cx="370" cy="250" r="11"></circle><circle cx="418" cy="183" r="11"></circle><circle cx="323" cy="223" r="11"></circle><circle cx="390" cy="172" r="11"></circle><circle cx="470" cy="245" r="11"></circle><circle cx="347" cy="235" r="11"></circle><circle cx="442" cy="192" r="11"></circle><circle cx="380" cy="195" r="11"></circle>
+</g>
+<text x="150" y="402" fill="#9BA9A1" font-size="15" font-family="Inter, sans-serif">Toe</text>
+<text x="636" y="402" fill="#9BA9A1" font-size="15" font-family="Inter, sans-serif">Heel</text>
+</svg>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px">
+<span style="display: flex; align-items: center; gap: 8px; color: #C9D3CD"><span style="width: 14px; height: 14px; border-radius: 7px; background: #62B6F7; opacity: 0.6"></span>Session impacts · 13 other Driver shots</span>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px; color: #C9D3CD"><input type="checkbox" checked="" style="width: 18px; height: 18px; accent-color: #62B6F7">Show session impacts</label>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 13px; color: #C9D3CD">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #EAF0EC"></span>Measured</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; border: 2px solid #EAF0EC; box-sizing: border-box"></span>Derived</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 3px; border: 2px dashed #9BA9A1; box-sizing: border-box"></span>Illustrative</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 2px; background: #9BA9A1"></span>Unavailable</span>
+</div>
+
+<details style="background: #151C19; border: 1px solid #26312C; border-radius: 12px; padding: 4px 20px">
+<summary style="min-height: 48px; display: flex; align-items: center; gap: 10px; font-weight: 600">
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#EAF0EC" stroke-width="2" stroke-linecap="round"><path d="M5 2l5 5-5 5"></path></svg>
+All measurements <span style="color: #9BA9A1; font-weight: 400">· 16 of 18 available</span></summary>
+<p style="margin: 0 0 16px; color: #9BA9A1; font-size: 13px">The full ball and club value list opens here.</p>
+</details>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:820,&quot;height&quot;:1180}}">
+class Component extends DCLogic {
+renderVals() {
+const tiles = [
+['Carry','233.0','yd'],['Spin','3,020','rpm'],['Club path','0.8° L',''],['Face to path','3.6° L',''],['Attack angle','1.1° up',''],['Impact','Not measured','']
+].map((t) => {
+const missing = t[1] === 'Not measured';
+return { label: t[0], value: t[1], unit: t[2], color: missing ? '#9BA9A1' : '#EAF0EC', border: missing ? '#3A4740' : '#26312C' };
+});
+return { tiles };
+}
+}
+</script>
+
+
+</body></html>
