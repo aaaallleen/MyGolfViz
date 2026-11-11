@@ -1,0 +1,25 @@
+body { margin: 0; }
+.app-shell { min-height: 100vh; }
+.app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid var(--border); }
+.app-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+.app-nav { display: flex; gap: 4px; flex-grow: 1; align-items: center; }
+.app-nav__link { display: inline-flex; align-items: center; padding: 0 14px; border-radius: var(--radius-control); text-decoration: none; color: var(--muted); font-weight: 500; }
+.app-nav__link.is-active { color: var(--text); background: var(--surface-raised); }
+.app-nav__link--primary { margin-right: auto; padding: 0 18px; color: var(--bg); background: var(--text); }
+.app-nav__link--primary.is-active { color: var(--bg); background: var(--text); }
+.app-main { max-width: 1376px; margin: 0 auto; padding: 28px 32px 48px; }
+.privacy-notice { margin: 0 0 16px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); color: var(--text-2); line-height: 1.5; }
+.help { max-width: 760px; display: flex; flex-direction: column; gap: 12px; line-height: 1.5; color: var(--text-2); }
+.help h1, .help h2 { font-family: var(--font-display); color: var(--text); margin: 8px 0 0; }
+.help a { color: var(--club); }
+.help a:hover { color: var(--link-hover); }
+.help__table { width: 100%; border-collapse: collapse; }
+.help__table th, .help__table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+
+@media (max-width: 639px) {
+  .app-header { padding: 8px 16px; }
+  .app-main { padding: 20px 16px 96px; }
+  .app-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; gap: 0; padding: 0; background: var(--surface); border-top: 1px solid var(--border); justify-content: space-around; }
+  .app-nav__link, .app-nav__link--primary { flex: 1; min-height: 56px; justify-content: center; text-align: center; padding: 4px 2px; margin: 0; font-size: 11px; background: transparent; color: var(--muted); border: 0; border-radius: 0; }
+  .app-nav__link.is-active, .app-nav__link--primary.is-active { color: var(--text); background: var(--surface-raised); }
+}

@@ -10,6 +10,7 @@
   "dependencies": {
     "@fsa/analytics": "*",
     "@fsa/csv-parser": "*",
-    "@fsa/domain": "*"
+    "@fsa/domain": "*",
+    "@fsa/ui": "*"
   }
 }
