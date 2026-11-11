@@ -2,12 +2,8 @@ import { Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './layout/AppShell';
 import { NoAnalysis } from './components/NoAnalysis';
 import { HelpPage } from './pages/HelpPage';
+import { LoadPage } from './pages/LoadPage';
 import { useWorkingSet } from './state/store';
-
-function LoadPage() {
-  // Placeholder: replaced by the real Load page in Task 13.
-  return <h1>Load Session CSV</h1>;
-}
 
 function Gated({ title }: { title: string }) {
   const { workingSet } = useWorkingSet();
