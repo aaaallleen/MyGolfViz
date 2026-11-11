@@ -218,7 +218,7 @@ export function ShotReplay3D({ scene, aoa, vPlane }: ShotReplay3DProps) {
         <div style={{ flex: '1 1 260px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <input type="range" min={0} max={100} value={sliderValue} aria-label="Replay position"
             onChange={(e) => setP(Number(e.target.value) / 100)}
-            style={{ width: '100%', height: 24, accentColor: INK, margin: 0 }} />
+            style={{ width: '100%', minHeight: 44, accentColor: INK, margin: 0 }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: MUTED }}>
             {PHASES.map((p) => <span key={p} style={p === phase ? { color: INK, fontWeight: 600 } : undefined}>{p}</span>)}
           </div>

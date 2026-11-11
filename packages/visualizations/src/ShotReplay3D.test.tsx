@@ -167,3 +167,10 @@ test('every drawn coordinate is finite (all cameras, null plane, normal scene)',
     unmount();
   }
 });
+
+test('replay position slider is a ≥44 px touch target', () => {
+  render(<ShotReplay3D scene={scene} aoa={-1.3} vPlane={50.5} />);
+  const s = slider();
+  expect(s.style.minHeight).toBe('44px');
+  expect(s.style.height).toBe('');
+});
