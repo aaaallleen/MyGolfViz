@@ -67,8 +67,8 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
               >
                 <td className="is-left">{s.shotLabel ?? s.sourceRow}</td>
                 <td className="is-left">{s.club}</td>
-                {COLS.map((c) => <td key={c.key}>{formatMeasurement(c.key, s.m[c.key])}</td>)}
-                <td>{formatImpact(s.m.impactLateral, s.m.impactVertical)}</td>
+                {COLS.map((c) => <td key={c.key} className={s.m[c.key] === null ? 'is-missing' : undefined}>{formatMeasurement(c.key, s.m[c.key])}</td>)}
+                <td className={s.m.impactLateral === null || s.m.impactVertical === null ? 'is-missing' : undefined}>{formatImpact(s.m.impactLateral, s.m.impactVertical)}</td>
               </tr>
             ))}
           </tbody>
