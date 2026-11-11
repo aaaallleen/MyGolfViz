@@ -7,6 +7,8 @@ export interface HorizontalDeliveryProps {
   faceToPath: number | null;
   launchH: number | null;
   exaggerate: 1 | 4;
+  /** Which 2D layers to draw; all default to true. */
+  layers?: { faceToTarget?: boolean; faceToPath?: boolean };
 }
 
 const OX = 200, OY = 250; // ball, top view; the target is straight up
@@ -33,11 +35,13 @@ function Row({ label, fieldKey, value, swatch }: { label: string; fieldKey: Meas
 }
 
 /** Top view at impact: club path, face and launch direction against the target line. */
-export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, launchH, exaggerate }: HorizontalDeliveryProps) {
+export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, launchH, exaggerate, layers }: HorizontalDeliveryProps) {
   const k = exaggerate;
+  const showFace = layers?.faceToTarget ?? true;
+  const showFtp = layers?.faceToPath ?? true;
   const none = clubPath === null && faceToTarget === null && faceToPath === null && launchH === null;
   const path = clubPath === null ? null : dir(clubPath, k);
-  const face = faceToTarget === null ? null : dir(faceToTarget, k);
+  const face = !showFace || faceToTarget === null ? null : dir(faceToTarget, k);
   const launch = launchH === null ? null : dir(launchH, k);
   const aria = none
     ? 'Top view at impact. Club delivery not measured for this shot.'
@@ -79,6 +83,16 @@ export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, 
             </>
           );
         })()}
+        {showFtp && clubPath !== null && faceToPath !== null && (() => {
+          // Arc from the club-path direction to the implied face direction (path + face-to-path).
+          const R = 60;
+          const p0 = at(dir(clubPath, k), R), p1 = at(dir(clubPath + faceToPath, k), R);
+          const sweep = faceToPath * k >= 0 ? 1 : 0;
+          return (
+            <path data-role="face-to-path" d={`M${p0.x} ${p0.y}A${R} ${R} 0 0 ${sweep} ${p1.x} ${p1.y}`}
+              fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+          );
+        })()}
         {!none && <circle data-role="ball" cx={OX} cy={OY} r={9} fill={BALL} stroke={BALL_EDGE} strokeWidth={2} />}
       </svg>
       {none ? (
@@ -86,8 +100,8 @@ export function HorizontalDeliveryDiagram({ clubPath, faceToTarget, faceToPath, 
       ) : (
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 16px' }}>
           <Row label="Club path" fieldKey="clubPath" value={clubPath} swatch={{ background: CLUB }} />
-          <Row label="Face to target" fieldKey="ftt" value={faceToTarget} swatch={{ background: INK }} />
-          <Row label="Face to path" fieldKey="ftp" value={faceToPath} />
+          {showFace && <Row label="Face to target" fieldKey="ftt" value={faceToTarget} swatch={{ background: INK }} />}
+          {showFtp && <Row label="Face to path" fieldKey="ftp" value={faceToPath} />}
           <Row label="Launch direction" fieldKey="launchH" value={launchH} swatch={{ borderTop: `3px dotted ${BALL}`, boxSizing: 'border-box' }} />
         </ul>
       )}

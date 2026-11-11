@@ -10,6 +10,8 @@ export interface VerticalDeliveryProps {
   exaggerate: 1 | 2;
   /** Inches from the ball: negative = behind, positive = ahead (target side). Omit to leave the row out. */
   lowPoint?: number | null;
+  /** Which 2D layers to draw; default true. */
+  layers?: { dynamicLoft?: boolean };
 }
 
 const BX = 300, BY = 330, GROUND = 346; // ball centre and ground line
@@ -40,11 +42,12 @@ const fmt = (key: 'aoa' | 'dynamicLoft' | 'launchV' | 'spinLoft' | 'lowPoint', v
   v === null ? null : formatMeasurement(key, v);
 
 /** Side view at impact: attack angle, dynamic loft and launch angle; optional club arc and low point. */
-export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, exaggerate, lowPoint }: VerticalDeliveryProps) {
+export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, exaggerate, lowPoint, layers }: VerticalDeliveryProps) {
+  const showLoft = layers?.dynamicLoft ?? true;
   const k = exaggerate;
   const none = aoa === null && dynamicLoft === null && launchV === null && spinLoft === null && (lowPoint ?? null) === null;
   const attack = aoa === null ? null : dir(aoa, k);
-  const loft = dynamicLoft === null ? null : dir(dynamicLoft, k);
+  const loft = !showLoft || dynamicLoft === null ? null : dir(dynamicLoft, k);
   const launch = launchV === null ? null : dir(launchV, k);
   const lpx = lowPoint == null ? null : Math.max(60, Math.min(850, BX + lowPoint * PX_PER_IN));
   const arc: string[] = [];
@@ -122,7 +125,7 @@ export function VerticalDeliveryDiagram({ aoa, dynamicLoft, launchV, spinLoft, e
         <>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 16px' }}>
             <Row label="Attack angle" text={fmt('aoa', aoa)} swatch={{ background: CLUB }} />
-            <Row label="Dynamic loft" text={fmt('dynamicLoft', dynamicLoft)} swatch={{ background: INK }} />
+            {showLoft && <Row label="Dynamic loft" text={fmt('dynamicLoft', dynamicLoft)} swatch={{ background: INK }} />}
             <Row label="Launch angle" text={fmt('launchV', launchV)} swatch={{ borderTop: `3px dotted ${BALL}`, boxSizing: 'border-box' }} />
             <Row label={spinLoft === null ? "Spin loft" : "Spin loft · as reported"} text={fmt("spinLoft", spinLoft)} />
             {lowPoint !== undefined && <Row label="Low point" text={fmt('lowPoint', lowPoint)} swatch={{ background: CLUB }} />}
