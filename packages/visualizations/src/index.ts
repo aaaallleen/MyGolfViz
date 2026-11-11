@@ -6,5 +6,7 @@ export { VerticalDeliveryDiagram, type VerticalDeliveryProps } from './VerticalD
 export { SpinBallDiagram, SPIN_DISPLAY_SLOWDOWN, type SpinBallDiagramProps } from './SpinBall';
 export { FaceImpactDiagram, type FaceImpactDiagramProps } from './FaceImpact';
 export { FACE_OUTLINES, type FaceOutline } from './faceOutlines';
-export { cameraFor, clubCamera, flightCamera, planeQuad, projectPoint, type Camera, type CameraPreset } from './camera';
-export { ShotReplay3D, type ShotReplay3DProps } from './ShotReplay3D';
+export { clubCamera, flightCamera, planeQuad, projectPoint, type Camera, type CameraPreset } from './camera';
+export { ClubReplay3D, type ClubReplay3DProps } from './ClubReplay3D';
+export { BallFlight3D, type BallFlight3DProps } from './BallFlight3D';
+export { useReplayClock, ReplayControls, type ReplayClock } from './ReplayControls';

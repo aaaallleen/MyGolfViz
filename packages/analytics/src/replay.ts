@@ -65,38 +65,12 @@ export function buildReplayScene(shot: Shot, handedness: Handedness): ReplayScen
   return scene;
 }
 
-export type ReplayPhase = 'Downswing' | 'Impact' | 'Ball flight' | 'Landing';
-
-export function replayPhase(progress: number): ReplayPhase {
-  if (progress < 0.30) return 'Downswing';
-  if (progress < 0.34) return 'Impact';
-  if (progress < 0.95) return 'Ball flight';
-  return 'Landing';
-}
-
 /** Fractional-index interpolation along a polyline between indices a and b. */
 function along(pts: Vec3[], a: number, b: number, f: number): Vec3 {
   const x = a + (b - a) * f;
   const i = Math.min(Math.floor(x), pts.length - 2), r = x - i;
   const p = pts[i]!, q = pts[i + 1]!;
   return [p[0] + (q[0] - p[0]) * r, p[1] + (q[1] - p[1]) * r, p[2] + (q[2] - p[2]) * r];
-}
-
-export function replayFrame(scene: ReplayScene, progress: number): { clubHead: Vec3 | null; ball: Vec3 } {
-  const origin: Vec3 = [0, 0, 0];
-  const p = clamp(progress, 0, 1);
-  const phase = replayPhase(p);
-  const arc = scene.clubArc;
-  if (phase === 'Downswing') {
-    return { clubHead: arc ? along(arc, 0, scene.impactIndex, p / 0.30) : null, ball: origin };
-  }
-  if (phase === 'Impact') return { clubHead: arc ? origin : null, ball: origin };
-  const clubHead = arc ? arc[arc.length - 1]! : null;
-  if (phase === 'Ball flight') {
-    const fl = scene.ballFlight;
-    return { clubHead, ball: fl ? along(fl, 0, fl.length - 1, (p - 0.34) / 0.61) : origin };
-  }
-  return { clubHead, ball: scene.landing ?? origin };
 }
 
 export type ClubPhase = 'Downswing' | 'Impact' | 'Follow-through';

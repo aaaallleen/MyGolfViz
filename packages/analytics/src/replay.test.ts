@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { Shot } from '@fsa/domain';
-import { CLUB_ARC_RADIUS_YD, buildReplayScene, clubFrame, clubPhase, flightFrame, flightPhase, replayFrame, replayPhase, type ReplayPhase } from './replay';
+import { CLUB_ARC_RADIUS_YD, buildReplayScene, clubFrame, clubPhase, flightFrame, flightPhase } from './replay';
 import { SEPT_19_2022, fixtureShots } from '../test/fixtureShots';
 
 const shot = (): Shot => fixtureShots(SEPT_19_2022).find((s) => s.sourceRow === 2)!;
@@ -72,24 +72,6 @@ describe('buildReplayScene', () => {
     const s = buildReplayScene({ ...b, m: { ...b.m, carry: null } }, 'right');
     expect(s.ballFlight).toBeNull();
     expect(s.landing).toBeNull();
-  });
-});
-
-describe('replay phases and frames', () => {
-  test.each<[number, ReplayPhase]>([
-    [0, 'Downswing'], [0.29, 'Downswing'], [0.3, 'Impact'], [0.33, 'Impact'],
-    [0.34, 'Ball flight'], [0.94, 'Ball flight'], [0.95, 'Landing'], [1, 'Landing'],
-  ])('replayPhase(%d)', (p, expected) => expect(replayPhase(p)).toBe(expected));
-
-  test('replayFrame endpoints', () => {
-    const s = buildReplayScene(shot(), 'right');
-    expect(replayFrame(s, 0).clubHead).toEqual(s.clubArc![0]);
-    expect(replayFrame(s, 0).ball).toEqual([0, 0, 0]);
-    const mid = replayFrame(s, 0.3);
-    expect(mid.clubHead).toEqual([0, 0, 0]);
-    expect(mid.ball).toEqual([0, 0, 0]);
-    expect(replayFrame(s, 1).ball).toEqual(s.landing);
-    expect(replayFrame(s, 0.5).clubHead).toEqual(s.clubArc![40]);
   });
 });
 

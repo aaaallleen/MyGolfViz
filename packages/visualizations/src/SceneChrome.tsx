@@ -1,0 +1,59 @@
+import type { ReactNode } from 'react';
+import type { Vec3 } from '@fsa/domain';
+import { ProvenanceTag } from '@fsa/ui';
+import { projectPoint, type Camera } from './camera';
+import { BALL_EDGE, GRID, INK, MUTED, PANEL, SOFT } from './theme';
+
+export const W = 800, H = 480;
+export type Pt = { x: number; y: number };
+export const f1 = (n: number) => Number(n.toFixed(1));
+
+/** Projection helpers: a segment with an endpoint behind the camera is skipped; every coordinate is finite. */
+export function makeProjector(cam: Camera) {
+  const proj = (p: Vec3): Pt | null => {
+    const r = projectPoint(p, cam, { width: W, height: H });
+    return r && Number.isFinite(r.x) && Number.isFinite(r.y) ? { x: r.x, y: r.y } : null;
+  };
+  const pt = (p: Pt) => `${f1(p.x)} ${f1(p.y)}`;
+  const pathOf = (pts: Vec3[]): string => {
+    let d = '';
+    let prev: Pt | null = null;
+    for (const p of pts) {
+      const q = proj(p);
+      if (q && prev) d += ` L${pt(q)}`;
+      else if (q) d += ` M${pt(q)}`;
+      prev = q;
+    }
+    return d.trim();
+  };
+  const lineEl = (key: string, a: Vec3, b: Vec3, props: Record<string, string | number>): ReactNode => {
+    const p = proj(a), q = proj(b);
+    if (!p || !q) return null;
+    return <line key={key} x1={f1(p.x)} y1={f1(p.y)} x2={f1(q.x)} y2={f1(q.y)} {...props} />;
+  };
+  return { proj, pt, pathOf, lineEl };
+}
+
+/** Ground grid on z = 0 over [x0,x1] x [y0,y1] with the given spacing. */
+export function groundGrid(lineEl: ReturnType<typeof makeProjector>['lineEl'], x0: number, x1: number, y0: number, y1: number, step: number) {
+  const out: ReactNode[] = [];
+  for (let x = x0; x <= x1; x += step) out.push(lineEl(`gx${x}`, [x, y0, 0], [x, y1, 0], {}));
+  for (let y = y0; y <= y1; y += step) out.push(lineEl(`gy${y}`, [x0, y, 0], [x1, y, 0], {}));
+  return <g stroke={GRID} strokeWidth={1}>{out}</g>;
+}
+
+export function Panel({ children }: { children: ReactNode }) {
+  return <div style={{ background: PANEL, border: `1px solid ${GRID}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>{children}</div>;
+}
+
+export function Banner({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderRadius: 10, border: `2px dashed ${MUTED}`, flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, background: INK, color: BALL_EDGE, whiteSpace: 'nowrap' }}>{title}</span>
+      <span style={{ color: SOFT, lineHeight: 1.45, flex: '1 1 240px' }}>{copy}</span>
+      <ProvenanceTag kind="illustrative" />
+    </div>
+  );
+}
+
+export const noteStyle = { margin: 0, color: MUTED, fontSize: 14 } as const;

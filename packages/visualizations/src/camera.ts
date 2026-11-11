@@ -18,16 +18,6 @@ const normalize = (a: Vec3): Vec3 => {
 const ASPECT = 0.6;
 const FILL = 0.46; // fraction of half-width/height the framed points may use (2% margin + slack)
 
-/** Everything that must stay visible: ball, club arc, ball flight and landing. */
-function framedPoints(scene: ReplayScene): Vec3[] {
-  const pts: Vec3[] = [[0, 0, 0]];
-  if (scene.clubArc) pts.push(...scene.clubArc);
-  if (scene.ballFlight) pts.push(...scene.ballFlight);
-  if (scene.landing) pts.push(scene.landing);
-  if (pts.length === 1) pts.push([-5, -5, 0], [5, 5, 3]);
-  return pts;
-}
-
 const bounds = (pts: Vec3[]) => {
   const lo: Vec3 = [Infinity, Infinity, Infinity], hi: Vec3 = [-Infinity, -Infinity, -Infinity];
   for (const p of pts) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k]!, p[k]!); hi[k] = Math.max(hi[k]!, p[k]!); }
@@ -82,10 +72,6 @@ function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness,
   }
   const target: Vec3 = preset === 'top' ? [mid[0], mid[1], 0] : mid;
   return fitCamera(eye, target, up, pts, viewportWidth);
-}
-
-export function cameraFor(preset: CameraPreset, scene: ReplayScene, viewportWidth: number): Camera {
-  return presetCamera(preset, framedPoints(scene), scene.handedness, viewportWidth);
 }
 
 /** Frames the origin and every point of every flight passed in. */

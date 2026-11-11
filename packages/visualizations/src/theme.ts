@@ -11,3 +11,4 @@ export const BORDER = '#3A4740';
 export const BALL_EDGE = '#0D1210';
 export const FONT = 'Inter, sans-serif';
 export const DISPLAY_FONT = "'Space Grotesk', sans-serif";
+export const PANEL = '#151C19';
