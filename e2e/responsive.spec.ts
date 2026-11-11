@@ -85,6 +85,7 @@ test.describe('phone 390', () => {
   test('every visible button, select, [role=tab], nav link and checkbox label is at least 44px tall', async ({ page }) => {
     await stageFiles(page);
     expect(await shortControls(page), 'load').toEqual([]);
+    await shot(page, 'load-touch-targets', 390);
     await page.getByRole('button', { name: 'Analyze files' }).click();
     await expect(page.getByText('In this browser only')).toBeVisible();
     expect(await shortControls(page), 'overview').toEqual([]);
@@ -94,6 +95,7 @@ test.describe('phone 390', () => {
       await openTab(page, tab);
       expect(await shortControls(page), `inspector ${tab}`).toEqual([]);
     }
+    await shot(page, 'inspector-touch-targets', 390);
   });
 
   test('cards replace the table, KPI tiles pair up, one 2D pane at a time, viewers fit the width', async ({ page }) => {
@@ -117,6 +119,7 @@ test.describe('phone 390', () => {
       if (await page.locator(c).first().isVisible()) visible.push(c);
     }
     expect(visible, 'exactly one 2D pane visible').toHaveLength(1);
+    await shot(page, 'inspector-2d-layout', 390);
   });
 
   test('touch: tapping a shot card selects it; tapping Next shot advances the position text', async ({ page }) => {
@@ -129,6 +132,7 @@ test.describe('phone 390', () => {
     await page.getByRole('button', { name: 'Next shot' }).tap();
     await expect(pos).toHaveText(/^5 of /);
     await expect(cards.nth(4)).toHaveAttribute('aria-current', 'true');
+    await shot(page, 'overview-tap', 390);
   });
 });
 
@@ -173,19 +177,29 @@ test.describe('desktop 1440', () => {
     expect(d.y + d.height).toBeGreaterThan(t.y);
     expect(t.y + t.height).toBeGreaterThan(d.y);
     expect(t.x).toBeGreaterThan(d.x + d.width - 1);
+    await shot(page, 'overview-table', 1440);
   });
 
   test('keyboard: Tab to a table row + Enter selects it; ArrowRight on the tablist activates the next tab', async ({ page }) => {
     await loadAndAnalyze(page);
-    const row = page.locator('.shots-table tbody tr[data-shot-id]').nth(2);
-    await row.focus();
-    await expect(row).toBeFocused();
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Shift+Tab');
-    await expect(row).toBeFocused();
+    const note = page.locator('.selected-card .panel__note');
+    const before = await note.innerText();
+    // Real Tab traversal from the filter bar until a not-yet-selected shot row has focus.
+    await page.getByRole('combobox', { name: 'Source file' }).focus();
+    let reached: string | null = null;
+    for (let i = 0; i < 60 && reached === null; i++) {
+      await page.keyboard.press('Tab');
+      reached = await page.evaluate(() => {
+        const el = document.activeElement;
+        return el?.matches('.shots-table tr[data-shot-id]') && el.getAttribute('aria-current') !== 'true' ? el.getAttribute('data-shot-id') : null;
+      });
+    }
+    expect(reached, 'Tab reaches an unselected shot row within 60 presses').not.toBeNull();
     await page.keyboard.press('Enter');
+    const row = page.locator(`.shots-table tr[data-shot-id="${reached}"]`);
     await expect(row).toHaveAttribute('aria-current', 'true');
-    await expect(page.locator('.selected-card .panel__note')).toHaveText(/^3 of /);
+    await expect(note).not.toHaveText(before);
+    await shot(page, 'overview-keyboard', 1440);
 
     await goInspector(page);
     const tabs = page.getByRole('tab');
