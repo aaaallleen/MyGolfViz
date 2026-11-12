@@ -37,7 +37,9 @@ describe('OverviewPage', () => {
 
   test('Edit details: changing the name updates the h1 immediately', async () => {
     const user = userEvent.setup();
-    renderWithData(ALL);
+    // One 16-shot file: every keystroke re-renders the whole Overview, and with all 133 shots this
+    // test alone ran 2–5 s on CI, against the 5 s default timeout. The shot count doesn't matter here.
+    renderWithData([F1]);
     await user.click(screen.getByRole('button', { name: 'Edit details' }));
     const input = screen.getByLabelText('Session name');
     await user.clear(input);
