@@ -267,3 +267,6 @@ textarea.field__input { padding: 10px 12px; }
   .inspector-head__nav select { flex: 1 1 100%; }
 }
 .selected-card__empty { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+/* Route fallback: invisible for the first 300ms so a quick page load never flashes it. */
+.page-loading { margin: 0; color: var(--muted); animation: page-loading-in 0s 300ms both; }
+@keyframes page-loading-in { from { visibility: hidden; } to { visibility: visible; } }

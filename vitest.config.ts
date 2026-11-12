@@ -12,7 +12,10 @@ export default defineConfig({
           root: dir,
           environment: 'jsdom' as const,
           include: ['**/*.test.{ts,tsx}'],
-          setupFiles: [new URL('./vitest.setup.ts', import.meta.url).pathname],
+          setupFiles: [
+            new URL('./vitest.setup.ts', import.meta.url).pathname,
+            ...(dir === 'apps/web' ? [new URL('./apps/web/src/test/setup.ts', import.meta.url).pathname] : []),
+          ],
         },
       })),
     ],
