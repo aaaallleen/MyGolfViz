@@ -168,18 +168,21 @@ test.describe('tablet 820', () => {
 test.describe('desktop 1440', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('table visible and not clipped; dispersion and trajectory panels share a row', async ({ page }) => {
+  test('table visible and not clipped; top view sits directly above the side view, same width, with the Clubs table beside them', async ({ page }) => {
     await loadAndAnalyze(page);
     const table = page.locator('.shots-table');
     await expect(table).toBeVisible();
     await expect(page.locator('.shots-cards')).toBeHidden();
     const m = await table.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
     expect(m.sw, 'table container scrollWidth').toBeLessThanOrEqual(m.cw);
-    const d = (await page.locator('.fsa-dispersion').first().boundingBox())!;
-    const t = (await page.locator('.fsa-trajectory').first().boundingBox())!;
-    expect(d.y + d.height).toBeGreaterThan(t.y);
-    expect(t.y + t.height).toBeGreaterThan(d.y);
-    expect(t.x).toBeGreaterThan(d.x + d.width - 1);
+    const d = (await page.locator('.fsa-dispersion svg').first().boundingBox())!;
+    const t = (await page.locator('.fsa-trajectory svg').first().boundingBox())!;
+    const c = (await page.locator('.club-table').first().boundingBox())!;
+    expect(t.y).toBeGreaterThanOrEqual(d.y + d.height - 1);
+    expect(Math.abs(t.x - d.x)).toBeLessThan(1);
+    expect(Math.abs(t.width - d.width)).toBeLessThan(1);
+    expect(c.x).toBeGreaterThan(d.x + d.width - 1);
+    expect(c.y).toBeLessThan(d.y + d.height);
     await shot(page, 'overview-table', 1440);
   });
 

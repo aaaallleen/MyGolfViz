@@ -1,29 +1,46 @@
-import type { DispersionStats } from '@fsa/analytics';
-import { linear, niceTicks } from './scale';
-import { BALL, INK, MUTED, GRID, SURFACE, FONT } from './theme';
+import type { DispersionStats, LandingMode } from '@fsa/analytics';
+import { emphasis, PATTERN_LEFT, PATTERN_RIGHT_PAD, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
+import { niceTicks } from './scale';
+import { INK, MUTED, GRID, SURFACE, FONT } from './theme';
 
 export interface DispersionPlotProps {
-  stats: DispersionStats;
+  mode: LandingMode;
+  /** One entry per club, in bag order; each club's points, centroid and ellipse. */
+  groups: (ClubSeries & { stats: DispersionStats })[];
+  /** Far end of the distance axis (yd), shared with the side view. */
+  xMax: number;
   selectedId: string | null;
+  /** The club whose marks are drawn solid while the rest fade; null for none. */
+  highlightClub: string | null;
+  /** Horizontal launch of the selected shot (deg, right +), to bend its path from the tee. */
+  selectedLaunchH?: number | null;
+  /** viewBox width; the plot keeps one yard the same length on both axes. */
+  width?: number;
   onSelect(shotId: string): void;
   labelFor(shotId: string): string;
 }
 
-const W = 560, H = 440;
-const L = 40, R = 520, T = 40, B = 400;
+const T = 30, BOTTOM = 40;
+/** Smallest gap between lateral yardage labels, in viewBox units. */
+const LAT_LABEL_GAP = 18;
 
 const NOTE = {
   carry: 'Actual reported landing position',
   total: 'Hybrid plot, not actual resting position',
 } as const;
 
-const r1 = (n: number) => Number(n.toFixed(1));
-const tickX = (t: number) => (t === 0 ? 'Target' : `${Math.abs(t)} ${t < 0 ? 'L' : 'R'}`);
+// Opacity per emphasis level: nothing highlighted / this club highlighted / another club highlighted.
+const DOT = { normal: 0.45, on: 0.95, off: 0.12 } as const;
+const RING = { normal: 0.55, on: 1, off: 0.18 } as const;
+const FILL = { normal: 0.05, on: 0.12, off: 0.02 } as const;
 
-export function DispersionPlot({ stats, selectedId, onSelect, labelFor }: DispersionPlotProps) {
-  const { mode, points, centroid, ellipse } = stats;
-  const yTitle = mode === 'carry' ? 'Carry distance (yd)' : 'Total distance (yd)';
+const r1 = (n: number) => Number(n.toFixed(1));
+const r3 = (n: number) => Number(n.toFixed(3));
+const tickLat = (t: number) => (t === 0 ? 'Target' : `${Math.abs(t)} ${t < 0 ? 'L' : 'R'}`);
+
+export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, onSelect, labelFor }: DispersionPlotProps) {
   const note = NOTE[mode];
+  const points = groups.flatMap((g) => g.stats.points);
 
   if (points.length === 0) {
     return (
@@ -34,77 +51,106 @@ export function DispersionPlot({ stats, selectedId, onSelect, labelFor }: Disper
     );
   }
 
-  const xr = Math.max(10, Math.max(...points.map((p) => Math.abs(p.x))) * 1.1);
-  const ys = points.map((p) => p.y);
-  let y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const pad = Math.max((y1 - y0) * 0.1, 5);
-  y0 -= pad; y1 += pad;
-  const sx = linear(-xr, xr, L, R);
-  const sy = linear(y0, y1, B, T);
-  const xTicks = niceTicks(-xr, xr, 6);
-  const yTicks = niceTicks(y0, y1, 4);
+  // One scale for both axes (yards per pixel), so distance arcs are true circles and spreads keep their shape.
+  const L = PATTERN_LEFT, R = width - PATTERN_RIGHT_PAD;
+  const k = (R - L) / xMax;
+  const minPlotH = width * 0.3;
+  const latData = Math.max(...points.map((p) => Math.abs(p.x))) * 1.1;
+  const latMax = Math.max(latData, minPlotH / (2 * k), 5);
+  const plotH = 2 * latMax * k;
+  const B = T + plotH, H = B + BOTTOM;
+  const sx = (d: number) => L + d * k;            // distance from the tee, left to right
+  const sy = (lat: number) => T + (latMax + lat) * k; // left of target above the line, right below
 
-  const selected = points.find((p) => p.shotId === selectedId) ?? null;
-  const modeWord = mode === 'carry' ? 'carry' : 'total';
+  const distTicks = niceTicks(0, xMax, 6).filter((t) => t > 0);
+  // Left/right yardage lines: every 10 yd where there is room for a label, wider steps when tight.
+  const latStep = [5, 10, 20, 25, 50, 100].find((st) => st * k >= LAT_LABEL_GAP) ?? 100;
+  const latTicks: number[] = [];
+  for (let t = -Math.floor((latMax - 2 / k) / latStep) * latStep; t <= latMax - 2 / k; t += latStep) latTicks.push(t + 0);
+  const word = mode === 'carry' ? 'Carry' : 'Total';
+  const sel = points.find((p) => p.shotId === selectedId) ?? null;
+  const ordered = [...groups].sort((a, b) => Number(a.club === highlightClub) - Number(b.club === highlightClub));
+
   const aria =
-    `Top-down dispersion plot of ${modeWord} distance against lateral landing, with a target centre line.` +
-    (selected
-      ? ` Selected ${labelFor(selected.shotId)} lands at ${r1(selected.y)} yards, ${r1(Math.abs(selected.x))} yards ${selected.x < 0 ? 'left' : 'right'}.`
-      : '');
+    `Top-down dispersion of ${word.toLowerCase()} distance from the tee against lateral landing, one colour per club, with a target centre line.` +
+    (highlightClub ? ` ${highlightClub} highlighted.` : '') +
+    (sel ? ` Selected ${labelFor(sel.shotId)} lands at ${r1(sel.y)} yards, ${r1(Math.abs(sel.x))} yards ${sel.x < 0 ? 'left' : 'right'}.` : '');
 
-  // Ellipse: draw the unit circle through the data->pixel linear map (y flipped),
-  // so the tilt stays correct under unequal x/y scales.
-  let ellipseTransform: string | null = null;
-  if (ellipse) {
-    const th = (ellipse.angleDeg * Math.PI) / 180;
-    const kx = (R - L) / (2 * xr), ky = (B - T) / (y1 - y0);
-    const m = [
-      kx * ellipse.rx * Math.cos(th), -ky * ellipse.rx * Math.sin(th),
-      -kx * ellipse.ry * Math.sin(th), -ky * ellipse.ry * Math.cos(th),
-      sx(ellipse.cx), sy(ellipse.cy),
-    ];
-    ellipseTransform = `matrix(${m.map((v) => r1(v * 1000) / 1000).join(' ')})`;
+  // Ellipse: the unit circle mapped by the principal axes. Data is (lateral, distance); the screen
+  // puts distance on x and lateral on y, so each axis direction (cos θ, sin θ) maps to (k sin θ, k cos θ).
+  const ellipseMatrix = (e: NonNullable<DispersionStats['ellipse']>) => {
+    const th = (e.angleDeg * Math.PI) / 180, c = Math.cos(th), s = Math.sin(th);
+    return `matrix(${[k * e.rx * s, k * e.rx * c, k * e.ry * c, -k * e.ry * s, sx(e.cy), sy(e.cx)].map(r3).join(' ')})`;
+  };
+
+  // The selected shot's path seen from above: leaves the tee along its launch direction, ends where it lands.
+  let path: string | null = null;
+  if (sel) {
+    const lh = selectedLaunchH === null ? null : (selectedLaunchH * Math.PI) / 180;
+    const ctrlLat = lh === null ? sel.x / 2 : (sel.y / 2) * Math.tan(lh);
+    path = `M${r1(sx(0))} ${r1(sy(0))} Q${r1(sx(sel.y / 2))} ${r1(sy(ctrlLat))} ${r1(sx(sel.y))} ${r1(sy(sel.x))}`;
   }
+  const labelLeft = sel !== null && sx(sel.y) > R - 140;
 
   return (
     <div className="fsa-dispersion">
-      <svg role="img" aria-label={aria} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-        <rect x={0} y={0} width={W} height={H} rx={8} fill={SURFACE} />
-        <g stroke={GRID} strokeWidth={1}>
-          {yTicks.map((t) => <line key={`gy${t}`} x1={L} y1={sy(t)} x2={R} y2={sy(t)} />)}
-          {xTicks.map((t) => <line key={`gx${t}`} x1={sx(t)} y1={T} x2={sx(t)} y2={B} />)}
+      <svg role="img" aria-label={aria} viewBox={`0 0 ${width} ${r1(H)}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <defs>
+          <clipPath id="fsa-dispersion-plot"><rect x={L} y={T} width={R - L} height={plotH} /></clipPath>
+        </defs>
+        <rect x={0} y={0} width={width} height={H} rx={8} fill={SURFACE} />
+        <g clipPath="url(#fsa-dispersion-plot)" fill="none" stroke={GRID} strokeWidth={1}>
+          {distTicks.map((t) => <circle key={`arc${t}`} data-testid="distance-arc" cx={sx(0)} cy={sy(0)} r={r1(t * k)} />)}
+          {latTicks.filter((t) => t !== 0).map((t) => (
+            <line key={`lat${t}`} data-testid="lateral-line" data-yd={t} x1={L} y1={r1(sy(t))} x2={R} y2={r1(sy(t))} strokeDasharray="2 4" />
+          ))}
         </g>
-        <line x1={sx(0)} y1={T - 10} x2={sx(0)} y2={B + 10} stroke={MUTED} strokeWidth={1.5} strokeDasharray="6 5" />
+        <line x1={sx(0)} y1={sy(0)} x2={R} y2={sy(0)} stroke={MUTED} strokeWidth={1.5} strokeDasharray="6 5" />
         <g fill={MUTED} fontSize={12} fontFamily={FONT}>
-          {yTicks.map((t) => <text key={`ty${t}`} x={8} y={sy(t) + 4}>{t}</text>)}
-          {xTicks.map((t) => <text key={`tx${t}`} x={sx(t)} y={H - 12} textAnchor="middle">{tickX(t)}</text>)}
-          <text x={(L + R) / 2} y={H - 0} textAnchor="middle" fontSize={11}>Lateral landing (yd) · right positive</text>
-          <text x={8} y={22}>{yTitle}</text>
+          {latTicks.map((t) => <text key={`tl${t}`} x={8} y={r1(sy(t) + 4)}>{tickLat(t)}</text>)}
+          {distTicks.map((t) => <text key={`td${t}`} x={r1(sx(t))} y={r1(B + 18)} textAnchor="middle">{t}</text>)}
+          <text x={R} y={r1(H - 6)} textAnchor="end" fontSize={11}>{`${word} distance (yd)`}</text>
+          <text x={8} y={18} fontSize={11}>Lateral landing (yd) · left above the target line</text>
         </g>
-        {ellipse && ellipseTransform && (
-          <circle data-testid="ellipse" cx={0} cy={0} r={1} transform={ellipseTransform}
-            fill={BALL} fillOpacity={0.1} stroke={BALL} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-        )}
-        <g fill={BALL} fillOpacity={0.8}>
-          {points.map((p) => {
-            const isSel = p.shotId === selectedId;
-            return (
-              <circle key={p.shotId} data-shot-id={p.shotId} cx={sx(p.x)} cy={sy(p.y)} r={isSel ? 9 : 6}
-                {...(isSel ? { 'aria-current': 'true' as const, fill: INK, fillOpacity: 1, stroke: '#0D1210', strokeWidth: 2 } : {})}
-                style={{ cursor: 'pointer' }} onClick={() => onSelect(p.shotId)} />
-            );
-          })}
-        </g>
-        {centroid && (
-          <g data-testid="centroid" stroke={INK} strokeWidth={1.5}>
-            <line x1={sx(centroid.x) - 12} y1={sy(centroid.y)} x2={sx(centroid.x) + 12} y2={sy(centroid.y)} />
-            <line x1={sx(centroid.x)} y1={sy(centroid.y) - 12} x2={sx(centroid.x)} y2={sy(centroid.y) + 12} />
+        {ordered.map((g) => {
+          const e = g.stats.ellipse, level = emphasis(g.club, highlightClub);
+          return e && (
+            <circle key={`el-${g.club}`} data-testid="ellipse" data-club={g.club} cx={0} cy={0} r={1} transform={ellipseMatrix(e)}
+              fill={g.color} fillOpacity={FILL[level]} stroke={g.color} strokeOpacity={RING[level]}
+              strokeWidth={level === 'on' ? 2 : 1.5} vectorEffect="non-scaling-stroke" />
+          );
+        })}
+        {ordered.map((g) => {
+          const c = g.stats.centroid, level = emphasis(g.club, highlightClub);
+          return c && (
+            <g key={`mean-${g.club}`} data-testid="centroid" data-club={g.club} stroke={g.color} strokeOpacity={RING[level]} strokeWidth={1.5}>
+              <line x1={r1(sx(c.y) - 6)} y1={r1(sy(c.x))} x2={r1(sx(c.y) + 6)} y2={r1(sy(c.x))} />
+              <line x1={r1(sx(c.y))} y1={r1(sy(c.x) - 6)} x2={r1(sx(c.y))} y2={r1(sy(c.x) + 6)} />
+            </g>
+          );
+        })}
+        {ordered.map((g) => {
+          const level = emphasis(g.club, highlightClub);
+          return (
+            <g key={`pts-${g.club}`} fill={g.color} fillOpacity={DOT[level]}
+              {...(level === 'on' ? { stroke: SURFACE, strokeWidth: 1.5 } : {})}>
+              {g.stats.points.filter((p) => p.shotId !== selectedId).map((p) => (
+                <circle key={p.shotId} data-shot-id={p.shotId} data-club={g.club} cx={r1(sx(p.y))} cy={r1(sy(p.x))} r={level === 'on' ? 5.5 : 5}
+                  style={{ cursor: 'pointer' }} onClick={() => onSelect(p.shotId)} />
+              ))}
+            </g>
+          );
+        })}
+        {sel && path && (
+          <g>
+            <path data-testid="selected-path" d={path} fill="none" stroke={INK} strokeOpacity={0.7} strokeWidth={1.5} />
+            <circle data-shot-id={sel.shotId} aria-current="true" cx={r1(sx(sel.y))} cy={r1(sy(sel.x))} r={8}
+              fill={INK} stroke={SURFACE} strokeWidth={2} style={{ cursor: 'pointer' }} onClick={() => onSelect(sel.shotId)} />
+            <text x={r1(sx(sel.y) + (labelLeft ? -14 : 14))} y={r1(sy(sel.x) - 8)} textAnchor={labelLeft ? 'end' : 'start'}
+              fill={INK} fontSize={13} fontWeight={600} fontFamily={FONT} stroke={SURFACE} strokeWidth={3} paintOrder="stroke">
+              {labelFor(sel.shotId)}
+            </text>
           </g>
-        )}
-        {selected && (
-          <text x={sx(selected.x) + 15} y={sy(selected.y) - 5} fill={INK} fontSize={13} fontWeight={600} fontFamily={FONT}>
-            {labelFor(selected.shotId)}
-          </text>
         )}
       </svg>
       <p style={{ margin: '8px 0 0', fontSize: 13, color: MUTED }}>{note}</p>

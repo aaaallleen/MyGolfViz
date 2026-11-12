@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import type { Measurements, Shot } from '@fsa/domain';
-import { EXPECTED_1SIGMA_COVERAGE, dispersionStats } from './dispersion';
+import { EXPECTED_1SIGMA_COVERAGE, dispersionByClub, dispersionStats } from './dispersion';
 import { SEPT_19_2022, fixtureShots } from '../test/fixtureShots';
 
-function synth(points: [number | null, number | null][]): Shot[] {
+function synth(points: [number | null, number | null][], club = 'X'): Shot[] {
   return points.map(([x, y], i) => ({
-    id: `s${i}`, fileId: 'f', sourceRow: i + 2, shotLabel: null, club: 'X', shotType: null, mode: null,
+    id: `${club}${i}`, fileId: 'f', sourceRow: i + 2, shotLabel: null, club, shotType: null, mode: null,
     location: null, raw: {}, flags: [],
     m: { lateral: x, carry: y, total: y } as Measurements,
   }));
@@ -49,5 +49,27 @@ describe('dispersionStats', () => {
     expect(d.points).toEqual([]);
     expect(d.centroid).toBeNull();
     expect(d.excluded).toBe(2);
+  });
+});
+
+describe('dispersionByClub', () => {
+  test('one entry per club in bag order, each with its own stats', () => {
+    const shots = [
+      ...synth([[1, 150], [3, 160], [-2, 155]], '7 Iron'),
+      ...synth([[10, 240], [-10, 250], [5, 260], [0, 245]], 'Driver'),
+      ...synth([[2, 100]], 'Gap Wedge'),
+    ];
+    const by = dispersionByClub(shots, 'carry');
+    expect(by.map((g) => g.club)).toEqual(['Driver', '7 Iron', 'Gap Wedge']);
+    expect(by[0]!.stats.points).toHaveLength(4);
+    expect(by[0]!.stats.centroid!.y).toBeCloseTo(248.75, 6);
+    expect(by[1]!.stats.centroid!.y).toBeCloseTo(155, 6);
+    expect(by[1]!.stats.ellipse).not.toBeNull();
+    expect(by[2]!.stats.ellipse).toBeNull();
+  });
+
+  test('a club with no usable landing still gets an entry, with no points', () => {
+    const by = dispersionByClub([...synth([[null, 150]], '8 Iron'), ...synth([[1, 160]], '7 Iron')], 'carry');
+    expect(by.map((g) => [g.club, g.stats.points.length])).toEqual([['7 Iron', 1], ['8 Iron', 0]]);
   });
 });

@@ -164,8 +164,90 @@ describe('OverviewPage', () => {
 
   test('ellipse caption exact', () => {
     renderWithData(ALL);
-    expect(screen.getByText(/^1σ covariance ellipse · about 39% expected coverage if shots were bivariate normal · observed: \d+ of \d+ shots inside\. Cross: mean landing\.$/)).toBeInTheDocument();
+    expect(screen.getByText(/^1σ covariance ellipse per club · about 39% expected coverage if shots were bivariate normal · observed: \d+ of \d+ shots inside\. Cross: each club's mean landing\.$/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/holds? (about )?39%/);
+  });
+
+  test('Clubs table: one row per club in bag order, each with its colour swatch; one ellipse per club', () => {
+    renderWithData(ALL);
+    const table = screen.getByRole('region', { name: 'Clubs' });
+    const rows = Array.from(table.querySelectorAll('tbody tr')) as HTMLElement[];
+    expect(rows.map((r) => r.dataset.club)).toEqual(['Driver', '4 Hybrid', '6 Iron', '7 Iron', '8 Iron', '9 Iron', 'Pitching Wedge', 'Gap Wedge']);
+    const swatch = (club: string) => (table.querySelector(`tr[data-club="${club}"] .club-table__swatch`) as HTMLElement).style.background;
+    expect(new Set(rows.map((r) => swatch(r.dataset.club!))).size).toBe(8);
+    expect(document.querySelectorAll('[data-testid="ellipse"]')).toHaveLength(8);
+    // The table and the plot agree on each club's colour.
+    const plotFill = (club: string) => document.querySelector(`circle[data-shot-id][data-club="${club}"]`)!.parentElement!.getAttribute('fill')!.toLowerCase();
+    const hex = (rgb: string) => `#${rgb.match(/\d+/g)!.map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`;
+    for (const club of ['Driver', '7 Iron', 'Gap Wedge']) expect(hex(swatch(club))).toBe(plotFill(club));
+  });
+
+  test('club colours do not change when a filter hides other clubs', async () => {
+    const user = userEvent.setup();
+    renderWithData(ALL);
+    const fill = () => document.querySelector('circle[data-shot-id][data-club="7 Iron"]')!.parentElement!.getAttribute('fill');
+    const before = fill();
+    await user.click(chip('7 Iron'));
+    expect(fill()).toBe(before);
+  });
+
+  test('two highlight levels: the analysis opens with no club highlighted; picking a shot highlights its club and whitens the shot; tapping the club clears the club only', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    const pressed = () => screen.queryAllByRole('button', { pressed: true }).filter((b) => b.classList.contains('club-table__club')).map((b) => b.textContent);
+    expect(pressed()).toEqual([]);
+    const target = r.store().visibleShots.find((s) => s.club === 'Gap Wedge')!;
+    await user.click(document.querySelector(`circle[data-shot-id="${target.id}"]`)!);
+    expect(pressed()).toEqual(['Gap Wedge']);
+    expect(document.querySelector(`circle[data-shot-id="${target.id}"]`)).toHaveAttribute('fill', '#EAF0EC');
+    expect(document.querySelector('[data-testid="ellipse"][data-club="Gap Wedge"]')!.getAttribute('stroke-opacity')).toBe('1');
+    await user.click(screen.getByRole('button', { name: 'Gap Wedge', pressed: true }));
+    expect(pressed()).toEqual([]);
+    expect(r.store().selectedId).toBe(target.id);
+    await user.click(screen.getByRole('button', { name: 'Driver', pressed: false }));
+    expect(pressed()).toEqual(['Driver']);
+  });
+
+  test('tapping a club in the Clubs table jumps the shot picker to that club’s first shot', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    const firstOf = (club: string) => r.store().visibleShots.find((s) => s.club === club)!;
+    await user.click(screen.getByRole('button', { name: 'Gap Wedge', pressed: false }));
+    expect(r.store().selectedId).toBe(firstOf('Gap Wedge').id);
+    expect(screen.getByLabelText('Choose shot')).toHaveValue(firstOf('Gap Wedge').id);
+    // Step on, then pick the same club again from the table: back to its first shot.
+    await user.click(screen.getByRole('button', { name: 'Next shot' }));
+    await user.click(screen.getByRole('button', { name: 'Gap Wedge', pressed: true })); // clears the highlight, keeps the shot
+    expect(r.store().selectedId).not.toBe(firstOf('Gap Wedge').id);
+    await user.click(screen.getByRole('button', { name: 'Gap Wedge', pressed: false }));
+    expect(r.store().selectedId).toBe(firstOf('Gap Wedge').id);
+  });
+
+  test('shot card: the name is the picker, with the club colour dot, a ‹ › stepper, the count, and the inspector button last', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    const card = document.querySelector('.selected-card') as HTMLElement;
+    const shot = r.store().visibleShots[0]!;
+    expect(card.querySelector('.selected-card__title')).toHaveTextContent(`${shot.club} · Shot ${shot.shotLabel ?? shot.sourceRow}`);
+    const tableSwatch = (document.querySelector(`.club-table tr[data-club="${shot.club}"] .club-table__swatch`) as HTMLElement).style.background;
+    expect((card.querySelector('.selected-card__dot') as HTMLElement).style.background).toBe(tableSwatch);
+    expect(within(card).queryAllByRole('heading')).toHaveLength(0); // the visible name is decoration over the select
+    const picker = within(card).getByLabelText('Choose shot');
+    const target = r.store().visibleShots[7]!;
+    await user.selectOptions(picker, target.id);
+    expect(r.store().selectedId).toBe(target.id);
+    expect(card.querySelector('.selected-card__title')).toHaveTextContent(target.club);
+    expect(within(card).getByRole('group', { name: 'Step through shots' })).toContainElement(within(card).getByRole('button', { name: 'Next shot' }));
+    expect(within(card).getByText(`8 of ${r.store().visibleShots.length}`)).toBeInTheDocument();
+    const links = within(card).getAllByRole('link');
+    expect(links.map((l) => l.textContent)).toEqual(['Open shot inspector →']);
+  });
+
+  test('the side view shares the top view distance scale', () => {
+    renderWithData(ALL);
+    const texts = (sel: string) => Array.from(document.querySelectorAll(`${sel} svg text`)).map((t) => t.textContent).filter((t) => /^\d+$/.test(t ?? ''));
+    expect(texts('.fsa-dispersion')).toEqual(texts('.fsa-trajectory'));
+    expect(screen.getByRole('heading', { level: 3, name: 'Trajectory · side view' })).toBeInTheDocument();
   });
 
   test('both .shots-table and .shots-cards render the same shot ids', () => {

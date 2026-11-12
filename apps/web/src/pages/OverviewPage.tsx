@@ -1,21 +1,43 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { dispersionByClub } from '@fsa/analytics';
 import { formatSessionDate, sessionTitle } from '@fsa/domain';
 import { Button, EmptyState } from '@fsa/ui';
-import { DispersionPanel } from '../components/DispersionPanel';
+import { clubColors } from '@fsa/visualizations';
+import { ClubTable } from '../components/ClubTable';
 import { FilterBar } from '../components/FilterBar';
 import { KpiGrid } from '../components/KpiGrid';
 import { SelectedShotCard } from '../components/SelectedShotCard';
 import { SessionDetailsForm } from '../components/SessionDetailsForm';
 import { ShotCards } from '../components/ShotCards';
 import { ShotTable } from '../components/ShotTable';
-import { TrajectoryPanel } from '../components/TrajectoryPanel';
+import { ShotPatternPanel } from '../components/ShotPatternPanel';
 import { useWorkingSet } from '../state/store';
 
 export function OverviewPage() {
   const ws = useWorkingSet();
   const [editing, setEditing] = useState(false);
   const { workingSet, details, filters, visibleShots: shots, selectedId } = ws;
+  // Colours come from every club in the session, so filtering never repaints a club.
+  const colors = useMemo(() => clubColors(workingSet?.shots.map((s) => s.club) ?? []), [workingSet]);
+
+  // Club-level highlight. Picking a shot (plot, table, card, Next) highlights its club; tapping a club
+  // in the Clubs table toggles it. The analysis opens with nothing highlighted.
+  const [highlightClub, setHighlightClub] = useState<string | null>(null);
+  const [seenSelection, setSeenSelection] = useState(selectedId);
+  if (seenSelection !== selectedId) {
+    setSeenSelection(selectedId);
+    setHighlightClub(shots.find((s) => s.id === selectedId)?.club ?? null);
+  }
+
+  // Tapping a club highlights it and jumps to its first shot; tapping it again only clears the highlight.
+  const highlight = (club: string | null) => {
+    setHighlightClub(club);
+    const first = club === null ? undefined : shots.find((s) => s.club === club);
+    if (first) ws.select(first.id);
+  };
+
   if (!workingSet) return null;
+  const groups = dispersionByClub(shots, ws.landingMode).map((g) => ({ ...g, color: colors.get(g.club) ?? '#9BA9A1' }));
 
   const modes = [...new Set(workingSet.shots.map((s) => s.mode).filter((m): m is string => m !== null))];
   const fileOrdinal = workingSet.files.find((f) => f.id === filters.fileId)?.ordinal;
@@ -54,10 +76,12 @@ export function OverviewPage() {
             <KpiGrid shots={shots} />
           </section>
           <section className="overview__panels">
-            <DispersionPanel shots={shots} mode={ws.landingMode} onMode={ws.setLandingMode} selectedId={selectedId} onSelect={ws.select} />
+            <ShotPatternPanel shots={shots} groups={groups} mode={ws.landingMode} onMode={ws.setLandingMode}
+              selectedId={selectedId} onSelect={ws.select} highlightClub={highlightClub} />
             <div className="overview__side">
-              <TrajectoryPanel shots={shots} selectedId={selectedId} />
-              <SelectedShotCard shots={shots} selectedId={selectedId} onSelect={ws.select} onStep={ws.step} />
+              <ClubTable groups={groups} mode={ws.landingMode} highlightClub={highlightClub} onHighlight={highlight} />
+              <SelectedShotCard shots={shots} selectedId={selectedId} onSelect={ws.select} onStep={ws.step}
+                color={colors.get(shots.find((s) => s.id === selectedId)?.club ?? '')} />
             </div>
           </section>
           <section className="panel">
