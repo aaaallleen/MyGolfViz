@@ -5,7 +5,9 @@
 A browser-only viewer for FlightScope Mevo Gen 2 session CSV exports. Load one or more
 files and get a session overview (averages, dispersion, trajectory, shot table) and a Shot
 Inspector with a 3D ball-flight viewer, a spinning ball, and club data (face impact, 3D and
-2D reconstructions). It is a static site: there is no backend and no database.
+2D reconstructions). It is a static site: there is no backend and no database. 
+
+View the Viewer at: https://aaaallleen.github.io/MyGolfViz
 
 ## Privacy
 
