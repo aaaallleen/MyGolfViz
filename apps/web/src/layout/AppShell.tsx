@@ -1,7 +1,20 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
+import { Toaster } from 'sonner';
 import { ViewErrorBoundary } from '../components/ViewErrorBoundary';
 import { Nav } from './Nav';
+
+// Sonner reads its toast colours from these variables; point them at the app's tokens.
+const TOASTER_STYLE = {
+  '--normal-bg': 'var(--surface-raised)',
+  '--normal-bg-hover': 'var(--row-selected)',
+  '--normal-border': 'var(--border-strong)',
+  '--normal-border-hover': 'var(--border-strong)',
+  '--normal-text': 'var(--text)',
+  fontFamily: 'var(--font-body)',
+} as CSSProperties;
+// On phones the primary nav is fixed to the bottom; app.css raises this so toasts sit above it.
+const BOTTOM = { bottom: 'var(--toast-offset-bottom)' };
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -15,6 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Nav />
       </header>
       <main className="app-main"><ViewErrorBoundary key={pathname}>{children}</ViewErrorBoundary></main>
+      <Toaster theme="dark" style={TOASTER_STYLE} offset={BOTTOM} mobileOffset={BOTTOM} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+:root { --toast-offset-bottom: 24px; }
 body { margin: 0; }
 .app-shell { min-height: 100vh; }
 .app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 12px 32px; border-bottom: 1px solid var(--border); }
@@ -18,6 +19,7 @@ body { margin: 0; }
 .help__table th, .help__table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
 
 @media (max-width: 639px) {
+  :root { --toast-offset-bottom: 80px; } /* clears the fixed bottom nav (~65px with its border) */
   .app-header { padding: 8px 16px; }
   .app-main { padding: 20px 16px 96px; }
   .app-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; gap: 0; padding: 0; background: var(--surface); border-top: 1px solid var(--border); justify-content: space-around; }
@@ -38,7 +40,6 @@ body { margin: 0; }
 .load-page__actions { display: flex; gap: 8px; }
 .dropzone { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 20px; border: 1px dashed var(--border-strong, var(--border)); border-radius: var(--radius-card); color: var(--text-2); }
 .dropzone.is-over { background: var(--surface-raised); }
-.dropzone__note { color: var(--danger); font-size: 13px; }
 .details-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 220px; color: var(--text-2); }
 .field--wide { flex-basis: 100%; }
@@ -131,7 +132,7 @@ textarea.field__input { padding: 10px 12px; }
 .inspector-head__crumb a { color: var(--club); text-decoration: none; }
 @media (max-width: 639px) { .inspector-head__crumb a { display: inline-flex; align-items: center; min-height: 44px; } }
 .inspector-head__chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); align-items: center; overflow-wrap: anywhere; }
-.inspector-head__chip-button { border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: transparent; color: var(--text); font: inherit; padding: 0 14px; cursor: pointer; }
+.inspector-head__chip-select { border-radius: var(--radius-pill); padding: 0 10px 0 14px; }
 .inspector-head__nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .head-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .section-label { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }

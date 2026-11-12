@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
 import { formatMeasurement, handednessLabel, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
-import { SegmentedControl } from '@fsa/ui';
+
+const HANDEDNESS: Handedness[] = ['right', 'left'];
 
 export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHandedness }: {
   shot: Shot;
@@ -13,7 +13,6 @@ export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHa
   onStep(delta: 1 | -1): void;
   onHandedness(h: Handedness): void;
 }) {
-  const [choosing, setChoosing] = useState(false);
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
   const pos = selectionPosition(shot.id, shots);
@@ -29,19 +28,13 @@ export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHa
           <li>{`CSV row ${shot.sourceRow}`}</li>
           {shot.mode !== null && <li>{shot.mode}</li>}
           <li>
-            <button type="button" className="inspector-head__chip-button fsa-touch" aria-expanded={choosing} onClick={() => setChoosing((c) => !c)}>
-              {handednessLabel(details.handedness)}
-            </button>
+            {/* Native select: Escape, outside click and focus return for free, and the system picker on phones. */}
+            <select className="fsa-select fsa-touch inspector-head__chip-select" aria-label="Handedness"
+              value={details.handedness} onChange={(e) => onHandedness(e.target.value as Handedness)}>
+              {HANDEDNESS.map((h) => <option key={h} value={h}>{handednessLabel(h)}</option>)}
+            </select>
           </li>
         </ul>
-        {choosing && (
-          <SegmentedControl<Handedness>
-            label="Handedness"
-            value={details.handedness}
-            onChange={(h) => { onHandedness(h); setChoosing(false); }}
-            options={[{ value: 'right', label: 'Right-handed' }, { value: 'left', label: 'Left-handed' }]}
-          />
-        )}
       </div>
       <div className="inspector-head__nav">
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>

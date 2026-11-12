@@ -153,12 +153,19 @@ body {
   font-size: 34px;
   line-height: 1.1;
   color: var(--text);
+  /* NumberFlow is an inline-block, which would otherwise let the unit wrap onto its own line. */
+  white-space: nowrap;
+}
+/* NumberFlow pads itself top and bottom for its roll mask; pull that back so the tile keeps its text-line height. */
+.fsa-kpi__value number-flow-react {
+  margin-block: calc(-1 * var(--number-flow-mask-height, 0.25em));
 }
 .fsa-kpi__value--missing {
   font-family: var(--font-body);
   font-size: 18px;
   font-weight: 500;
   color: var(--muted);
+  white-space: normal;
 }
 .fsa-kpi__unit {
   font-size: 14px;
@@ -227,6 +234,11 @@ body {
   color: var(--text);
   border-bottom-color: var(--text);
   font-weight: 600;
+}
+.fsa-tab-panel:focus-visible {
+  outline: 2px solid var(--club);
+  outline-offset: 4px;
+  border-radius: var(--radius-control);
 }
 
 .fsa-empty {

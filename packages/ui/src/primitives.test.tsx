@@ -9,6 +9,8 @@ import {
   ProvenanceLegend,
   SegmentedControl,
   SelectField,
+  TabList,
+  TabPanel,
   Tabs,
 } from './index';
 
@@ -52,10 +54,17 @@ test("KpiTile with value null shows 'Not measured' and no unit; shows sub '± 9.
   expect(container.textContent).not.toContain('yds');
 });
 
-test('KpiTile with a value shows value and unit', () => {
-  render(<KpiTile label="Carry" value="231.4" unit="yds" accent="club" />);
-  expect(screen.getByText('231.4')).toBeInTheDocument();
-  expect(screen.getByText('yds')).toBeInTheDocument();
+test('KpiTile with a numeric value renders it (via NumberFlow) to the given decimals, with the unit', () => {
+  const { container } = render(<KpiTile label="Spin" value={2540} decimals={1} unit="rpm" accent="club" />);
+  expect(screen.getByText('2,540.0')).toBeInTheDocument();
+  expect(container.querySelector('[data-number-flow]')).not.toBeNull();
+  expect(screen.getByText('rpm')).toBeInTheDocument();
+});
+
+test('KpiTile with a string value shows it as is', () => {
+  const { container } = render(<KpiTile label="Impact" value="0.62 in toe · 0.44 in high" accent="neutral" />);
+  expect(screen.getByText('0.62 in toe · 0.44 in high')).toBeInTheDocument();
+  expect(container.querySelector('[data-number-flow]')).toBeNull();
 });
 
 test('ProvenanceLegend lists exactly the four legend strings from Global Constraints', () => {
@@ -72,18 +81,65 @@ test('ProvenanceLegend lists exactly the four legend strings from Global Constra
 function TabsHarness() {
   const [active, setActive] = useState('a');
   return (
-    <Tabs
-      label="Inspector"
-      tabs={[
-        { id: 'a', label: 'Face impact' },
-        { id: 'b', label: '3D reconstruction' },
-        { id: 'c', label: '2D reconstruction' },
-      ]}
-      active={active}
-      onChange={setActive}
-    />
+    <Tabs value={active} onChange={setActive}>
+      <TabList
+        label="Inspector"
+        tabs={[
+          { id: 'a', label: 'Face impact' },
+          { id: 'b', label: '3D reconstruction' },
+          { id: 'c', label: '2D reconstruction' },
+        ]}
+      />
+      <TabPanel value="a">Panel A</TabPanel>
+      <TabPanel value="b">Panel B</TabPanel>
+      <TabPanel value="c">Panel C</TabPanel>
+    </Tabs>
   );
 }
+
+test('TabPanel: only the active panel is mounted, and it is labelled by its tab', async () => {
+  render(<TabsHarness />);
+  expect(screen.getByRole('tabpanel', { name: 'Face impact' })).toHaveTextContent('Panel A');
+  expect(screen.queryByText('Panel B')).toBeNull();
+  await userEvent.click(screen.getByRole('tab', { name: '2D reconstruction' }));
+  const panel = screen.getByRole('tabpanel', { name: '2D reconstruction' });
+  expect(panel).toHaveTextContent('Panel C');
+  expect(screen.getByRole('tab', { name: '2D reconstruction' })).toHaveAttribute('aria-controls', panel.id);
+  expect(screen.queryByText('Panel A')).toBeNull();
+});
+
+test('TabList: End and Home jump to the last and first tab', async () => {
+  render(<TabsHarness />);
+  screen.getByRole('tab', { name: 'Face impact' }).focus();
+  await userEvent.keyboard('{End}');
+  expect(screen.getByRole('tab', { name: '2D reconstruction' })).toHaveAttribute('aria-selected', 'true');
+  await userEvent.keyboard('{Home}');
+  expect(screen.getByRole('tab', { name: 'Face impact' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('SegmentedControl: one tab stop; ArrowRight moves focus; pressing the selected option does not call onChange', async () => {
+  const onChange = vi.fn();
+  render(
+    <SegmentedControl
+      label="Scale"
+      options={[
+        { value: 'true', label: 'True scale' },
+        { value: 'x2', label: 'Exaggerated ×2' },
+      ]}
+      value="true"
+      onChange={onChange}
+    />,
+  );
+  await userEvent.tab();
+  expect(screen.getByRole('button', { name: 'True scale' })).toHaveFocus();
+  await userEvent.click(screen.getByRole('button', { name: 'True scale' }));
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.keyboard('{ArrowRight}');
+  expect(screen.getByRole('button', { name: 'Exaggerated ×2' })).toHaveFocus();
+  await userEvent.keyboard('{Enter}');
+  expect(onChange).toHaveBeenCalledWith('x2');
+});
+
 
 test('Tabs: role=tablist, active tab aria-selected; ArrowRight activates next, ArrowLeft from first wraps to last', async () => {
   render(<TabsHarness />);
@@ -136,7 +192,9 @@ test('Button, SegmentedControl options, FilterChip, SelectField and tabs carry c
       <SegmentedControl label="Seg" options={[{ value: 'x', label: 'X' }]} value="x" onChange={() => {}} />
       <FilterChip pressed={false} label="Iron" count={3} onClick={() => {}} />
       <SelectField label="Sel" value="a" options={[{ value: 'a', label: 'A' }]} onChange={() => {}} />
-      <Tabs label="T" tabs={[{ id: 't', label: 'Tab' }]} active="t" onChange={() => {}} />
+      <Tabs value="t" onChange={() => {}}>
+        <TabList label="T" tabs={[{ id: 't', label: 'Tab' }]} />
+      </Tabs>
     </div>,
   );
   expect(screen.getByRole('button', { name: 'Go' })).toHaveClass('fsa-touch');

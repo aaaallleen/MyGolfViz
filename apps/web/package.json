@@ -13,6 +13,8 @@
     "@fsa/csv-parser": "*",
     "@fsa/domain": "*",
     "@fsa/ui": "*",
-    "@fsa/visualizations": "*"
+    "@fsa/visualizations": "*",
+    "clsx": "^2.1.1",
+    "sonner": "^2.0.8"
   }
 }

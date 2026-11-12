@@ -73,7 +73,7 @@ describe('store', () => {
 
   test('clear() during an in-flight addFiles leaves nothing staged', async () => {
     const { result } = renderHook(() => useWorkingSet(), { wrapper });
-    let p!: Promise<void>;
+    let p!: Promise<unknown>;
     act(() => { p = result.current.addFiles([mkFile()]); });
     act(() => { result.current.clear(); });
     await act(async () => { await p; });
@@ -84,8 +84,8 @@ describe('store', () => {
 
   test('busy stays true until all overlapping addFiles calls finish', async () => {
     const { result } = renderHook(() => useWorkingSet(), { wrapper });
-    let pA!: Promise<void>;
-    let pB!: Promise<void>;
+    let pA!: Promise<unknown>;
+    let pB!: Promise<unknown>;
     act(() => {
       pA = result.current.addFiles([mkFile()]);
       pB = result.current.addFiles([mkFile(), mkFile(), mkFile()]);
@@ -98,5 +98,41 @@ describe('store', () => {
     expect(result.current.busy).toBe(true);
     await act(async () => { await pB; });
     expect(result.current.busy).toBe(false);
+  });
+
+  test('addFiles stages the readable files and reports the unreadable ones by name', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    const broken = new File(['x'], 'broken.csv', { type: 'text/csv' });
+    Object.defineProperty(broken, 'arrayBuffer', { value: () => Promise.reject(new Error('NotReadableError')) });
+    let out!: { failed: string[] };
+    await act(async () => { out = await result.current.addFiles([broken, mkFile()]); });
+    expect(out.failed).toEqual(['broken.csv']);
+    expect(result.current.staged.map((f) => f.name)).toEqual(['x.csv']);
+  });
+
+  test('the undo from clear() restores everything, but only while nothing has changed since', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    await act(async () => { await result.current.addFiles([mkFile()]); });
+    act(() => { result.current.setDetails({ name: 'Range day' }); });
+
+    let undo: (() => void) | null = null;
+    act(() => { undo = result.current.clear(); });
+    expect(result.current.staged).toEqual([]);
+    act(() => { undo!(); });
+    expect(result.current.staged).toHaveLength(1);
+    expect(result.current.details.name).toBe('Range day');
+
+    act(() => { undo = result.current.clear(); });
+    act(() => { result.current.setDetails({ name: 'New session' }); });
+    act(() => { undo!(); });
+    expect(result.current.staged).toEqual([]);
+    expect(result.current.details.name).toBe('New session');
+  });
+
+  test('clear() with nothing to clear returns no undo', () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    let undo: (() => void) | null = () => {};
+    act(() => { undo = result.current.clear(); });
+    expect(undo).toBeNull();
   });
 });
