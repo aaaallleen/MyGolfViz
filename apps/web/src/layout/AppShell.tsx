@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { Suspense, type CSSProperties, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { Toaster } from 'sonner';
 import { ViewErrorBoundary } from '../components/ViewErrorBoundary';
@@ -27,7 +27,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <Nav />
       </header>
-      <main className="app-main"><ViewErrorBoundary key={pathname}>{children}</ViewErrorBoundary></main>
+      <main className="app-main">
+        <ViewErrorBoundary key={pathname}>
+          {/* Shown only if a page's code hasn't arrived yet; it fades in late so a quick load never flashes it. */}
+          <Suspense fallback={<p className="page-loading" role="status">Loading page…</p>}>{children}</Suspense>
+        </ViewErrorBoundary>
+      </main>
       <Toaster theme="dark" style={TOASTER_STYLE} offset={BOTTOM} mobileOffset={BOTTOM} />
     </div>
   );
