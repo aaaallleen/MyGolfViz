@@ -144,6 +144,19 @@ describe('OverviewPage', () => {
     }
   });
 
+  test('picking one source file with all clubs showing lists that file\'s shots under their club headings', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    expect(tableRows(r.container)).toHaveLength(133);
+    await user.selectOptions(screen.getByLabelText('Source file'), `File 2 · ${F2} · 26`);
+    expect(tableRows(r.container)).toHaveLength(26);
+    const toggles = Array.from(document.querySelectorAll('.shots-table__club-toggle'));
+    expect(toggles.length).toBeGreaterThan(0);
+    expect(toggles.every((t) => t.getAttribute('aria-expanded') === 'true')).toBe(true);
+    await user.selectOptions(screen.getByLabelText('Source file'), `File 1 · ${F1} · 16`);
+    expect(tableRows(r.container)).toHaveLength(16);
+  });
+
   test('empty filter: message, and Show all clubs resets club', async () => {
     const user = userEvent.setup();
     const r = renderWithData(ALL);

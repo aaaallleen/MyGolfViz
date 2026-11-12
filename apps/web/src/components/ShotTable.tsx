@@ -138,7 +138,6 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
   const [expanded, setExpanded] = useState<ExpandedState>(true);
   const grouping = useMemo(() => (grouped ? ['club'] : []), [grouped]);
   const columnSizing = usePhone() ? PHONE_SIZES : NO_SIZES;
-  useEffect(() => setExpanded(true), [grouped]);
 
   const table = useTable({
     features,
@@ -146,7 +145,9 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
     data,
     getRowId: (s) => s.id,
     groupedColumnMode: false,
-    initialState: { columnPinning: { start: PINNED, end: [] } },
+    // TanStack resets expansion to its initial state whenever the data changes (a club or file filter),
+    // so that state must be "all expanded", not its default of all collapsed.
+    initialState: { columnPinning: { start: PINNED, end: [] }, expanded: true },
     state: { sorting, columnVisibility, grouping, expanded, columnSizing },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
