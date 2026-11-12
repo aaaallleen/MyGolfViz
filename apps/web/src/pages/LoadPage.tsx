@@ -16,7 +16,7 @@ export function LoadPage() {
   const ws = useWorkingSet();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const loadRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLButtonElement>(null);
   const undoToast = useRef<string | number | null>(null);
 
   const included = ws.staged.filter((f) => f.include && f.parse.ok);
@@ -40,7 +40,7 @@ export function LoadPage() {
   const clear = () => {
     dismissUndo();
     const undo = ws.clear();
-    loadRef.current?.querySelector('button')?.focus();
+    dropRef.current?.focus();
     if (undo) undoToast.current = toast('Analysis cleared', { duration: 6000, action: { label: 'Undo', onClick: undo } });
   };
 
@@ -55,10 +55,9 @@ export function LoadPage() {
     <div className="load-page">
       <h1>Load Session CSV</h1>
       <input ref={inputRef} type="file" multiple accept=".csv,text/csv" aria-label="Load Session CSV" hidden onChange={onPick} />
-      <div className="load-page__entry" ref={loadRef}>
-        <Button variant="primary" onClick={open}>Load Session CSV</Button>
-      </div>
       <FileDropZone
+        ref={dropRef}
+        onBrowse={open}
         onFiles={addFiles}
         onReject={(files) => toast.warning('Only .csv files can be loaded', { description: `Skipped ${files.map((f) => f.name).join(', ')}` })}
       />

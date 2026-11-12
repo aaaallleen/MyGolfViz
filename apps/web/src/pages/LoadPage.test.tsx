@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { beforeAll, describe, expect, test } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { AppRoutes } from '../routes';
 import { WorkingSetProvider, useWorkingSet } from '../state/store';
 
@@ -92,14 +92,14 @@ describe('LoadPage', () => {
     expect(probe!.workingSet!.shots).toHaveLength(133);
   });
 
-  test('Clear analysis empties the list, disables Analyze, focuses the Load button', async () => {
+  test('Clear analysis empties the list, disables Analyze, focuses the upload zone', async () => {
     const { user, input } = setup();
     await user.upload(input(), fixture(F1));
     await screen.findByText('1 file · 16 shots ready');
     await user.click(screen.getByRole('button', { name: 'Clear analysis' }));
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.getByRole('button', { name: 'Analyze files' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Load Session CSV' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Drag or upload Session CSV' })).toHaveFocus();
   });
 
   test('session detail fields opt out of browser autofill history', async () => {
@@ -168,9 +168,53 @@ describe('LoadPage', () => {
     expect(screen.getByText('1 file · 16 shots ready')).toBeInTheDocument();
   });
 
+  test('clicking the upload zone opens the file picker', async () => {
+    const { user, input } = setup();
+    let opened = 0;
+    input().addEventListener('click', () => { opened += 1; });
+    await user.click(screen.getByRole('button', { name: 'Drag or upload Session CSV' }));
+    expect(opened).toBe(1);
+  });
+
+  test('dragging over the upload zone highlights it until the drag leaves', () => {
+    setup();
+    const zone = screen.getByRole('button', { name: 'Drag or upload Session CSV' });
+    fireEvent.dragOver(zone, { dataTransfer: { files: [] } });
+    expect(zone).toHaveClass('is-over');
+    fireEvent.dragLeave(zone, { relatedTarget: document.body });
+    expect(zone).not.toHaveClass('is-over');
+  });
+
+  describe('upload zone label by primary pointer', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    /** Stubs matchMedia so only `matching` matches. */
+    const stubMedia = (matching: string) => vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === matching, media: query, addEventListener() {}, removeEventListener() {},
+    }));
+
+    test('touch-first device (coarse primary pointer) says Upload Session CSV, without offering drag', () => {
+      stubMedia('(pointer: coarse)');
+      setup();
+      expect(screen.getByRole('button', { name: 'Upload Session CSV' })).toBeInTheDocument();
+      expect(screen.queryByText('Drag or upload Session CSV')).toBeNull();
+    });
+
+    test('touch-screen laptop (fine primary pointer, any-pointer coarse) still offers drag', () => {
+      stubMedia('(any-pointer: coarse)');
+      setup();
+      expect(screen.getByRole('button', { name: 'Drag or upload Session CSV' })).toBeInTheDocument();
+    });
+
+    test('narrow desktop window still offers drag', () => {
+      stubMedia('(max-width: 639px)');
+      setup();
+      expect(screen.getByRole('button', { name: 'Drag or upload Session CSV' })).toBeInTheDocument();
+    });
+  });
+
   test('dropping a mix loads the .csv files and names the skipped ones in a toast', async () => {
     setup();
-    const zone = screen.getByText('or drop one or more .csv files here').parentElement!;
+    const zone = screen.getByRole('button', { name: 'Drag or upload Session CSV' });
     fireEvent.drop(zone, { dataTransfer: { files: [fixture(F1), new File(['x'], 'notes.pdf', { type: 'application/pdf' })] } });
     expect(await screen.findByText('Only .csv files can be loaded')).toBeInTheDocument();
     expect(screen.getByText('Skipped notes.pdf')).toBeInTheDocument();
