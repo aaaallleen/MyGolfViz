@@ -118,3 +118,33 @@ test('step buttons move by 0.02; loop wraps, no loop stops at 100', () => {
   expect(screen.getByRole('button', { name: 'Play replay' })).toBeInTheDocument();
   expect(live()).toBe(0);
 });
+
+// File 3 Driver shot 1 (277.8 yd), where the label was seen clipped to "arget line".
+const driver2778 = {
+  id: 'd', fileId: 'f', sourceRow: 2,
+  m: { swingH: 1.3, swingV: 46.5, aoa: 5.1, ftt: -1.4, carry: 277.8, lateral: 33.7, launchH: 3.2, height: 90.9, launchV: 11, descentV: 33.7 },
+} as unknown as Shot;
+
+test.each([
+  ['default driver, right-handed', shot, 'right'],
+  ['default driver, left-handed', shot, 'left'],
+  ['277.8 yd driver, right-handed', driver2778, 'right'],
+  ['277.8 yd driver, left-handed', driver2778, 'left'],
+] as const)('"Target line" label sits fully inside the 800x480 scene (%s)', (_name, s, hand) => {
+  const { container } = render(<ClubReplay3D scene={buildReplayScene(s, hand)} aoa={s.m.aoa as number} vPlane={s.m.swingV as number} show={show} />);
+  const label = [...container.querySelectorAll('[data-role="target-line"] text')].find((t) => t.textContent === 'Target line');
+  expect(label, 'label rendered').toBeDefined();
+  const x = Number(label!.getAttribute('x')), y = Number(label!.getAttribute('y'));
+  const LABEL_W = 80; // "Target line" at 13px Inter is about 70px wide
+  expect(x, 'left edge').toBeGreaterThanOrEqual(8);
+  expect(x + LABEL_W, 'right edge').toBeLessThanOrEqual(800 - 8);
+  expect(y, 'top (baseline below cap height)').toBeGreaterThanOrEqual(16);
+  expect(y, 'bottom').toBeLessThanOrEqual(480 - 8);
+  // The dashed target line must not run through the text: the baseline stays above it across the label's width.
+  const line = container.querySelector('[data-role="target-line"] line')!;
+  const at = (k: string) => Number(line.getAttribute(k));
+  const x1 = at('x1'), y1 = at('y1'), x2 = at('x2'), y2 = at('y2');
+  const lineY = (px: number) => y1 + ((y2 - y1) * (px - x1)) / (x2 - x1);
+  expect(y, 'baseline above the line at the label start').toBeLessThanOrEqual(lineY(x) - 2);
+  expect(y, 'baseline above the line at the label end').toBeLessThanOrEqual(lineY(x + LABEL_W) - 2);
+});
