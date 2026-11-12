@@ -1,4 +1,4 @@
-# FlightScope Analytics Cloud Viewer
+# MyGolfViz Cloud Viewer
 
 ## What it is
 
