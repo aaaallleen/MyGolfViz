@@ -212,3 +212,19 @@ test.describe('desktop 1440', () => {
     await shot(page, 'inspector-keyboard', 1440);
   });
 });
+
+for (const width of [1440, 1920] as const) {
+  test.describe(`wide ${width}`, () => {
+    test.use({ viewport: { width, height: 900 } });
+
+    test('narrow pages (Load Session CSV, Help / Get Local Version) are centered, as in frame 02 (max-width 880, margin 0 auto)', async ({ page }) => {
+      for (const [route, selector] of [['load', '.load-page'], ['help', '.help']] as const) {
+        await page.goto(`./#/${route}`);
+        const box = (await page.locator(selector).boundingBox())!;
+        const right = width - (box.x + box.width);
+        expect(Math.abs(box.x - right), `#/${route} ${selector}: left gap ${box.x}, right gap ${right}`).toBeLessThanOrEqual(1);
+        await shot(page, `${route}-centered`, width);
+      }
+    });
+  });
+}
