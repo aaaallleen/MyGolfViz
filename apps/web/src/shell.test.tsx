@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, test } from 'vitest';
@@ -16,6 +18,19 @@ function renderAt(path: string) {
 }
 
 describe('app shell', () => {
+  test('brand reads MyGolfViz with the site icon as its logo; the page title matches; the old product name is gone', () => {
+    renderAt('/');
+    const brand = screen.getByRole('link', { name: 'MyGolfViz' });
+    const logo = brand.querySelector('img');
+    expect(logo, 'logo image').not.toBeNull();
+    expect(logo!.getAttribute('src')).toMatch(/\/icon\.svg$/);
+    expect(logo).toHaveAttribute('alt', '');
+    expect(brand.querySelector('svg')).toBeNull();
+    expect(document.body.textContent).not.toContain('FlightScope Analytics');
+    const html = readFileSync(join(__dirname, '../index.html'), 'utf8');
+    expect(html).toContain('<title>MyGolfViz</title>');
+  });
+
   test('nav renders exactly the four PUBLIC_NAV labels in order; no save/library/history/calendar text', () => {
     renderAt('/');
     const nav = screen.getAllByRole('navigation')[0]!;

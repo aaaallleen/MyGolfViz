@@ -34,6 +34,27 @@ export function makeProjector(cam: Camera) {
   return { proj, pt, pathOf, lineEl };
 }
 
+/**
+ * Baseline anchor for a start-aligned label beside the 3D segment a→b: the point closest to b whose
+ * label box (offset `dx` right, `width` wide) stays inside the scene with an 8px margin, lifted so the
+ * text sits above the projected line across its whole width. Null if no point fits.
+ */
+export function lineLabelAnchor(proj: (p: Vec3) => Pt | null, a: Vec3, b: Vec3, width: number, dx = 8): Pt | null {
+  const pa = proj(a), pb = proj(b);
+  const slope = pa && pb && pb.x !== pa.x ? (pb.y - pa.y) / (pb.x - pa.x) : 0;
+  // A line rising to the right (negative slope) climbs into the text; lift by that climb plus a gap.
+  const lift = 4 - Math.min(0, slope) * (dx + width);
+  const STEPS = 40;
+  for (let i = STEPS; i >= 0; i--) {
+    const t = i / STEPS;
+    const q = proj([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]);
+    if (!q) continue;
+    const x = q.x + dx, y = q.y - lift;
+    if (x >= 8 && x + width <= W - 8 && y >= 16 && y <= H - 8) return { x, y };
+  }
+  return null;
+}
+
 /** Ground grid on z = 0 over [x0,x1] x [y0,y1] with the given spacing. */
 export function groundGrid(lineEl: ReturnType<typeof makeProjector>['lineEl'], x0: number, x1: number, y0: number, y1: number, step: number) {
   const out: ReactNode[] = [];

@@ -2,7 +2,7 @@ import { formatMeasurement, type Vec3 } from '@fsa/domain';
 import { clubFrame, clubPhase, type ReplayScene } from '@fsa/analytics';
 import { clubCamera, planeQuad } from './camera';
 import { ReplayControls, useReplayClock } from './ReplayControls';
-import { Banner, H, Panel, W, f1, groundGrid, makeProjector, noteStyle } from './SceneChrome';
+import { Banner, H, Panel, W, f1, groundGrid, lineLabelAnchor, makeProjector, noteStyle } from './SceneChrome';
 import { BALL, BALL_EDGE, CLUB, DISPLAY_FONT, FONT, INK, MUTED, SURFACE } from './theme';
 
 export interface ClubReplay3DProps {
@@ -32,7 +32,8 @@ export function ClubReplay3D({ scene, aoa, vPlane, show }: ClubReplay3DProps) {
   const quadOk = quad.length === 4 && quad.every((c) => c !== null);
   const arcSolid = arc ? arc.slice(0, scene.impactIndex + 1) : [];
   const arcDashed = arc ? arc.slice(scene.impactIndex) : [];
-  const targetP = proj([0, 4, 0]);
+  // The club camera is zoomed in, so a fixed point down the line can fall outside the frame.
+  const targetLabel = lineLabelAnchor(proj, [0, 0, 0], [0, 4, 0], 80);
   const text = { fontFamily: FONT, fontSize: 13 } as const;
 
   return (
@@ -45,7 +46,7 @@ export function ClubReplay3D({ scene, aoa, vPlane, show }: ClubReplay3DProps) {
         {groundGrid(lineEl, -4, 4, -4, 4, 1)}
         <g data-role="target-line">
           {lineEl('target', [0, -4, 0], [0, 4, 0], { stroke: MUTED, strokeWidth: 1.5, strokeDasharray: '7 6' })}
-          {targetP && <text x={f1(targetP.x + 8)} y={f1(targetP.y)} fill={MUTED} {...text}>Target line</text>}
+          {targetLabel && <text x={f1(targetLabel.x)} y={f1(targetLabel.y)} fill={MUTED} {...text}>Target line</text>}
         </g>
 
         {quadOk && (
