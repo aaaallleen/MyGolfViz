@@ -32,12 +32,12 @@ async function stage() {
 }
 
 describe('reducer', () => {
-  test('analyze selects first visible; setClub moves selection to that club’s first shot; clear → initialState', async () => {
+  test('analyze selects nothing; setClub moves selection to that club’s first shot; clear → initialState', async () => {
     let s = reducer(initialState, await stage());
     s = reducer(s, { type: 'analyze' });
     const ws = s.workingSet!;
     const first = displayOrder(filterShots(ws, s.filters))[0]!;
-    expect(s.selectedId).toBe(first.id);
+    expect(s.selectedId).toBeNull();
     const other = ws.shots.find((x) => x.club !== first.club)!;
     s = reducer(s, { type: 'setClub', club: other.club });
     expect(s.selectedId).toBe(displayOrder(filterShots(ws, s.filters))[0]!.id);
@@ -45,7 +45,7 @@ describe('reducer', () => {
     expect(reducer(s, { type: 'clear' })).toEqual(initialState);
   });
 
-  test('setClub lands on the first shot of that club even when the selected shot is already in it; All keeps the shot', async () => {
+  test('setClub lands on the first shot of that club even when the selected shot is already in it; All clears the selection', async () => {
     let s = reducer(initialState, await stage());
     s = reducer(s, { type: 'analyze' });
     const club = s.workingSet!.shots[0]!.club;
@@ -54,9 +54,27 @@ describe('reducer', () => {
     const third = ofClub()[2]!;
     s = reducer(s, { type: 'select', id: third.id });
     s = reducer(s, { type: 'setClub', club: null });
-    expect(s.selectedId).toBe(third.id);
+    expect(s.selectedId).toBeNull();
     s = reducer(s, { type: 'setClub', club });
     expect(s.selectedId).toBe(ofClub()[0]!.id);
+  });
+
+  test('select(null) clears the selection; a filter change keeps a still-visible shot and never picks one', async () => {
+    let s = reducer(initialState, await stage());
+    s = reducer(s, { type: 'analyze' });
+    const [fileA, fileB] = s.workingSet!.files;
+    s = reducer(s, { type: 'setFile', fileId: fileA!.id });
+    expect(s.selectedId).toBeNull();
+    const inA = displayOrder(filterShots(s.workingSet!, s.filters))[1]!;
+    s = reducer(s, { type: 'select', id: inA.id });
+    s = reducer(s, { type: 'setFile', fileId: null });
+    expect(s.selectedId).toBe(inA.id);
+    s = reducer(s, { type: 'setFile', fileId: fileB!.id });
+    expect(s.selectedId).toBeNull();
+    s = reducer(s, { type: 'step', delta: 1 });
+    expect(s.selectedId).toBe(displayOrder(filterShots(s.workingSet!, s.filters))[0]!.id);
+    s = reducer(s, { type: 'select', id: null });
+    expect(s.selectedId).toBeNull();
   });
 
   test('setDetails survives analyze and filter changes; clear resets details', async () => {

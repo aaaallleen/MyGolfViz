@@ -1,5 +1,6 @@
 import type { ReplayScene } from '@fsa/analytics';
-import { formatMeasurement, NOT_MEASURED, type MeasurementKey, type Shot } from '@fsa/domain';
+import { formatMeasurement, type MeasurementKey, type Shot } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
 import { BallFlight3D, SpinBallDiagram } from '@fsa/visualizations';
 import { ValueTag } from './ValueTag';
 
@@ -28,7 +29,7 @@ function Readouts({ title, items, shot }: { title: string; items: { key: Measure
           return (
             <div key={key}>
               <dt>{label}</dt>{' '}
-              {v === null ? <dd className="is-missing">{NOT_MEASURED}</dd> : <dd>{formatMeasurement(key, v)}{' '}<ValueTag kind="measured" /></dd>}
+              {v === null ? <dd className="is-missing"><Missing /></dd> : <dd>{formatMeasurement(key, v)}{' '}<ValueTag kind="measured" /></dd>}
             </div>
           );
         })}

@@ -101,10 +101,18 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-touch-targets', 390);
   });
 
-  test('cards replace the table, KPI tiles pair up, one 2D pane at a time, viewers fit the width', async ({ page }) => {
+  test('the full shot table scrolls inside its box with Shot pinned, KPI tiles pair up, one 2D pane at a time, viewers fit the width', async ({ page }) => {
     await loadAndAnalyze(page);
-    await expect(page.locator('.shots-cards')).toBeVisible();
-    await expect(page.locator('.shots-table')).toBeHidden();
+    const box = page.locator('.shots-table');
+    await expect(box).toBeVisible();
+    const m = await box.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
+    expect(m.sw, 'all columns: wider than the phone, scrolls sideways inside its box').toBeGreaterThan(m.cw);
+    await box.evaluate((el) => { el.scrollLeft = 600; el.scrollTop = 400; });
+    const boxBox = (await box.boundingBox())!;
+    const shotHead = (await page.locator('.shots-table thead th[data-col="shot"]').boundingBox())!;
+    expect(Math.abs(shotHead.x - boxBox.x), 'Shot column stays at the left edge').toBeLessThan(2);
+    expect(Math.abs(shotHead.y - boxBox.y) < 40, 'header rows stay at the top').toBe(true);
+    await noOverflow(page, 'overview 390 with the full table');
     const kpis = page.locator('.kpi-grid > *');
     const a = (await kpis.nth(0).boundingBox())!;
     const b = (await kpis.nth(1).boundingBox())!;
@@ -125,16 +133,16 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-2d-layout', 390);
   });
 
-  test('touch: tapping a shot card selects it; tapping Next shot advances the position text', async ({ page }) => {
+  test('touch: tapping a table row selects it; tapping Next shot advances the position text', async ({ page }) => {
     await loadAndAnalyze(page);
-    const cards = page.locator('.shots-cards .shot-card');
-    await cards.nth(3).tap();
-    await expect(cards.nth(3)).toHaveAttribute('aria-current', 'true');
+    const rows = page.locator('.shots-table tr[data-shot-id]');
+    await rows.nth(3).locator('td[data-col="shot"]').tap();
+    await expect(rows.nth(3)).toHaveAttribute('aria-current', 'true');
     const pos = page.locator('.selected-card .panel__note');
     await expect(pos).toHaveText(/^4 of /);
     await page.getByRole('button', { name: 'Next shot' }).tap();
     await expect(pos).toHaveText(/^5 of /);
-    await expect(cards.nth(4)).toHaveAttribute('aria-current', 'true');
+    await expect(rows.nth(4)).toHaveAttribute('aria-current', 'true');
     await shot(page, 'overview-tap', 390);
   });
 });
@@ -172,9 +180,13 @@ test.describe('desktop 1440', () => {
     await loadAndAnalyze(page);
     const table = page.locator('.shots-table');
     await expect(table).toBeVisible();
-    await expect(page.locator('.shots-cards')).toBeHidden();
-    const m = await table.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
-    expect(m.sw, 'table container scrollWidth').toBeLessThanOrEqual(m.cw);
+    // The header rows stay pinned while the table scrolls down inside its box.
+    const head = page.locator('.shots-table thead th[data-col="carry"]');
+    const before = (await head.boundingBox())!;
+    await table.evaluate((el) => { el.scrollTop = 500; });
+    const after = (await head.boundingBox())!;
+    expect(Math.abs(after.y - before.y), 'column names stay in view').toBeLessThan(2);
+    await noOverflow(page, 'overview 1440');
     const d = (await page.locator('.fsa-dispersion svg').first().boundingBox())!;
     const t = (await page.locator('.fsa-trajectory svg').first().boundingBox())!;
     const c = (await page.locator('.club-table').first().boundingBox())!;

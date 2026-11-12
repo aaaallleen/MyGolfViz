@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
-import { formatImpact, formatMeasurement, type MeasurementKey, type Shot } from '@fsa/domain';
+import { formatImpact, formatMeasurement, MISSING_MARK, type MeasurementKey, type Shot } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
 import { shotLabel } from './shotLabel';
 
 const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] = [
@@ -22,7 +23,6 @@ export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }:
   color?: string;
 }) {
   const shot = shots.find((s) => s.id === selectedId);
-  if (!shot) return null;
   const pos = selectionPosition(selectedId, shots);
   return (
     <div className="panel selected-card">
@@ -31,45 +31,52 @@ export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }:
           {/* The shot name is the picker: a native select laid over the heading, so it opens the system list on tap. */}
           <div className="selected-card__picker">
             <h3 className="selected-card__title" aria-hidden="true">
-              {color && <span className="selected-card__dot" style={{ background: color }} />}
+              {shot && color && <span className="selected-card__dot" style={{ background: color }} />}
               <span>
-                {`${shot.club} · `}
+                {shot && `${shot.club} · `}
                 <span className="selected-card__nowrap">
-                  {shotLabel(shot)}
+                  {shot ? shotLabel(shot) : 'Choose a shot'}
                   <svg className="selected-card__chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                     <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
               </span>
             </h3>
-            <select className="selected-card__select" aria-label="Choose shot" value={shot.id} onChange={(e) => onSelect(e.target.value)}>
+            <select className="selected-card__select" aria-label="Choose shot" value={shot?.id ?? ''} onChange={(e) => onSelect(e.target.value)}>
+              {!shot && <option value="" disabled>Choose a shot</option>}
               {shots.map((s) => (
-                <option key={s.id} value={s.id}>{`${s.club} · shot ${s.shotLabel ?? s.sourceRow} · ${formatMeasurement('carry', s.m.carry)}`}</option>
+                <option key={s.id} value={s.id}>{`${s.club} · shot ${s.shotLabel ?? s.sourceRow} · ${s.m.carry === null ? MISSING_MARK : formatMeasurement('carry', s.m.carry)}`}</option>
               ))}
             </select>
           </div>
-          {pos && <span className="panel__note">{`${pos.index} of ${pos.total}`}</span>}
+          <span className="panel__note">{pos ? `${pos.index} of ${pos.total}` : `No shot selected · ${shots.length} shots`}</span>
         </div>
         <div className="selected-card__steps" role="group" aria-label="Step through shots">
           <button type="button" className="fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>
           <button type="button" className="fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>
         </div>
       </div>
-      <dl className="value-grid">
-        {VALUES.map(({ key, label, accent }) => (
-          <div key={key} className={`value-grid__item value-grid__item--${accent}`}>
-            <dt>{label}</dt>
-            <dd className={shot.m[key] === null ? 'is-missing' : undefined}>{formatMeasurement(key, shot.m[key])}</dd>
+      {shot ? (
+        <>
+          <dl className="value-grid">
+            {VALUES.map(({ key, label, accent }) => (
+              <div key={key} className={`value-grid__item value-grid__item--${accent}`}>
+                <dt>{label}</dt>
+                <dd className={shot.m[key] === null ? 'is-missing' : undefined}>{shot.m[key] === null ? <Missing /> : formatMeasurement(key, shot.m[key])}</dd>
+              </div>
+            ))}
+            <div className="value-grid__item">
+              <dt>Impact</dt>
+              <dd className={shot.m.impactLateral === null || shot.m.impactVertical === null ? 'is-missing' : undefined}>{shot.m.impactLateral === null || shot.m.impactVertical === null ? <Missing /> : formatImpact(shot.m.impactLateral, shot.m.impactVertical)}</dd>
+            </div>
+          </dl>
+          <div className="selected-card__foot">
+            <Link className="fsa-btn fsa-btn--primary fsa-touch link-button selected-card__inspect" to="/inspect">Open shot inspector →</Link>
           </div>
-        ))}
-        <div className="value-grid__item">
-          <dt>Impact</dt>
-          <dd className={shot.m.impactLateral === null || shot.m.impactVertical === null ? 'is-missing' : undefined}>{formatImpact(shot.m.impactLateral, shot.m.impactVertical)}</dd>
-        </div>
-      </dl>
-      <div className="selected-card__foot">
-        <Link className="fsa-btn fsa-btn--primary fsa-touch link-button selected-card__inspect" to="/inspect">Open shot inspector →</Link>
-      </div>
+        </>
+      ) : (
+        <p className="selected-card__empty">Tap a point on the plot, a row in the table or a club, or use › to step through the shots.</p>
+      )}
     </div>
   );
 }

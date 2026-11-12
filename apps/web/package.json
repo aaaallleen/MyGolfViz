@@ -9,11 +9,15 @@
     "preview": "vite preview --mode public"
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@fsa/analytics": "*",
     "@fsa/csv-parser": "*",
     "@fsa/domain": "*",
     "@fsa/ui": "*",
     "@fsa/visualizations": "*",
+    "@tanstack/react-table": "^9.3.1",
+    "ag-grid-community": "36.2.0",
+    "ag-grid-react": "36.2.0",
     "clsx": "^2.1.1",
     "sonner": "^2.0.8"
   }

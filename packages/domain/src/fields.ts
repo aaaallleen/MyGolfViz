@@ -1,3 +1,4 @@
+import { toCanonical } from './units';
 import type { Direction, FieldDef, FieldGroup, HeaderClass, MeasurementKey, TextKey, Unit, ValueKind } from './types';
 
 const d = (
@@ -71,4 +72,25 @@ export function classifyHeader(header: string): HeaderClass {
   const def = FIELD_DEFS.find((f) => f.names.includes(lower));
   if (def) return { type: 'measurement', def, sourceUnit: unit };
   return { type: 'unknown' };
+}
+
+/**
+ * CSV headers that did not become a parsed value, in first-seen order: unrecognized names,
+ * measurements whose unit can't be converted, and repeats of a column already read. The parser keeps
+ * these cells in each shot's `raw`, so a viewer can still show them as text.
+ */
+export function unparsedHeaders(headers: Iterable<string>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const used = new Set<string>();
+  for (const h of headers) {
+    if (seen.has(h)) continue;
+    seen.add(h);
+    const c = classifyHeader(h);
+    const key = c.type === 'text' ? `text:${c.key}` : c.type === 'measurement' ? `m:${c.def.key}` : null;
+    const readable = c.type !== 'measurement' || toCanonical(0, c.sourceUnit, c.def.unit) !== null;
+    if (key === null || !readable || used.has(key)) out.push(h);
+    else used.add(key);
+  }
+  return out;
 }

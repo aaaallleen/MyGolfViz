@@ -1,5 +1,8 @@
 export const IMPACT_CONVENTION = { lateralPositive: 'toe', verticalPositive: 'high', verified: true } as const;
+/** What a missing value is called: hover text, screen readers and sentences. */
 export const NOT_MEASURED = 'Not measured';
+/** How a missing value is shown on screen. */
+export const MISSING_MARK = '–';
 
 export type Handedness = 'right' | 'left';
 export interface SessionDetails {

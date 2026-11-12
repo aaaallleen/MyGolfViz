@@ -1,5 +1,5 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
-import { displayOrder, filterShots, reconcileSelection, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
+import { displayOrder, filterShots, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 
 export type InspectorTab = 'impact' | '3d' | '2d';
@@ -25,7 +25,7 @@ export type Action =
   | { type: 'setDetails'; patch: Partial<SessionDetails> }
   | { type: 'setClub'; club: string | null }
   | { type: 'setFile'; fileId: string | null }
-  | { type: 'select'; id: string }
+  | { type: 'select'; id: string | null }
   | { type: 'step'; delta: 1 | -1 }
   | { type: 'setLandingMode'; mode: LandingMode }
   | { type: 'setInspectorTab'; tab: InspectorTab }
@@ -48,9 +48,11 @@ export function visibleOf(state: Pick<StoreState, 'workingSet' | 'filters'>) {
   return state.workingSet ? displayOrder(filterShots(state.workingSet, state.filters)) : [];
 }
 
+// A filter change keeps the selected shot while it is still visible; otherwise nothing is selected.
 function withFilters(state: StoreState, filters: Filters): StoreState {
   const next = { ...state, filters };
-  return { ...next, selectedId: reconcileSelection(state.selectedId, visibleOf(next)) };
+  const keep = state.selectedId !== null && visibleOf(next).some((s) => s.id === state.selectedId);
+  return { ...next, selectedId: keep ? state.selectedId : null };
 }
 
 export function reducer(state: StoreState, action: Action): StoreState {
@@ -62,9 +64,8 @@ export function reducer(state: StoreState, action: Action): StoreState {
     case 'removeStaged':
       return { ...state, staged: state.staged.filter((f) => f.key !== action.key) };
     case 'analyze': {
-      const workingSet = buildWorkingSet(state.staged);
-      const next = { ...state, workingSet, filters: ALL };
-      return { ...next, selectedId: visibleOf(next)[0]?.id ?? null };
+      // A fresh analysis opens with no shot selected.
+      return { ...state, workingSet: buildWorkingSet(state.staged), filters: ALL, selectedId: null };
     }
     case 'clear':
       return initialState;
@@ -73,8 +74,8 @@ export function reducer(state: StoreState, action: Action): StoreState {
     case 'setDetails':
       return { ...state, details: { ...state.details, ...action.patch } };
     case 'setClub': {
-      // Picking a club starts at its first shot; going back to All keeps the current shot.
-      if (action.club === null) return withFilters(state, { ...state.filters, club: null });
+      // Picking a club starts at its first shot; going back to All clears the selection.
+      if (action.club === null) return { ...state, filters: { ...state.filters, club: null }, selectedId: null };
       const next = { ...state, filters: { ...state.filters, club: action.club } };
       return { ...next, selectedId: visibleOf(next)[0]?.id ?? null };
     }

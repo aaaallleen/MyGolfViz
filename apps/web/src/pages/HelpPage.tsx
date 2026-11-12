@@ -12,7 +12,7 @@ export function HelpPage() {
       </p>
 
       <h2>What the CSV columns mean</h2>
-      <p>Each row is one shot from a FlightScope Mevo export. Ball columns (speed, launch angle, spin, carry, total, lateral landing) describe the ball. Club columns (club speed, attack angle, path, face angle, dynamic loft, low point, impact location) describe the club at impact. A blank, "-" or "N/A" cell is shown as "Not measured", never as zero. "Time (s)" is ball flight duration, not a timestamp.</p>
+      <p>Each row is one shot from a FlightScope Mevo export. Ball columns (speed, launch angle, spin, carry, total, lateral landing) describe the ball. Club columns (club speed, attack angle, path, face angle, dynamic loft, low point, impact location) describe the club at impact. A blank, "-" or "N/A" cell means the value was not measured: the app shows it as a dash (–), never as zero, and hovering the dash or using a screen reader gives "Not measured". "Time (s)" is ball flight duration, not a timestamp.</p>
 
       <h2>Impact sign convention</h2>
       <ul>

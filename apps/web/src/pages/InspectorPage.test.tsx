@@ -29,6 +29,13 @@ const checks = (root: HTMLElement) =>
   ]);
 
 describe('InspectorPage', () => {
+  test('opened with no shot selected, it shows the first visible shot and selects it', () => {
+    const v = open();
+    const first = v.store().visibleShots[0]!;
+    expect(v.store().selectedId).toBe(first.id);
+    expect(screen.queryByText('No shots match these filters')).toBeNull();
+  });
+
   test("Club data tabs read 'Face impact', '3D reconstruction', '2D reconstruction' in order; '2D reconstruction' selected by default; each has a labelled tabpanel", async () => {
     const user = userEvent.setup();
     open();
@@ -177,11 +184,11 @@ describe('InspectorPage', () => {
     const v = open();
     pick(v, 1, 15);
     const t = panel().textContent!.replace(/\s+/g, ' ');
-    expect(t).toContain('Club path · Not measured');
-    expect(t).toContain('Face to target · Not measured');
-    expect(t).toContain('Face to path · Not measured');
+    expect(t).toContain('Club path · –Not measured');
+    expect(t).toContain('Face to target · –Not measured');
+    expect(t).toContain('Face to path · –Not measured');
     expect(t).toContain('8.9° R');
-    expect(t).toContain('Spin loft · Not measured');
+    expect(t).toContain('Spin loft · –Not measured');
     expect(t).not.toContain('0.0°');
   });
 

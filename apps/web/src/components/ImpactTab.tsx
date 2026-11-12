@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { summarize } from '@fsa/analytics';
-import { clubCategory, formatImpact, formatMeasurement, NOT_MEASURED, type ClubCategory, type Handedness, type Shot } from '@fsa/domain';
+import { clubCategory, formatImpact, formatMeasurement, type ClubCategory, type Handedness, type Shot } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
 import { FaceImpactDiagram } from '@fsa/visualizations';
 import { ValueTag } from './ValueTag';
 
@@ -17,8 +18,8 @@ export function ImpactTab({ shot, visibleShots, handedness }: { shot: Shot; visi
 
   const lat = summarize(measured.map((s) => s.m.impactLateral));
   const vert = summarize(measured.map((s) => s.m.impactVertical));
-  const average = lat.mean === null || vert.mean === null ? NOT_MEASURED : formatImpact(lat.mean, vert.mean);
-  const spread = lat.sd === null || vert.sd === null ? NOT_MEASURED
+  const average = lat.mean === null || vert.mean === null ? <Missing /> : formatImpact(lat.mean, vert.mean);
+  const spread = lat.sd === null || vert.sd === null ? <Missing />
     : `± ${lat.sd.toFixed(2)} · ± ${vert.sd.toFixed(2)} in`;
 
   return (

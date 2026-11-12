@@ -1,5 +1,5 @@
 import { formatMeasurement } from '@fsa/domain';
-import { ProvenanceTag } from '@fsa/ui';
+import { Missing, ProvenanceTag } from '@fsa/ui';
 import { BALL, BALL_EDGE, BORDER, CLUB, DISPLAY_FONT, FACE_FILL, FONT, INK, MUTED, SOFT, SURFACE } from './theme';
 
 export interface VerticalDeliveryProps {
@@ -28,7 +28,7 @@ const dir = (deg: number, k: number) => {
 const at = (d: { x: number; y: number }, t: number) => ({ x: f1(BX + d.x * t), y: f1(BY + d.y * t) });
 
 function Row({ label, text, swatch }: { label: string; text: string | null; swatch?: React.CSSProperties }) {
-  if (text === null) return <li style={{ color: MUTED, fontSize: 14 }}>{label} · Not measured</li>;
+  if (text === null) return <li style={{ color: MUTED, fontSize: 14 }}>{label} · <Missing /></li>;
   return (
     <li style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: SOFT }}>

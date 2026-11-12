@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { expect, test } from 'vitest';
-import { FIELD_DEFS, MEASUREMENT_KEYS, classifyHeader } from './index';
+import { describe, expect, test } from 'vitest';
+import { FIELD_DEFS, MEASUREMENT_KEYS, classifyHeader, unparsedHeaders } from './index';
 
 test.each([
   ['club', { type: 'text', key: 'club' }],
@@ -38,4 +38,17 @@ test('FIELD_DEFS has 27 unique keys equal to MEASUREMENT_KEYS', () => {
   const keys = FIELD_DEFS.map((d) => d.key);
   expect(new Set(keys).size).toBe(27);
   expect([...MEASUREMENT_KEYS]).toEqual(keys);
+});
+
+describe('unparsedHeaders', () => {
+  test('keeps unrecognized names, unreadable units and repeats of a column already read, in order', () => {
+    expect(unparsedHeaders([
+      'club', 'Shot', 'Carry (yds)', 'Weather', 'Carry Distance (yds)', 'Spin (furlongs)', 'Mode', 'Weather', 'Smash',
+    ])).toEqual(['Weather', 'Carry Distance (yds)', 'Spin (furlongs)']);
+  });
+
+  test('a standard FlightScope header row leaves nothing over', () => {
+    const header = 'club,Shot,Ball (mph),Club (mph),Smash,Carry (yds),Total (yds),Roll (yds),Swing H (°),Spin (rpm),Height (ft),Time (s),AOA (°),Spin Loft (°),Swing V (°),Spin Axis (°),Lateral (yds),Shot Type,FTP (°),FTT (°),Dynamic Loft (°),Club Path (°),Launch H (°),Launch V (°),Low Point (ftin),DescentV (°),Curve Dist (yds),Lateral Impact (in),Vertical Impact (in),Mode,Location,Altitude (ft)';
+    expect(unparsedHeaders(header.split(','))).toEqual([]);
+  });
 });

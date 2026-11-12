@@ -8,7 +8,6 @@ import { FilterBar } from '../components/FilterBar';
 import { KpiGrid } from '../components/KpiGrid';
 import { SelectedShotCard } from '../components/SelectedShotCard';
 import { SessionDetailsForm } from '../components/SessionDetailsForm';
-import { ShotCards } from '../components/ShotCards';
 import { ShotTable } from '../components/ShotTable';
 import { ShotPatternPanel } from '../components/ShotPatternPanel';
 import { useWorkingSet } from '../state/store';
@@ -29,11 +28,10 @@ export function OverviewPage() {
     setHighlightClub(shots.find((s) => s.id === selectedId)?.club ?? null);
   }
 
-  // Tapping a club highlights it and jumps to its first shot; tapping it again only clears the highlight.
+  // Tapping a club highlights it and jumps to its first shot; tapping it again clears both.
   const highlight = (club: string | null) => {
     setHighlightClub(club);
-    const first = club === null ? undefined : shots.find((s) => s.club === club);
-    if (first) ws.select(first.id);
+    ws.select(club === null ? null : shots.find((s) => s.club === club)?.id ?? null);
   };
 
   if (!workingSet) return null;
@@ -88,8 +86,7 @@ export function OverviewPage() {
             <h2>Shots</h2>
             <p className="panel__note">Ordered by club within each file · the selected row, plot point and shot card stay in step</p>
             <ShotTable shots={shots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null} />
-            <ShotCards shots={shots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} />
-            <p className="panel__note">{`${shots.length} shots · “Not measured” means the CSV held no value; it is never treated as zero`}</p>
+            <p className="panel__note">{`${shots.length} shots · “–” means the CSV held no value; it is never treated as zero`}</p>
           </section>
         </>
       )}

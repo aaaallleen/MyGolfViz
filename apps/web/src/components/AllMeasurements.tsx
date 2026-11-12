@@ -1,5 +1,6 @@
 import { spinComponents } from '@fsa/analytics';
-import { FIELD_DEFS, formatMeasurement, NOT_MEASURED, type FieldGroup, type QualityFlag, type Shot } from '@fsa/domain';
+import { FIELD_DEFS, formatMeasurement, type FieldGroup, type QualityFlag, type Shot } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
 import { ValueTag } from './ValueTag';
 
 const GROUPS: { group: FieldGroup; title: string }[] = [
@@ -19,7 +20,7 @@ function Item({ label, value, kind }: { label: string; value: string | null; kin
     <div>
       <dt>{label}</dt>{' '}
       {value === null
-        ? <dd className="is-missing">{NOT_MEASURED}{' '}<ValueTag kind="unavailable" /></dd>
+        ? <dd className="is-missing"><Missing />{' '}<ValueTag kind="unavailable" /></dd>
         : <dd>{value}{' '}<ValueTag kind={kind ?? 'measured'} /></dd>}
     </div>
   );

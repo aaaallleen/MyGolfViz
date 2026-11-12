@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { formatMeasurement, type Vec3 } from '@fsa/domain';
 import { spinAxisVector, spinComponents } from '@fsa/analytics';
-import { ProvenanceTag } from '@fsa/ui';
+import { Missing, ProvenanceTag } from '@fsa/ui';
 import { BALL, BALL_EDGE, BORDER, DISPLAY_FONT, FONT, INK, MUTED, SOFT, SURFACE } from './theme';
 
 export interface SpinBallDiagramProps {
@@ -38,7 +38,7 @@ function rotate(p: Vec3, a: Vec3, phi: number): Vec3 {
 }
 
 function Row({ label, text, derived }: { label: string; text: string | null; derived?: boolean }) {
-  if (text === null) return <li style={{ color: MUTED, fontSize: 14 }}>{label} · Not measured</li>;
+  if (text === null) return <li style={{ color: MUTED, fontSize: 14 }}>{label} · <Missing /></li>;
   return (
     <li style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 8px' }}>
       <span style={{ fontSize: 12, color: SOFT }}>{label}</span>{' '}

@@ -1,8 +1,8 @@
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import { summarize } from '@fsa/analytics';
-import { FIELD_DEFS, formatMeasurement, NOT_MEASURED, type MeasurementKey, type Shot } from '@fsa/domain';
-import { SegmentedControl } from '@fsa/ui';
+import { FIELD_DEFS, formatMeasurement, type MeasurementKey, type Shot } from '@fsa/domain';
+import { Missing, SegmentedControl } from '@fsa/ui';
 import { HorizontalDeliveryDiagram, SpinAxisDiagram, VerticalDeliveryDiagram } from '@fsa/visualizations';
 import { ShowToggles } from './ShowToggles';
 
@@ -67,7 +67,7 @@ export function Club2DTab({ shot, visibleShots }: { shot: Shot; visibleShots: re
         <div className="panel">
           <h3>Measured angles</h3>
           <dl className="stat-list">
-            {ANGLES.map(({ key, label }) => <div key={key}><dt>{label}</dt>{' '}<dd className={m[key] === null ? 'is-missing' : undefined}>{formatMeasurement(key, m[key])}</dd></div>)}
+            {ANGLES.map(({ key, label }) => <div key={key}><dt>{label}</dt>{' '}<dd className={m[key] === null ? 'is-missing' : undefined}>{m[key] === null ? <Missing /> : formatMeasurement(key, m[key])}</dd></div>)}
           </dl>
         </div>
         <div className="panel">
@@ -80,7 +80,7 @@ export function Club2DTab({ shot, visibleShots }: { shot: Shot; visibleShots: re
                 <div key={key}>
                   <dt>{label}</dt>{' '}
                   <dd className={v === null ? 'is-missing' : undefined}>
-                    {v === null ? NOT_MEASURED : formatMeasurement(key, v)}
+                    {v === null ? <Missing /> : formatMeasurement(key, v)}
                     <span className="stat-list__delta">{` vs ${mean === null ? `no ${shot.club} average` : formatMeasurement(key, mean)}`}</span>
                   </dd>
                 </div>
