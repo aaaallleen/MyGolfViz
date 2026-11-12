@@ -1,0 +1,18 @@
+{
+  "name": "@fsa/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode public",
+    "build:public": "vite build --mode public",
+    "preview": "vite preview --mode public"
+  },
+  "dependencies": {
+    "@fsa/analytics": "*",
+    "@fsa/csv-parser": "*",
+    "@fsa/domain": "*",
+    "@fsa/ui": "*",
+    "@fsa/visualizations": "*"
+  }
+}

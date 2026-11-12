@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship the public, browser-only Cloud Viewer: load one or more Mevo Gen 2 CSV exports, analyze them as one temporary in-memory working set with user-entered session details, and explore dispersion, 2D delivery, spin, face impact and an illustrative 3D replay on desktop, iPad and iPhone. It deploys to GitHub Pages.
+**Goal:** Ship the public, browser-only Cloud Viewer: load one or more Mevo Gen 2 CSV exports, analyze them as one temporary in-memory working set with user-entered session details, and explore dispersion, an illustrative 3D ball-flight viewer, spin, face impact, and 2D/3D club delivery on desktop, iPad and iPhone. It deploys to GitHub Pages.
 
 **Architecture:** This is an npm-workspaces monorepo with one React + TypeScript app (`apps/web`, Vite, `VITE_APP_MODE=public`) and shared source-only TS packages: `domain` (field semantics), `csv-parser`, `analytics`, `visualizations` (custom React SVG) and `ui` (primitives + tokens). All data lives in a React store in tab memory. No network, storage or backend code exists in this plan. The Local App (FastAPI/SQLite, milestones L1/L2) gets a later plan that reuses these packages unchanged.
 
@@ -38,7 +38,14 @@
   | Total | Lateral landing | Total distance | "Total Distance vs. Landing Offset" | "Hybrid plot, not actual resting position" |
 
   The phrase "Total Dispersion" never appears.
-- The 3D reconstruction is illustrative geometry built from impact measurements. It always shows the banner "Illustrative reconstruction" with "The club trajectory is inferred from launch-monitor measurements at impact. It is not captured swing motion." The replay timeline shows phase names (Downswing, Impact, Ball flight, Landing), never seconds.
+- The 3D views are illustrative geometry built from measurements, never captured motion. Timelines show phase names, never seconds.
+  - The club 3D view (Club data → 3D reconstruction) always shows the banner "Illustrative reconstruction" with "The club trajectory is inferred from launch-monitor measurements at impact. It is not captured swing motion." Its phases are Downswing, Impact, Follow-through. It never draws a ball flight.
+  - The ball-flight viewer (Ball data) always shows "Illustrative flight path" with "Drawn from launch angle, apex height, descent angle, carry and lateral landing. It is not a measured flight track." Its phases are Launch, Ball flight, Landing.
+- Shot Inspector structure (product owner, 2026-11-11):
+  - **Ball data** comes first. It holds the 3D ball-flight viewer: DTL / Perspective / Side / Top cameras, the selected shot bold, other visible shots faint behind a "Show other shots" toggle (default on), and a flight replay. Beside it are the spinning ball and the launch/flight readouts.
+  - **Club data** follows, with tabs "Face impact", "3D reconstruction" and "2D reconstruction".
+  - 3D "Show" toggles: Top view, AoA, V-plane, Side view. The 3D tab keeps the downswing replay.
+  - 2D "Show" toggles: Face to target, Face to path, Dynamic loft, Spin axis. These show or hide layers and panels.
 - Every value is labelled as one of: measured, derived, illustrative, unavailable. Legend copy (exact): "Measured · from the CSV", "Derived · calculated from measured values", "Illustrative · drawn for orientation", "Unavailable · not in the CSV".
 - Missing values display as **"Not measured"**.
 - Layout: at 390 px, no horizontal body overflow and every control ≥ 44 px tall. Target widths are 1440 / 820 / 390. Visual language comes from the `docs/design/README.md` tokens. The "Binding decisions" there are part of this spec.
@@ -877,7 +884,7 @@ test('store.addFiles with the Sept 19 2022 fixture File stages one ready file wi
 
 **Interfaces:**
 - Consumes: `useWorkingSet` (Task 12); `PreviewFile` (Task 6); `fieldDef(...).label` for missing-column names; `SessionDetails` (Task 2); `SegmentedControl` (Task 7).
-- Produces: the route `/` UI that Task 16/17 e2e tests drive:
+- Produces: the route `/` UI that Task 19/20 e2e tests drive:
   - `input[type=file]` labelled "Load Session CSV"
   - buttons "Load Session CSV", "Add files", "Analyze files", "Clear analysis"
   - per-file checkbox labelled "Include {file name}"
@@ -927,7 +934,7 @@ test("'Clear analysis' also resets the session details fields", ...)
 
 **Interfaces:**
 - Consumes: Tasks 2, 5, 6, 8, 12, 13 (`sessionTitle`, `formatSessionDate`, `useWorkingSet`, `headlineMetrics`, `HEADLINE_KEYS`, `dispersionStats`, `trajectoryCurve`, `clubCounts`, `selectionPosition`, `DispersionPlot`, `TrajectoryPlot`, `SessionDetailsForm`).
-- Produces: `renderWithData(fixtures: string[], opts?: { route?: string; details?: Partial<SessionDetails> }): RenderResult & { store(): StoreState }`. It parses the named fixtures in order, stages them, analyzes, and renders `<MemoryRouter initialEntries={[route ?? '/overview']}><WorkingSetProvider initial={…}><AppRoutes/></WorkingSetProvider></MemoryRouter>`. Task 15 uses it. Shot table rows: `tr[data-shot-id]`, class `shots-table`; phone cards: class `shots-cards`.
+- Produces: `renderWithData(fixtures: string[], opts?: { route?: string; details?: Partial<SessionDetails> }): RenderResult & { store(): StoreState }`. It parses the named fixtures in order, stages them, analyzes, and renders `<MemoryRouter initialEntries={[route ?? '/overview']}><WorkingSetProvider initial={…}><AppRoutes/></WorkingSetProvider></MemoryRouter>`. Task 18 uses it. Shot table rows: `tr[data-shot-id]`, class `shots-table`; phone cards: class `shots-cards`.
 
 - Layout (frame 04; phone frame 11; tablet frame 09):
   - Session header as in frame 04, without the "Sessions /" breadcrumb (cloud has no library):
@@ -973,83 +980,249 @@ test('both .shots-table and .shots-cards render the same shot ids', ...)
 
 ---
 
-### Task 15: Shot Inspector — face impact, 3D reconstruction, 2D reconstruction
+### Task 15: Club and ball-flight timelines; flight and club camera framing
 
 **Files:**
-- Create: `apps/web/src/pages/InspectorPage.tsx`, `apps/web/src/components/{ShotHeader.tsx,HeadTiles.tsx,BallDataPanel.tsx,ImpactTab.tsx,Replay3DTab.tsx,Reconstruction2DTab.tsx,AllMeasurements.tsx}`
+- Modify: `packages/analytics/src/replay.ts`, `packages/visualizations/src/camera.ts`
+- Test: `packages/analytics/src/replay.test.ts`, `packages/visualizations/src/camera.test.ts`
+
+**Interfaces:**
+- Consumes: `ReplayScene`, `Vec3`, `Handedness` (Tasks 2, 10); `Camera`, `CameraPreset`, `projectPoint` (Task 10, unchanged).
+- Produces (added; Task 16 deletes the superseded `replayPhase`/`replayFrame`/`ReplayPhase`/`cameraFor` once `ShotReplay3D` is gone):
+
+```ts
+// @fsa/analytics
+export type ClubPhase = 'Downswing' | 'Impact' | 'Follow-through';
+export function clubPhase(progress: number): ClubPhase;            // [0,0.60) Downswing · [0.60,0.66) Impact · [0.66,1] Follow-through
+export function clubFrame(scene: ReplayScene, progress: number): Vec3 | null;
+  // null when clubArc is null. Downswing: clubArc[0]→clubArc[impactIndex] over [0,0.60); Impact: origin;
+  // Follow-through: clubArc[impactIndex]→last over [0.66,1]
+export type FlightPhase = 'Launch' | 'Ball flight' | 'Landing';
+export function flightPhase(progress: number): FlightPhase;        // [0,0.05) Launch · [0.05,0.95) Ball flight · [0.95,1] Landing
+export function flightFrame(scene: ReplayScene, progress: number): Vec3;
+  // Launch: origin; Ball flight: along ballFlight over (p−0.05)/0.90; Landing: landing; ballFlight null → origin
+// @fsa/visualizations
+export function clubCamera(scene: ReplayScene, viewportWidth: number): Camera;
+  // fixed elevated 3/4 view from the golfer side (g = −1 right-handed, +1 left-handed), framing origin, every clubArc point and the plane quad
+export function flightCamera(preset: CameraPreset, flights: Vec3[][], handedness: Handedness, viewportWidth: number): Camera;
+  // same preset meanings as Task 11's reframed cameras; frames the origin and every point of every flight passed in
+```
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+test.each([[0,'Downswing'],[0.59,'Downswing'],[0.6,'Impact'],[0.65,'Impact'],[0.66,'Follow-through'],[1,'Follow-through']])('clubPhase(%d)', ...)
+test('clubFrame: 0 → clubArc[0]; 0.6 → origin; 1 → last arc point; null arc → null', ...)
+test.each([[0,'Launch'],[0.04,'Launch'],[0.05,'Ball flight'],[0.94,'Ball flight'],[0.95,'Landing'],[1,'Landing']])('flightPhase(%d)', ...)
+test('flightFrame: 0 → origin; 1 → landing; mid-flight point lies on the ballFlight polyline; null flight → origin', ...)
+// camera.test.ts — driver (Sept 19 2022 row 2) and wedge (carry 110, lateral −4, launchH −1, height 90 ft, launchV 30, descentV 50)
+test('flightCamera frames origin, both apexes and both landings inside 800×480 with ≥2% margin, every preset, both handednesses', ...)
+test('flightCamera with only the wedge zooms in further than with driver+wedge (larger focal)', ...)
+test('clubCamera frames origin and every clubArc point inside 800×480 with ≥2% margin; the arc spans ≥40% of the viewport height', ...)
+test('clubCamera eye is on the golfer side: eye.x < 0 right-handed, > 0 left-handed', ...)
+```
+
+- [ ] **Step 2: Run.** `npx vitest run packages/analytics/src/replay.test.ts packages/visualizations/src/camera.test.ts`. Expected: FAIL (new exports missing).
+- [ ] **Step 3: Implement** the Interfaces block. Reuse the Task 11 framing approach (fit focal so every point sits within 46% of the half-extents).
+- [ ] **Step 4: Run.** Same command → PASS. `npm test` → PASS.
+- [ ] **Step 5: Commit.** `git add packages && git commit -m "feat: club and ball-flight timelines with dedicated camera framing"`
+
+---
+
+### Task 16: ClubReplay3D and BallFlight3D (replacing ShotReplay3D)
+
+**Files:**
+- Create: `packages/visualizations/src/{ReplayControls.tsx,ClubReplay3D.tsx,BallFlight3D.tsx}` (exported from the index)
+- Delete: `packages/visualizations/src/ShotReplay3D.tsx` and its test; remove `replayPhase`, `replayFrame`, `ReplayPhase` (analytics) and `cameraFor` (visualizations) together with their tests once nothing imports them
+- Test: `packages/visualizations/src/{ClubReplay3D,BallFlight3D}.test.tsx`
+
+**Interfaces:**
+- Consumes: Task 15 (`clubPhase`, `clubFrame`, `flightPhase`, `flightFrame`, `clubCamera`, `flightCamera`); `projectPoint`; `theme.ts`; `SegmentedControl`, `ProvenanceTag` (Task 7); `formatMeasurement` (Task 2).
+- Produces:
+
+```tsx
+export function useReplayClock(opts: { initial: number }): { progress: number; setProgress(p: number): void; playing: boolean;
+  toggle(): void; step(delta: number): void; speed: 0.25 | 0.5 | 1; setSpeed(s: 0.25 | 0.5 | 1): void; loop: boolean; setLoop(b: boolean): void };
+  // rAF-driven; one pass = 4 s ÷ speed; loop wraps (use % 1), otherwise stops at 1; cancels on pause/unmount; paused initially
+ReplayControls(props: { clock: ReturnType<typeof useReplayClock>; phases: string[] })
+  // exactly Task 11's controls and accessible names: "Step back one frame", "Play replay"/"Pause replay", "Step forward one frame",
+  // range "Replay position" 0–100 (min-height 44px), "Speed" 0.25×/0.5×/1× (default 0.5×), "Loop" (default on); step = 0.02
+ClubReplay3D(props: { scene: ReplayScene; aoa: number | null; vPlane: number | null; show: { vPlane: boolean; aoa: boolean } })
+BallFlight3D(props: { selected: ReplayScene; others: ReplayScene[] })
+```
+
+- `ClubReplay3D` (club data, frame 06 scene without the ball flight):
+  - Camera: `clubCamera`. Draws the ground grid, target line, club arc (solid up to impact, dashed after), and club head and shaft at `clubFrame`.
+  - The ball stays at the origin.
+  - `[data-role=v-plane]` and its label are drawn only when `show.vPlane` and the plane exists. `[data-role=aoa-label]` is drawn only when `show.aoa` and `aoa !== null`.
+  - It never draws a ball flight.
+  - Banner: the club copy from Global Constraints. Corner texts: "Club at impact" and `clubPhase`.
+  - Phases: Downswing · Impact · Follow-through. Default progress 0.60 (Impact).
+  - Plane null → no plane or arc, with the note "Club delivery not measured for this shot".
+- `BallFlight3D` (ball data):
+  - "Camera angle" segmented control: DTL, Perspective, Side, Top (default Perspective), framed by `flightCamera` over the displayed flights.
+  - Checkbox "Show other shots" (default checked). When checked, every other scene with a flight draws `[data-role=other-flight]` (opacity ≤ 0.3, no replay). The selected flight is `[data-role=ball-flight]`, drawn last and bold, with `[data-role=ball]` at `flightFrame`.
+  - Draws the ground grid, target line and landing markers.
+  - Banner: the flight copy from Global Constraints. Corner texts: "{Preset} camera" and `flightPhase`.
+  - Phases: Launch · Ball flight · Landing. Default progress 0.
+  - Selected flight null → note "Ball flight not measured for this shot" (other flights are still drawn when shown).
+- Every SVG coordinate is finite. A segment with an endpoint behind the camera is skipped.
+
+- [ ] **Step 1: Write the failing tests**
+
+```tsx
+// ClubReplay3D (Sept 19 2022 row-2 scene)
+test('club banner copy present; no [data-role=ball-flight]; corner shows "Impact" by default', ...)
+test('show.vPlane false removes [data-role=v-plane]; show.aoa false removes [data-role=aoa-label]', ...)
+test("slider 0 → 'Downswing', 63 → 'Impact', 100 → 'Follow-through'", ...)
+test("plane null → no v-plane/club-arc, note 'Club delivery not measured for this shot'", ...)
+// BallFlight3D (selected driver scene, others = [wedge scene, scene with null flight])
+test('flight banner copy present; camera buttons DTL/Perspective/Side/Top with Perspective pressed', ...)
+test("'Show other shots' checked → 1 other-flight path (null-flight scene skipped); unchecked → 0", ...)
+test("slider 0 → 'Launch', 50 → 'Ball flight', 100 → 'Landing' and the ball sits at the projected landing", ...)
+test("selected flight null → 'Ball flight not measured for this shot'; others still drawn", ...)
+// shared
+test('no svg attribute contains NaN (both components, normal and null-plane/null-flight scenes); no text matches /\\d+(\\.\\d+)?\\s?s\\b/', ...)
+test('Play toggles to "Pause replay" and advances progress under fake rAF; frame cancelled on unmount', ...)
+```
+
+- [ ] **Step 2: Run.** `npx vitest run packages/visualizations`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Move the Task 11 playback logic into `useReplayClock` and `ReplayControls`, then delete `ShotReplay3D`, its test and the superseded exports.
+- [ ] **Step 4: Run.** `npx vitest run packages` → PASS. `npm test` → PASS. `npm run typecheck` → exit 0.
+- [ ] **Step 5: Commit.** `git add -A packages && git commit -m "feat(visualizations): split replay into club 3D and ball-flight 3D views"`
+
+---
+
+### Task 17: 2D layer toggles and the 2D spin-axis diagram
+
+**Files:**
+- Modify: `packages/visualizations/src/{HorizontalDelivery.tsx,VerticalDelivery.tsx}`
+- Create: `packages/visualizations/src/SpinAxis.tsx` (exported from the index)
+- Test: `packages/visualizations/src/diagrams.test.tsx`
+
+**Interfaces:**
+- Consumes: Task 9 diagrams; `formatMeasurement`, `spinAxisVector` (Tasks 2, 5); `theme.ts`.
+- Produces:
+
+```tsx
+HorizontalDeliveryDiagram(props: { …Task 9 props; layers?: { faceToTarget?: boolean; faceToPath?: boolean } })   // both default true
+VerticalDeliveryDiagram(props: { …Task 9 props; layers?: { dynamicLoft?: boolean } })                           // default true
+SpinAxisDiagram(props: { spinAxis: number | null })
+```
+
+- `faceToTarget: false` hides the face line (`[data-role=face]`) and its "Face to target" row.
+- `faceToPath: false` hides the face-to-path angle arc (`[data-role=face-to-path]`, a new role) and its "Face to path" row.
+- The target line, club path and launch line always draw.
+- `dynamicLoft: false` hides `[data-role=loft]` and its "Dynamic loft" row. The spin-loft row stays.
+- `SpinAxisDiagram`: a flat 2D view from behind the ball.
+  - `[data-role=ball]` circle, dashed horizontal `[data-role=reference]`, and `[data-role=spin-axis]` tilted by the spin axis (positive → right end lower).
+  - Label from `formatMeasurement('spinAxis', …)`. Caption "Viewed from behind the ball · axis tilted right = ball curves right".
+  - Null → "Spin axis · Not measured" and no axis line.
+
+- [ ] **Step 1: Write the failing tests**
+
+```tsx
+test('top view layers default: face and face-to-path drawn with their rows', ...)
+test("layers.faceToTarget false: no [data-role=face], no 'Face to target' row; club path, target line, launch still drawn", ...)
+test("layers.faceToPath false: no [data-role=face-to-path], no 'Face to path' row", ...)
+test("side view layers.dynamicLoft false: no [data-role=loft], no 'Dynamic loft' row; spin loft row stays", ...)
+test("SpinAxisDiagram(10): label '10.0° R', right end of spin-axis lower than left; (−10) reversed; (0) level", ...)
+test("SpinAxisDiagram(null): 'Spin axis · Not measured' and no [data-role=spin-axis]", ...)
+```
+
+- [ ] **Step 2: Run.** `npx vitest run packages/visualizations/src/diagrams.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** `npx vitest run packages/visualizations` → PASS. `npm test` → PASS.
+- [ ] **Step 5: Commit.** `git add packages/visualizations && git commit -m "feat(visualizations): 2D layer toggles and spin-axis diagram"`
+
+---
+
+### Task 18: Shot Inspector — Ball data, then Club data (face impact, 3D, 2D)
+
+**Files:**
+- Create: `apps/web/src/pages/InspectorPage.tsx`, `apps/web/src/components/{ShotHeader.tsx,HeadTiles.tsx,BallDataPanel.tsx,ImpactTab.tsx,Club3DTab.tsx,Club2DTab.tsx,AllMeasurements.tsx}`
 - Modify: `apps/web/src/routes.tsx`
 - Test: `apps/web/src/pages/InspectorPage.test.tsx`
 
 **Interfaces:**
-- Consumes: `renderWithData` (Task 14); `useWorkingSet`, `InspectorTab` (Task 12); Task 9 diagrams; `ShotReplay3D` (Task 11); `buildReplayScene` (Task 10); `summarize`, `spinComponents` (Task 5); `clubCategory`, `formatImpact`, `FIELD_DEFS`, `formatMeasurement`, `sessionTitle`, `handednessLabel` (Task 2); `Tabs`, `SegmentedControl`, `ProvenanceLegend`, `ProvenanceTag`, `KpiTile` (Task 7).
+- Consumes:
+  - `renderWithData` (Task 14); `useWorkingSet`, `InspectorTab` (Task 12)
+  - `BallFlight3D`, `ClubReplay3D` (Task 16); `HorizontalDeliveryDiagram`/`VerticalDeliveryDiagram` with `layers`, and `SpinAxisDiagram` (Task 17); `SpinBallDiagram`, `FaceImpactDiagram` (Task 9)
+  - `buildReplayScene` (Task 10); `summarize`, `spinComponents` (Task 5)
+  - `clubCategory`, `formatImpact`, `FIELD_DEFS`, `formatMeasurement`, `sessionTitle`, `handednessLabel` (Task 2)
+  - `Tabs`, `SegmentedControl`, `ProvenanceLegend`, `ProvenanceTag`, `KpiTile` (Task 7)
 - Produces: route `/inspect`.
-  - Tabs, in this order: "Face impact" (`impact`), "3D reconstruction" (`3d`), "2D reconstruction" (`2d`). Below 640 px the labels shorten to "Impact" / "3D" / "2D" (frame 12).
-  - 2D diagrams carry class `delivery-top` / `delivery-side`.
+  - Club data tabs, in order: "Face impact" (`impact`), "3D reconstruction" (`3d`), "2D reconstruction" (`2d`). Below 640 px the labels read "Impact" / "3D" / "2D".
+  - Each tab has a `role="tabpanel"` with `id="panel-<id>"` and `aria-labelledby="tab-<id>"`; Task 7's Tabs sets the tab ids.
+  - 2D panels carry class `delivery-top` / `delivery-side` / `delivery-spin`.
 
-- Layout (frames 05, 06, 07, 10, 12):
-  - Breadcrumb "{sessionTitle} / Shot {label}", where the title links to `/overview`.
-  - H1 "Shot {shotLabel ?? sourceRow} · {club}".
-  - Meta chips: "File {ordinal} · {name}", "CSV row {sourceRow}", the shot's mode (e.g. "Outdoor"), and `handednessLabel(details.handedness)` (e.g. "Right-handed"). The handedness chip is a button that opens a small Right-handed / Left-handed choice and calls `setDetails`.
-  - Prev/Next, the "Choose shot" select (option "{club} · shot {label} · {carry}"), "{i} of {n}", and "Back to overview".
-  - Head tiles: Carry, Spin, Club path, Face to path, Attack angle, Impact.
-  - **Ball data** section: a single view with no tabs, placed between the head tiles and Club data.
-    - The header label "Ball data" has an orange (`--ball`) dot, mirroring frame 06's "Club data" label with its blue dot.
-    - Left: `SpinBallDiagram` with its spin readouts.
-    - Right: readout groups, each value tagged measured, or "Not measured" when null:
-      - "Launch": Ball speed, Launch V, Launch H
-      - "Flight": Carry, Total, Apex height, Lateral, Descent angle, Curve, Flight time
-    - Below 640 px the sphere stacks above the readouts, two per row.
-  - **Club data** section: the label "Club data" (blue dot) and the tabs as above. Tab state lives in the store, so it survives navigation.
-  - `ProvenanceLegend` and `AllMeasurements` sit below the Club data section on every tab.
-- Face impact tab (frames 05, 10):
-  - Heading "Face impact · {Driver|Wood/hybrid|Iron} face".
-  - `FaceImpactDiagram` with `handedness = details.handedness`.
-  - `others` = other visible shots of the same club with both impact values; "Show session impacts" toggle (default on).
-  - Stats: "Shots with impact data {k} of {N}", "Average strike" (derived, `formatImpact` of the means), "Spread" (derived, "± {sdX} · ± {sdY} in").
-  - When the selected shot lacks impact: "Impact not measured for this shot" and "CSV row {r} has no impact values. No marker is drawn and nothing is estimated."
-- 3D reconstruction tab (frame 06):
-  - `ShotReplay3D` with `buildReplayScene(shot, details.handedness)`.
-  - Below it: "Top view · face to path" (`HorizontalDeliveryDiagram exaggerate={4}`) and "Side view · everything" (`VerticalDeliveryDiagram exaggerate={2} lowPoint={m.lowPoint}`).
-  - These sit side by side at ≥ 1024 px and stack below that.
-- 2D reconstruction tab (frame 07):
-  - "Impact geometry · side view" (`VerticalDeliveryDiagram`) with the "True scale" / "Exaggerated ×2" toggle.
-  - "Measured angles" list.
-  - "Against session average": dynamic loft, launch and attack angle vs the mean over visible shots of the same club, as "{label} {value} vs {mean}", with the note "{club} averages from {n} of {N} shots that have club data."
-  - Then "Impact geometry · top view" (`HorizontalDeliveryDiagram exaggerate={1}`); spec §7.2 requires both delivery views. Ball spin is in the Ball data section, not here.
-  - Below 640 px a "Side view / Top view" segmented control shows one diagram at a time; the other gets class `is-hidden-phone`.
-- `AllMeasurements`: `<details>` with summary "All measurements · {k} of 27 available".
-  - Rows: every FIELD_DEF label → `formatMeasurement`, tagged `measured` or `unavailable`. Then derived Backspin/Sidespin tagged `derived`, then Shot type, Mode, Location.
-  - Quality flags in plain words: no_measurements → "No ball or club measurements in this row"; check_face_to_path → "Face to path differs from face-to-target minus club path beyond rounding"; check_smash → "Smash factor differs from ball speed ÷ club speed beyond rounding".
+- Layout (frames 05, 06, 07, 10, 12; order top to bottom):
+  1. **Header:**
+     - Breadcrumb "{sessionTitle} / Shot {label}", with the title linking to `/overview`.
+     - H1 "Shot {shotLabel ?? sourceRow} · {club}".
+     - Meta chips: "File {ordinal} · {name}", "CSV row {sourceRow}", mode, and `handednessLabel(details.handedness)`. The handedness chip opens a Right-handed / Left-handed choice that calls `setDetails`.
+     - Prev/Next, the "Choose shot" select, "{i} of {n}", and "Back to overview".
+  2. **Head tiles:** Carry, Spin, Club path, Face to path, Attack angle, Impact.
+  3. **Ball data** section, labelled "Ball data" with an orange dot:
+     - `BallFlight3D` with `selected = buildReplayScene(shot, handedness)` and `others` = scenes of the other visible shots (current filters).
+     - Beside it, `SpinBallDiagram` with its spin readouts.
+     - Below, readout groups "Launch" (Ball speed, Launch V, Launch H) and "Flight" (Carry, Total, Apex height, Lateral, Descent angle, Curve, Flight time). Each is tagged measured, or "Not measured".
+     - Side by side at ≥ 1024 px, stacked below.
+  4. **Club data** section, labelled "Club data" with a blue dot, plus the tabs. Tab state lives in the store.
+     - **Face impact** (frames 05, 10), unchanged:
+       - Heading "Face impact · {Driver|Wood/hybrid|Iron} face".
+       - `FaceImpactDiagram` with `details.handedness`. `others` = other visible shots of the same club with both impact values. "Show session impacts" toggle (default on).
+       - Stats: "Shots with impact data {k} of {N}", "Average strike" (derived), "Spread" (derived).
+       - Missing-impact copy: "Impact not measured for this shot" and "CSV row {r} has no impact values. No marker is drawn and nothing is estimated."
+     - **3D reconstruction:**
+       - A "Show" fieldset with four checkboxes, all default checked: "Top view", "AoA", "V-plane", "Side view".
+       - `ClubReplay3D` with `show={{ vPlane, aoa }}`.
+       - Below it: "Top view · face to path" (`HorizontalDeliveryDiagram exaggerate={4}`), rendered only when Top view is checked. "Side view · everything" (`VerticalDeliveryDiagram exaggerate={2} lowPoint`), rendered only when Side view is checked.
+       - Side by side at ≥ 1024 px.
+     - **2D reconstruction:**
+       - A "Show" fieldset with four checkboxes, all default checked: "Face to target", "Face to path", "Dynamic loft", "Spin axis".
+       - Panels:
+         - "Impact geometry · top view": `HorizontalDeliveryDiagram` with `layers={{faceToTarget, faceToPath}}`.
+         - "Impact geometry · side view": `VerticalDeliveryDiagram` with `layers={{dynamicLoft}}` and the "True scale" / "Exaggerated ×2" toggle.
+         - "Spin axis": `SpinAxisDiagram`, rendered only when Spin axis is checked.
+       - Then "Measured angles" and "Against session average": dynamic loft, launch and attack angle vs the visible same-club mean, with the note "{club} averages from {n} of {N} shots that have club data."
+       - Below 640 px a segmented control (Top view / Side view / Spin axis, listing only rendered panels) shows one panel at a time; the others get class `is-hidden-phone`.
+  5. `ProvenanceLegend` and `AllMeasurements`, unchanged from the previous version of this task:
+     - `<details>` "All measurements · {k} of 27 available"; every field tagged measured/unavailable; derived Backspin/Sidespin; Shot type, Mode, Location.
+     - Plain-word quality flags.
 
 - [ ] **Step 1: Write the failing tests** (fixtures in order: Sept 19 2022, Sept 19, Session; select via store)
 
 ```tsx
-test("tabs read 'Face impact', '3D reconstruction', '2D reconstruction' in that order; '2D reconstruction' is selected by default", ...)
-test("'Ball data' section precedes the 'Club data' tablist in DOM order and stays rendered on all three tabs", ...)
-test("File 1 Shot 1 Ball data: 'Total spin 5,162 rpm', 'Spin axis 1.0° R', derived 'Backspin ≈ 5,161 rpm' and 'Sidespin ≈ 90 rpm R'; 'Launch V 19.1°', 'Flight time 7.6 s'", ...)
-test("Session row 78 Ball data: 'Ball spin not measured for this shot' and every Launch/Flight readout 'Not measured'", ...)
+test("Club data tabs read 'Face impact', '3D reconstruction', '2D reconstruction' in order; '2D reconstruction' selected by default; each has a labelled tabpanel", ...)
+test("'Ball data' section precedes the 'Club data' tablist and stays rendered on all three tabs", ...)
+test("Ball data has camera buttons DTL, Perspective, Side, Top and a checked 'Show other shots'", ...)
+test("File 1 + Driver, Shot 1: 15 other-flight paths; unchecking 'Show other shots' leaves 0", ...)
+test("File 1 Shot 1 Ball data: 'Total spin 5,162 rpm', 'Spin axis 1.0° R', derived 'Backspin ≈ 5,161 rpm', 'Sidespin ≈ 90 rpm R'; 'Launch V 19.1°', 'Flight time 7.6 s'", ...)
+test("Session row 78 Ball data: 'Ball flight not measured for this shot', 'Ball spin not measured for this shot', every Launch/Flight readout 'Not measured'", ...)
+test("3D tab: Show checkboxes exactly Top view, AoA, V-plane, Side view (checked); the Club data panel has no [data-role=ball-flight]", ...)
+test("3D tab: unchecking Top view removes 'Top view · face to path'; unchecking V-plane removes [data-role=v-plane]; unchecking Side view removes 'Side view · everything'", ...)
+test("File 1 Shot 14, 3D tab: 'Club delivery not measured for this shot'", ...)
+test("2D tab: Show checkboxes exactly Face to target, Face to path, Dynamic loft, Spin axis (checked); unchecking Spin axis removes .delivery-spin; unchecking Dynamic loft removes [data-role=loft]", ...)
+test("File 1 Shot 14, 2D tab: 'Club path · Not measured', 'Face to target · Not measured', 'Face to path · Not measured', launch 8.9° R; 'Spin loft · Not measured'; no '0.0°' in the panel", ...)
 test("File 1 Shot 15: h1 'Shot 15 · Driver', chips 'File 1 · FlightScope Golf Session Sept 19 2022.csv', 'CSV row 16', 'Outdoor', 'Right-handed'; Impact tile '0.23 in toe · 0.84 in high'", ...)
-test("breadcrumb shows 'Untitled session / Shot 15'; with details.name 'Range day' it shows 'Range day / Shot 15'", ...)
-test("choosing Left-handed from the chip sets details.handedness 'left' and mirrors the face drawing (Toe label moves right of Heel)", ...)
+test("breadcrumb 'Untitled session / Shot 15'; with details.name 'Range day' → 'Range day / Shot 15'", ...)
+test("Left-handed from the chip sets details.handedness 'left' and mirrors the face drawing (Toe label right of Heel)", ...)
 test('switching tabs keeps selectedId, club filter and file filter unchanged', ...)
-test("File 1 Shot 14, 2D tab: top view 'Club path · Not measured', 'Face to target · Not measured', 'Face to path · Not measured' and launch 8.9° R; side view 'Spin loft · Not measured'; no '0.0°' in the panel", ...)
-test("File 1 Shot 14, 3D tab: replay shows the illustrative banner; swingV is null so 'Club delivery not measured for this shot — showing ball flight only'", ...)
-test("File 1 Shot 2, 3D tab: 'Top view · face to path' shows 'Angles ×4'; 'Side view · everything' shows a 'Low point' marker", ...)
 test("File 1 + Driver, Shot 1, Face impact: 'Impact not measured for this shot', no selected-impact marker, 3 other-impact dots, 'Shots with impact data 3 of 16'", ...)
-test("club Driver, all files: Next from File 1 Shot 16 goes to chips 'File 3 · FlightScope Golf Session.csv', 'CSV row 2'", ...)
-test("Session row 78 (Pitching Wedge shot 4): 'All measurements · 1 of 27 available' and 'No ball or club measurements in this row'", ...)
-test("All measurements labels Time as 'Flight time'", ...)
-test('2D tab below-640 control: Side/Top segmented control toggles is-hidden-phone between .delivery-side and .delivery-top', ...)
+test("club Driver, all files: Next from File 1 Shot 16 → chips 'File 3 · FlightScope Golf Session.csv', 'CSV row 2'", ...)
+test("Session row 78: 'All measurements · 1 of 27 available' and 'No ball or club measurements in this row'; Time labelled 'Flight time'", ...)
+test('2D tab phone control toggles is-hidden-phone among .delivery-top, .delivery-side, .delivery-spin', ...)
 ```
 
 - [ ] **Step 2: Run.** `npx vitest run apps/web/src/pages/InspectorPage.test.tsx`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run.** `npx vitest run apps/web` → PASS. `npm run typecheck` → exit 0.
-- [ ] **Step 5: Commit.** `git add apps/web && git commit -m "feat(web): shot inspector with face impact, 3D and 2D reconstruction tabs"`
+- [ ] **Step 4: Run.** `npx vitest run apps/web` → PASS. `npm test` → PASS. `npm run typecheck` → exit 0. `npm run build:public` → exit 0.
+- [ ] **Step 5: Commit.** `git add apps/web && git commit -m "feat(web): shot inspector with ball data and club data views"`
 
 ---
 
-### Task 16: Public-build privacy and subpath verification
+### Task 19: Public-build privacy and subpath verification
 
 **Files:**
 - Create: `scripts/verify-public-build.mjs`, `scripts/verify-public-build.test.ts`, `playwright.config.ts`, `e2e/helpers.ts`, `e2e/privacy.spec.ts`
@@ -1075,7 +1248,7 @@ test('clean dist passes', ...); test("a js file with 'localStorage.setItem' fail
 test('a .csv in dist fails', ...); test('index.html with https:// script src fails', ...)
 // e2e/privacy.spec.ts
 test("three CSVs analyze as one temporary working set → overview meta shows '3 source files', '133 shots' and 'In this browser only'", ...)
-test('no request leaves the origin, uses a non-GET method, carries a body, or targets /api/', ...)  // page.on('request') across load, analyze, overview, and all three inspector tabs including 3D replay playback
+test('no request leaves the origin, uses a non-GET method, carries a body, or targets /api/', ...)  // page.on('request') across load, analyze, overview, ball-flight replay, and all three inspector tabs including club replay playback
 test('no durable storage: localStorage/sessionStorage length 0, document.cookie empty, indexedDB.databases() [], serviceWorker registrations [], context.cookies() []', ...)
 test("'Clear analysis' then /#/overview shows 'No analysis yet'; analyze again with Session name 'Range day' then reload → 'No analysis yet' and the Load page's 'Session name' field is empty", ...)
 test("direct navigation to /fsa-e2e/#/help and refresh both show 'Want saved history? Run Local App'; every asset URL starts with /fsa-e2e/", ...)
@@ -1088,14 +1261,14 @@ test("direct navigation to /fsa-e2e/#/help and refresh both show 'Want saved his
 
 ---
 
-### Task 17: Responsive acceptance, GitHub Pages workflow, README
+### Task 20: Responsive acceptance, GitHub Pages workflow, README
 
 **Files:**
 - Create: `e2e/responsive.spec.ts`, `.github/workflows/pages.yml`, `README.md`
 - Modify: `apps/web/src/styles/app.css` and component styles as the tests require
 
 **Interfaces:**
-- Consumes: `loadAndAnalyze`, `FIXTURES` (Task 16); class names `shots-table`, `shots-cards`, `delivery-top`, `delivery-side`, `is-hidden-phone` (Tasks 14–15).
+- Consumes: `loadAndAnalyze`, `FIXTURES` (Task 19); class names `shots-table`, `shots-cards`, `delivery-top`, `delivery-side`, `is-hidden-phone` (Tasks 14 and 18).
 - Produces: `.github/workflows/pages.yml`:
   - Runs on push to `main` and `workflow_dispatch`; permissions `contents: read, pages: write, id-token: write`; concurrency group `pages`.
   - Build job: checkout; setup-node with `node-version-file: .nvmrc` and npm cache; `npm ci`; `npx playwright install --with-deps chromium`; `npm run ci:public`. Then `npm run build:public` with env `PAGES_BASE: /${{ github.event.repository.name }}/` and `VITE_REPO_URL: ${{ github.server_url }}/${{ github.repository }}`, then `npm run verify:public`, then `actions/upload-pages-artifact` (`path: apps/web/dist`).
@@ -1108,16 +1281,16 @@ test("direct navigation to /fsa-e2e/#/help and refresh both show 'Want saved his
   - Develop (`nvm use`, `npm ci`, `npm run dev`, `npm test`, `npm run e2e`)
   - Deploy (Settings → Pages → Source: GitHub Actions; base path is set automatically)
   - `## Local App` (anchor `#local-app`): FastAPI + SQLite via Docker Compose is planned and not in this release
-  - Known limitations: header map validated only against these 2022 Mevo Gen 2 exports; the 3D replay and trajectory are illustrative; the Total dispersion mode is a hybrid plot (total distance vs landing offset), not the resting position
+  - Known limitations: header map validated only against these 2022 Mevo Gen 2 exports; the 3D views (ball flight and club) and the trajectory are illustrative; the Total dispersion mode is a hybrid plot (total distance vs landing offset), not the resting position
 
 - [ ] **Step 1: Write the failing tests** `e2e/responsive.spec.ts`, for viewports 390×844 (`hasTouch`), 820×1180 and 1440×900:
 
 ```ts
-test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Face impact, 3D reconstruction, 2D reconstruction)', ...)  // scrollWidth <= innerWidth
+test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Ball data plus Face impact, 3D reconstruction, 2D reconstruction)', ...)  // scrollWidth <= innerWidth
 test('390: every visible button, select, [role=tab], nav link and checkbox label is ≥ 44px tall', ...)
-test('390: .shots-cards visible, .shots-table hidden; first two KPI tiles share a row; on the 2D tab exactly one of .delivery-top/.delivery-side visible; the 3D replay svg and the Ball data sphere fit the viewport width', ...)
+test('390: .shots-cards visible, .shots-table hidden; first two KPI tiles share a row; on the 2D tab exactly one of .delivery-top/.delivery-side/.delivery-spin visible; the ball-flight viewer, club 3D svg and Ball data sphere fit the viewport width', ...)
 test('390 touch: tapping a shot card selects it; tapping Next shot advances the position text', ...)
-test("820: inspector tabs visible; dispersion 'Target' label visible; replay camera and Show controls wrap without overflow", ...)
+test("820: inspector tabs visible; dispersion 'Target' label visible; ball-flight camera control and both Show fieldsets wrap without overflow", ...)
 test('1440: .shots-table visible and not clipped (scrollWidth <= clientWidth of its container); dispersion and trajectory panels share a row', ...)
 test('1440 keyboard: Tab to a table row + Enter selects it; ArrowRight on the tablist activates the next tab', ...)
 // each test saves page.screenshot to test-results/screens/<route>-<width>.png

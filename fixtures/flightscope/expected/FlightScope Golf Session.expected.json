@@ -1,0 +1,41 @@
+{
+  "file": "FlightScope Golf Session.csv",
+  "sha256": "a879724ea351be55d638bd78a731f297929adba7113a0460caed46830203b797",
+  "parserVersion": "1.0.0",
+  "columnCount": 32,
+  "shotCount": 91,
+  "summaryRowCount": 14,
+  "summaryRows": [
+    { "club": "Driver", "kind": "Avg", "sourceRow": 20 },
+    { "club": "Driver", "kind": "Dev", "sourceRow": 21 },
+    { "club": "6 Iron", "kind": "Avg", "sourceRow": 29 },
+    { "club": "6 Iron", "kind": "Dev", "sourceRow": 30 },
+    { "club": "7 Iron", "kind": "Avg", "sourceRow": 53 },
+    { "club": "7 Iron", "kind": "Dev", "sourceRow": 54 },
+    { "club": "8 Iron", "kind": "Avg", "sourceRow": 64 },
+    { "club": "8 Iron", "kind": "Dev", "sourceRow": 65 },
+    { "club": "9 Iron", "kind": "Avg", "sourceRow": 73 },
+    { "club": "9 Iron", "kind": "Dev", "sourceRow": 74 },
+    { "club": "Pitching Wedge", "kind": "Avg", "sourceRow": 87 },
+    { "club": "Pitching Wedge", "kind": "Dev", "sourceRow": 88 },
+    { "club": "Gap Wedge", "kind": "Avg", "sourceRow": 105 },
+    { "club": "Gap Wedge", "kind": "Dev", "sourceRow": 106 }
+  ],
+  "clubs": { "Driver": 18, "6 Iron": 7, "7 Iron": 22, "8 Iron": 9, "9 Iron": 7, "Pitching Wedge": 12, "Gap Wedge": 16 },
+  "nonNullCounts": { "clubPath": 89, "impactLateral": 79 },
+  "missingColumns": [],
+  "unrecognizedColumns": [],
+  "flags": { "no_measurements": [78], "check_face_to_path": [], "check_smash": [] },
+  "shots": [
+    {
+      "sourceRow": 78, "shotLabel": "4", "club": "Pitching Wedge", "shotType": null, "mode": null, "location": "View",
+      "m": {
+        "ballSpeed": null, "clubSpeed": null, "smash": null, "carry": null, "total": null, "roll": null,
+        "swingH": null, "spin": null, "height": null, "flightTime": null, "aoa": null, "spinLoft": null,
+        "swingV": null, "spinAxis": null, "lateral": null, "ftp": null, "ftt": null, "dynamicLoft": null,
+        "clubPath": null, "launchH": null, "launchV": null, "lowPoint": null, "descentV": null, "curve": null,
+        "impactLateral": null, "impactVertical": null, "altitude": 55.8
+      }
+    }
+  ]
+}
