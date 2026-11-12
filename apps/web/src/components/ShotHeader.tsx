@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
-import { formatMeasurement, handednessLabel, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
+import { formatMeasurement, handednessLabel, MISSING_MARK, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
 
 const HANDEDNESS: Handedness[] = ['right', 'left'];
 
@@ -40,7 +40,7 @@ export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHa
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>
         <select className="fsa-select fsa-touch" aria-label="Choose shot" value={shot.id} onChange={(e) => onSelect(e.target.value)}>
           {shots.map((s) => (
-            <option key={s.id} value={s.id}>{`${s.club} · shot ${s.shotLabel ?? s.sourceRow} · ${formatMeasurement('carry', s.m.carry)}`}</option>
+            <option key={s.id} value={s.id}>{`${s.club} · shot ${s.shotLabel ?? s.sourceRow} · ${s.m.carry === null ? MISSING_MARK : formatMeasurement('carry', s.m.carry)}`}</option>
           ))}
         </select>
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>

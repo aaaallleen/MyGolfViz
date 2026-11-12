@@ -30,7 +30,7 @@ test('top view (3.1, 1.4, −1.7, 1.9): all four roles drawn; labels; club-path 
 test('top view with clubPath null: no club-path element, "Club path · Not measured", no "0.0°"', () => {
   const { container } = render(<HorizontalDeliveryDiagram {...top({ clubPath: null })} />);
   expect(role(container, 'club-path')).toBeNull();
-  expect(container.textContent).toContain('Club path · Not measured');
+  expect(container.textContent).toContain('Club path · –Not measured');
   expect(container.textContent).not.toContain('0.0°');
 });
 
@@ -54,7 +54,7 @@ test('side view (2.6, 14.9, 12.8, 12.3): labels and spin loft as reported', () =
 
 test('side view spinLoft null: "Spin loft · Not measured" and no 12.3 or 12.4', () => {
   const { container } = render(<VerticalDeliveryDiagram {...side({ spinLoft: null })} />);
-  expect(container.textContent).toContain('Spin loft · Not measured');
+  expect(container.textContent).toContain('Spin loft · –Not measured');
   expect(container.textContent).not.toContain('12.3');
   expect(container.textContent).not.toContain('12.4');
 });
@@ -172,11 +172,11 @@ test('axis null: no axis or ring, not measured, no derived rows; both null → m
   expect(role(container, 'spin-ring')).toBeNull();
   expect(role(container, 'spin-arrow')).toBeNull();
   const t = container.textContent!;
-  expect(t).toContain('Spin axis · Not measured');
+  expect(t).toContain('Spin axis · –Not measured');
   expect(t).not.toContain('Backspin');
   expect(t).not.toContain('Sidespin');
   const s = render(<SpinBallDiagram spin={null} spinAxis={10} />);
-  expect(s.container.textContent).toContain('Total spin · Not measured');
+  expect(s.container.textContent).toContain('Total spin · –Not measured');
   expect(within(s.container).getByRole('button', { name: 'Play rotation' })).toBeDisabled();
   const both = render(<SpinBallDiagram spin={null} spinAxis={null} />);
   expect(both.container.textContent).toContain('Ball spin not measured for this shot');
@@ -272,6 +272,6 @@ test('SpinAxisDiagram: tilt sign matches the ball convention', () => {
 
 test('SpinAxisDiagram(null): not measured and no axis line', () => {
   const { container } = render(<SpinAxisDiagram spinAxis={null} />);
-  expect(container.textContent).toContain('Spin axis · Not measured');
+  expect(container.textContent).toContain('Spin axis · –Not measured');
   expect(role(container, 'spin-axis')).toBeNull();
 });

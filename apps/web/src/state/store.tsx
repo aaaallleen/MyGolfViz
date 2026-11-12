@@ -23,7 +23,8 @@ export interface WorkingSetApi extends StoreState {
   setDetails(patch: Partial<SessionDetails>): void;
   setClub(club: string | null): void;
   setFile(fileId: string | null): void;
-  select(id: string): void;
+  /** Select a shot, or pass null to select none. */
+  select(id: string | null): void;
   step(delta: 1 | -1): void;
   setLandingMode(m: LandingMode): void;
   setInspectorTab(t: InspectorTab): void;
@@ -86,11 +87,14 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
     };
   }, []);
 
+  // Same array until the shots or filters change, so tables and charts keyed on it don't redo work on every selection.
+  const { workingSet, filters } = state;
+  const visibleShots = useMemo(() => visibleOf({ workingSet, filters }), [workingSet, filters]);
   const value = useMemo<WorkingSetApi>(
     () => ({
       ...state,
       busy: pending > 0,
-      visibleShots: visibleOf(state),
+      visibleShots,
       addFiles,
       setInclude: (key, include) => dispatch({ type: 'setInclude', key, include }),
       removeStaged: (key) => dispatch({ type: 'removeStaged', key }),
@@ -104,7 +108,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setLandingMode: (mode) => dispatch({ type: 'setLandingMode', mode }),
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
     }),
-    [state, pending, addFiles, clear],
+    [state, visibleShots, pending, addFiles, clear],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

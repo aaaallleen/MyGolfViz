@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { buildReplayScene } from '@fsa/analytics';
 import { Button, EmptyState, ProvenanceLegend, TabList, TabPanel, Tabs } from '@fsa/ui';
 import { AllMeasurements } from '../components/AllMeasurements';
@@ -30,13 +30,19 @@ export function InspectorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [workingSet, idKey, handedness],
   );
+  // The inspector always shows a shot: with none selected it opens the first visible one and selects it.
+  const selected = visibleShots.find((s) => s.id === selectedId);
+  const shot = selected ?? visibleShots[0];
   const others = useMemo(
-    () => visibleShots.filter((s) => s.id !== selectedId).map((s) => scenes.get(s.id)!),
+    () => visibleShots.filter((s) => s.id !== shot?.id).map((s) => scenes.get(s.id)!),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scenes, selectedId],
+    [scenes, shot?.id],
   );
 
-  const shot = visibleShots.find((s) => s.id === selectedId);
+  const { select } = ws;
+  useEffect(() => {
+    if (!selected && shot) select(shot.id);
+  }, [selected, shot, select]);
   if (!workingSet) return null;
   if (!shot) {
     return (

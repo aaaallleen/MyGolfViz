@@ -1,4 +1,5 @@
 import { formatMeasurement } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
 import { BALL, BALL_EDGE, BORDER, DISPLAY_FONT, INK, MUTED, SOFT, SURFACE } from './theme';
 
 export interface SpinAxisDiagramProps {
@@ -29,7 +30,7 @@ export function SpinAxisDiagram({ spinAxis }: SpinAxisDiagramProps) {
         )}
       </svg>
       {text === null ? (
-        <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>Spin axis · Not measured</p>
+        <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>Spin axis · <Missing /></p>
       ) : (
         <p style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontSize: 12, color: SOFT }}>Spin axis</span>
