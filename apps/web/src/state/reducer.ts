@@ -72,8 +72,12 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return action.state;
     case 'setDetails':
       return { ...state, details: { ...state.details, ...action.patch } };
-    case 'setClub':
-      return withFilters(state, { ...state.filters, club: action.club });
+    case 'setClub': {
+      // Picking a club starts at its first shot; going back to All keeps the current shot.
+      if (action.club === null) return withFilters(state, { ...state.filters, club: null });
+      const next = { ...state, filters: { ...state.filters, club: action.club } };
+      return { ...next, selectedId: visibleOf(next)[0]?.id ?? null };
+    }
     case 'setFile':
       return withFilters(state, { ...state.filters, fileId: action.fileId });
     case 'select':

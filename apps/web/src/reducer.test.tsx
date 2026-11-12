@@ -45,6 +45,20 @@ describe('reducer', () => {
     expect(reducer(s, { type: 'clear' })).toEqual(initialState);
   });
 
+  test('setClub lands on the first shot of that club even when the selected shot is already in it; All keeps the shot', async () => {
+    let s = reducer(initialState, await stage());
+    s = reducer(s, { type: 'analyze' });
+    const club = s.workingSet!.shots[0]!.club;
+    const ofClub = () => displayOrder(filterShots(s.workingSet!, s.filters));
+    s = reducer(s, { type: 'setClub', club });
+    const third = ofClub()[2]!;
+    s = reducer(s, { type: 'select', id: third.id });
+    s = reducer(s, { type: 'setClub', club: null });
+    expect(s.selectedId).toBe(third.id);
+    s = reducer(s, { type: 'setClub', club });
+    expect(s.selectedId).toBe(ofClub()[0]!.id);
+  });
+
   test('setDetails survives analyze and filter changes; clear resets details', async () => {
     let s = reducer(initialState, { type: 'setDetails', patch: { name: 'Range day', date: '2026-11-07' } });
     s = reducer(s, await stage());

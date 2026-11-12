@@ -1,4 +1,4 @@
-import type { Shot } from '@fsa/domain';
+import { compareClubs, type Shot } from '@fsa/domain';
 
 export type LandingMode = 'carry' | 'total';
 export interface DispersionPoint { shotId: string; x: number; y: number }
@@ -58,4 +58,16 @@ export function dispersionStats(shots: readonly Shot[], mode: LandingMode): Disp
     if (d2 <= 1) observedInside++;
   }
   return { ...stats, ellipse: { cx, cy, rx: Math.sqrt(l1), ry: Math.sqrt(l2), angleDeg }, observedInside };
+}
+
+export interface ClubDispersion { club: string; stats: DispersionStats }
+
+/** Dispersion per club, clubs in bag order (Driver first). Each club gets its own centroid, SDs and ellipse. */
+export function dispersionByClub(shots: readonly Shot[], mode: LandingMode): ClubDispersion[] {
+  const byClub = new Map<string, Shot[]>();
+  for (const s of shots) {
+    const g = byClub.get(s.club);
+    if (g) g.push(s); else byClub.set(s.club, [s]);
+  }
+  return [...byClub.keys()].sort(compareClubs).map((club) => ({ club, stats: dispersionStats(byClub.get(club)!, mode) }));
 }
