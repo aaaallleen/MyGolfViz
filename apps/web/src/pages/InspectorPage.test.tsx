@@ -35,11 +35,11 @@ describe('InspectorPage', () => {
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Face impact', '3D reconstruction', '2D reconstruction']);
     expect(tab('2D reconstruction')).toHaveAttribute('aria-selected', 'true');
-    for (const [name, id] of [['2D reconstruction', '2d'], ['Face impact', 'impact'], ['3D reconstruction', '3d']] as const) {
+    for (const name of ['2D reconstruction', 'Face impact', '3D reconstruction']) {
       await user.click(tab(name));
       const p = screen.getByRole('tabpanel');
-      expect(p).toHaveAttribute('id', `panel-${id}`);
-      expect(p).toHaveAttribute('aria-labelledby', `tab-${id}`);
+      expect(p).toHaveAttribute('aria-labelledby', tab(name).id);
+      expect(tab(name)).toHaveAttribute('aria-controls', p.id);
       expect(screen.getByRole('tabpanel', { name })).toBe(p);
     }
   });
@@ -193,7 +193,7 @@ describe('InspectorPage', () => {
     for (const c of ['File 1 · FlightScope Golf Session Sept 19 2022.csv', 'CSV row 16', 'Outdoor']) {
       expect(meta.getByText(c)).toBeInTheDocument();
     }
-    expect(meta.getByRole('button', { name: 'Right-handed' })).toBeInTheDocument();
+    expect(meta.getByRole('combobox', { name: 'Handedness' })).toHaveDisplayValue('Right-handed');
     const tiles = screen.getByRole('region', { name: 'Headline metrics' });
     expect(tiles).toHaveTextContent('0.23 in toe · 0.84 in high');
     for (const l of ['Carry', 'Spin', 'Club path', 'Face to path', 'Attack angle', 'Impact']) expect(within(tiles).getByText(l)).toBeInTheDocument();
@@ -217,10 +217,11 @@ describe('InspectorPage', () => {
     await user.click(tab('Face impact'));
     const x = (role: string) => Number(document.querySelector(`[data-role="${role}-label"]`)!.getAttribute('x'));
     expect(x('toe')).toBeLessThan(x('heel'));
-    await user.click(screen.getByRole('button', { name: 'Right-handed' }));
-    await user.click(screen.getByRole('button', { name: 'Left-handed' }));
+    const chip = screen.getByRole('combobox', { name: 'Handedness' });
+    expect(chip).toHaveDisplayValue('Right-handed');
+    await user.selectOptions(chip, 'Left-handed');
     expect(v.store().details.handedness).toBe('left');
-    expect(screen.getByRole('button', { name: 'Left-handed' })).toBeInTheDocument();
+    expect(chip).toHaveDisplayValue('Left-handed');
     expect(x('toe')).toBeGreaterThan(x('heel'));
   });
 

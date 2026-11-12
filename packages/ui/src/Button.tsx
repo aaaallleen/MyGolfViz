@@ -1,3 +1,4 @@
+import { clsx } from 'clsx';
 import type { ButtonHTMLAttributes } from 'react';
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -5,6 +6,5 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ variant = 'secondary', className, type = 'button', ...rest }: ButtonProps) {
-  const cls = ['fsa-btn', 'fsa-touch', `fsa-btn--${variant}`, className].filter(Boolean).join(' ');
-  return <button type={type} className={cls} {...rest} />;
+  return <button type={type} className={clsx('fsa-btn', 'fsa-touch', `fsa-btn--${variant}`, className)} {...rest} />;
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { buildReplayScene } from '@fsa/analytics';
-import { Button, EmptyState, ProvenanceLegend, Tabs } from '@fsa/ui';
+import { Button, EmptyState, ProvenanceLegend, TabList, TabPanel, Tabs } from '@fsa/ui';
 import { AllMeasurements } from '../components/AllMeasurements';
 import { BallDataPanel } from '../components/BallDataPanel';
 import { Club2DTab } from '../components/Club2DTab';
@@ -55,18 +55,16 @@ export function InspectorPage() {
         onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })} />
       <HeadTiles shot={shot} />
       <BallDataPanel shot={shot} scene={scene} others={others} />
-      <section className="club-data" aria-labelledby="club-data-label">
+      <Tabs<InspectorTab> value={inspectorTab} onChange={ws.setInspectorTab}
+        render={<section />} className="club-data" aria-labelledby="club-data-label">
         <div className="club-data__bar">
           <div className="section-label section-label--club" id="club-data-label"><span className="section-label__dot" />Club data</div>
-          <Tabs label="Club data view" active={inspectorTab} onChange={(id) => ws.setInspectorTab(id as InspectorTab)}
-            tabs={TABS.map((t) => ({ id: t.id, label: phone ? t.short : t.label }))} />
+          <TabList label="Club data view" tabs={TABS.map((t) => ({ id: t.id, label: phone ? t.short : t.label }))} />
         </div>
-        <div role="tabpanel" id={`panel-${inspectorTab}`} aria-labelledby={`tab-${inspectorTab}`}>
-          {inspectorTab === 'impact' && <ImpactTab shot={shot} visibleShots={visibleShots} handedness={handedness} />}
-          {inspectorTab === '3d' && <Club3DTab shot={shot} scene={scene} />}
-          {inspectorTab === '2d' && <Club2DTab shot={shot} visibleShots={visibleShots} />}
-        </div>
-      </section>
+        <TabPanel value="impact"><ImpactTab shot={shot} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
+        <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} /></TabPanel>
+        <TabPanel value="2d"><Club2DTab shot={shot} visibleShots={visibleShots} /></TabPanel>
+      </Tabs>
       <ProvenanceLegend />
       <AllMeasurements shot={shot} />
     </div>

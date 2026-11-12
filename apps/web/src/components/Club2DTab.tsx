@@ -1,3 +1,4 @@
+import { clsx } from 'clsx';
 import { useState } from 'react';
 import { summarize } from '@fsa/analytics';
 import { FIELD_DEFS, formatMeasurement, NOT_MEASURED, type MeasurementKey, type Shot } from '@fsa/domain';
@@ -33,7 +34,7 @@ export function Club2DTab({ shot, visibleShots }: { shot: Shot; visibleShots: re
     ...(show.spin ? [{ value: 'spin' as const, label: 'Spin axis' }] : []),
   ];
   const activePane = panes.some((p) => p.value === pane) ? pane : 'top';
-  const cls = (p: Pane, base: string) => `panel ${base}${p === activePane ? '' : ' is-hidden-phone'}`;
+  const cls = (p: Pane, base: string) => clsx('panel', base, p !== activePane && 'is-hidden-phone');
 
   const sameClub = visibleShots.filter((s) => s.club === shot.club);
   const withClubData = sameClub.filter((s) => CLUB_KEYS.some((k) => s.m[k] !== null));

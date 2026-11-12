@@ -1,3 +1,4 @@
+import { clsx } from 'clsx';
 import { NavLink } from 'react-router';
 import { PUBLIC_NAV } from '../mode';
 
@@ -10,7 +11,7 @@ export function Nav() {
           to={item.to}
           end
           className={({ isActive }) =>
-            ['app-nav__link', 'fsa-touch', item.to === '/' ? 'app-nav__link--primary fsa-btn fsa-btn--primary' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ')
+            clsx('app-nav__link', 'fsa-touch', item.to === '/' && 'app-nav__link--primary fsa-btn fsa-btn--primary', isActive && 'is-active')
           }
         >
           {item.label}

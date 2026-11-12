@@ -1,3 +1,6 @@
+import { Toggle } from '@base-ui/react/toggle';
+import { ToggleGroup } from '@base-ui/react/toggle-group';
+
 export type SegmentedControlProps<T extends string> = {
   label: string;
   options: { value: T; label: string; disabled?: boolean }[];
@@ -5,21 +8,24 @@ export type SegmentedControlProps<T extends string> = {
   onChange(v: T): void;
 };
 
+/** One-of-N buttons in a single tab stop; arrow keys move between options. */
 export function SegmentedControl<T extends string>({ label, options, value, onChange }: SegmentedControlProps<T>) {
   return (
-    <div role="group" aria-label={label} className="fsa-seg">
+    <ToggleGroup
+      aria-label={label}
+      className="fsa-seg"
+      value={[value]}
+      onValueChange={(next) => {
+        // Pressing the option that is already on would leave nothing selected; a segmented control always has one.
+        const v = next[0] as T | undefined;
+        if (v !== undefined && v !== value) onChange(v);
+      }}
+    >
       {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          className="fsa-seg__opt fsa-touch"
-          aria-pressed={o.value === value}
-          disabled={o.disabled}
-          onClick={() => onChange(o.value)}
-        >
+        <Toggle key={o.value} value={o.value} disabled={o.disabled} className="fsa-seg__opt fsa-touch">
           {o.label}
-        </button>
+        </Toggle>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

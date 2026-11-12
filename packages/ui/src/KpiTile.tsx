@@ -1,20 +1,30 @@
-import { NOT_MEASURED } from '@fsa/domain';
+import NumberFlow from '@number-flow/react';
+import { clsx } from 'clsx';
+import { NOT_MEASURED, NUMBER_LOCALE, numberFormat } from '@fsa/domain';
 
 export type KpiTileProps = {
   label: string;
-  value: string | null;
+  /** A number rolls to its new digits when it changes; a string is shown as is; null shows "Not measured". */
+  value: number | string | null;
+  /** Fraction digits for a numeric value. */
+  decimals?: number;
   unit?: string;
   sub?: string;
   accent: 'ball' | 'club' | 'neutral';
 };
 
-export function KpiTile({ label, value, unit, sub, accent }: KpiTileProps) {
+export function KpiTile({ label, value, decimals = 0, unit, sub, accent }: KpiTileProps) {
   const missing = value === null;
   return (
-    <div className={`fsa-kpi fsa-kpi--${accent}`}>
+    <div className={clsx('fsa-kpi', `fsa-kpi--${accent}`)}>
       <div className="fsa-kpi__label">{label}</div>
-      <div className={missing ? 'fsa-kpi__value fsa-kpi__value--missing' : 'fsa-kpi__value'}>
-        {missing ? NOT_MEASURED : value}
+      <div className={clsx('fsa-kpi__value', missing && 'fsa-kpi__value--missing')}>
+        {missing ? NOT_MEASURED : typeof value === 'number' ? (
+          // NumberFlow honours prefers-reduced-motion by default and labels itself with the formatted value.
+          <NumberFlow value={value} locales={NUMBER_LOCALE} format={numberFormat(decimals)} />
+        ) : (
+          value
+        )}
         {!missing && unit ? <span className="fsa-kpi__unit">{unit}</span> : null}
       </div>
       {sub ? <div className="fsa-kpi__sub">{sub}</div> : null}

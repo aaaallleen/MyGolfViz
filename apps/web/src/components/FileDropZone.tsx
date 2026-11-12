@@ -1,13 +1,18 @@
+import { clsx } from 'clsx';
 import { useState, type ReactNode } from 'react';
 
 export const isCsv = (f: File) => /\.csv$/i.test(f.name) || f.type === 'text/csv';
 
-export function FileDropZone({ onFiles, children }: { onFiles(files: File[]): void; children?: ReactNode }) {
+export function FileDropZone({ onFiles, onReject, children }: {
+  onFiles(files: File[]): void;
+  /** Called with the dropped files that are not .csv; they are never passed to onFiles. */
+  onReject(files: File[]): void;
+  children?: ReactNode;
+}) {
   const [over, setOver] = useState(false);
-  const [rejected, setRejected] = useState(false);
   return (
     <div
-      className={`dropzone${over ? ' is-over' : ''}`}
+      className={clsx('dropzone', over && 'is-over')}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
@@ -15,12 +20,12 @@ export function FileDropZone({ onFiles, children }: { onFiles(files: File[]): vo
         setOver(false);
         const all = Array.from(e.dataTransfer?.files ?? []);
         const csv = all.filter(isCsv);
-        setRejected(all.length > 0 && csv.length < all.length);
+        const other = all.filter((f) => !isCsv(f));
+        if (other.length > 0) onReject(other);
         if (csv.length > 0) onFiles(csv);
       }}
     >
       <span>or drop one or more .csv files here</span>
-      {rejected && <span role="status" className="dropzone__note">Only .csv files can be loaded</span>}
       {children}
     </div>
   );

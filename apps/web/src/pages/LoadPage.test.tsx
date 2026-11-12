@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 import { join } from 'node:path';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeAll, describe, expect, test } from 'vitest';
@@ -137,5 +137,43 @@ describe('LoadPage', () => {
     await user.click(screen.getByRole('button', { name: 'Clear analysis' }));
     await waitFor(() => expect(screen.getByLabelText('Session name')).toHaveValue(''));
     expect(screen.getByRole('button', { name: 'Right-handed' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('Undo on the cleared toast brings back the files and details', async () => {
+    const { user, input } = setup();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    await user.type(screen.getByLabelText('Session name'), 'Range day');
+    await user.click(screen.getByRole('button', { name: 'Clear analysis' }));
+    expect(screen.getByText('0 files · 0 shots ready')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    expect(await screen.findByText('1 file · 16 shots ready')).toBeInTheDocument();
+    expect(screen.getByLabelText('Session name')).toHaveValue('Range day');
+  });
+
+  test('Clear analysis with nothing loaded shows no toast', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Clear analysis' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('Analysis cleared')).toBeNull();
+  });
+
+  test('a file that cannot be read is named in an error toast; readable files still load', async () => {
+    const { user, input } = setup();
+    const broken = fixture(F2, 'broken.csv');
+    Object.defineProperty(broken, 'arrayBuffer', { value: () => Promise.reject(new Error('NotReadableError')) });
+    await user.upload(input(), [broken, fixture(F1)]);
+    expect(await screen.findByText("Couldn't read 1 file")).toBeInTheDocument();
+    expect(screen.getByText('broken.csv')).toBeInTheDocument();
+    expect(screen.getByText('1 file · 16 shots ready')).toBeInTheDocument();
+  });
+
+  test('dropping a mix loads the .csv files and names the skipped ones in a toast', async () => {
+    setup();
+    const zone = screen.getByText('or drop one or more .csv files here').parentElement!;
+    fireEvent.drop(zone, { dataTransfer: { files: [fixture(F1), new File(['x'], 'notes.pdf', { type: 'application/pdf' })] } });
+    expect(await screen.findByText('Only .csv files can be loaded')).toBeInTheDocument();
+    expect(screen.getByText('Skipped notes.pdf')).toBeInTheDocument();
+    expect(await screen.findByText('1 file · 16 shots ready')).toBeInTheDocument();
   });
 });

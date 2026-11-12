@@ -21,6 +21,7 @@ export type Action =
   | { type: 'removeStaged'; key: string }
   | { type: 'analyze' }
   | { type: 'clear' }
+  | { type: 'restore'; state: StoreState }
   | { type: 'setDetails'; patch: Partial<SessionDetails> }
   | { type: 'setClub'; club: string | null }
   | { type: 'setFile'; fileId: string | null }
@@ -67,6 +68,8 @@ export function reducer(state: StoreState, action: Action): StoreState {
     }
     case 'clear':
       return initialState;
+    case 'restore':
+      return action.state;
     case 'setDetails':
       return { ...state, details: { ...state.details, ...action.patch } };
     case 'setClub':

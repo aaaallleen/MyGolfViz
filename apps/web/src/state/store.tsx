@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import type { LandingMode } from '@fsa/analytics';
@@ -10,11 +10,16 @@ export { initialState, reducer, type InspectorTab, type StoreState } from './red
 
 export interface WorkingSetApi extends StoreState {
   visibleShots: Shot[];
-  addFiles(files: readonly File[]): Promise<void>;
+  /** Reads and stages each file independently; resolves with the names of files that could not be read. */
+  addFiles(files: readonly File[]): Promise<{ failed: string[] }>;
   setInclude(key: string, include: boolean): void;
   removeStaged(key: string): void;
   analyze(): void;
-  clear(): void;
+  /**
+   * Empties the working set. Returns an undo that puts back what was cleared, or null when there was
+   * nothing to clear. The undo does nothing once anything has changed since, so it never overwrites newer work.
+   */
+  clear(): (() => void) | null;
   setDetails(patch: Partial<SessionDetails>): void;
   setClub(club: string | null): void;
   setFile(fileId: string | null): void;
@@ -39,6 +44,10 @@ async function readIncoming(file: File): Promise<IncomingFile> {
 export function WorkingSetProvider({ children, initial }: { children: ReactNode; initial?: StoreState }) {
   const [state, dispatch] = useReducer(reducer, initial ?? initialState);
   const counter = useRef(0);
+  const latest = useRef(state);
+  useLayoutEffect(() => {
+    latest.current = state;
+  });
 
   // Bumped by clear(): in-flight addFiles calls from an older generation drop their results.
   const generation = useRef(0);
@@ -47,19 +56,34 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
   const addFiles = useCallback(async (files: readonly File[]) => {
     const gen = generation.current;
     setPending((n) => n + 1);
+    const incoming: IncomingFile[] = [];
+    const failed: string[] = [];
     try {
-      const incoming: IncomingFile[] = [];
-      for (const f of files) incoming.push(await readIncoming(f));
-      if (gen === generation.current) dispatch({ type: 'stage', incoming, makeKey: () => `f${++counter.current}` });
+      for (const f of files) {
+        try {
+          incoming.push(await readIncoming(f));
+        } catch {
+          failed.push(f.name);
+        }
+      }
+      if (gen === generation.current && incoming.length > 0) dispatch({ type: 'stage', incoming, makeKey: () => `f${++counter.current}` });
     } finally {
       if (gen === generation.current) setPending((n) => n - 1);
     }
+    // A clear() while reading discards the whole batch, failures included.
+    return { failed: gen === generation.current ? failed : [] };
   }, []);
 
   const clear = useCallback(() => {
+    const before = latest.current;
     generation.current += 1;
     setPending(0);
     dispatch({ type: 'clear' });
+    if (before === initialState) return null;
+    // 'clear' yields the initialState object itself, and every later action yields a new object.
+    return () => {
+      if (latest.current === initialState) dispatch({ type: 'restore', state: before });
+    };
   }, []);
 
   const value = useMemo<WorkingSetApi>(

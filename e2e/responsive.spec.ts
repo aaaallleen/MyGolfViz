@@ -20,10 +20,13 @@ async function goInspector(page: Page): Promise<void> {
 type TabId = 'impact' | '3d' | '2d';
 const TAB_IDS: TabId[] = ['impact', '3d', '2d'];
 
-/** Tabs are addressed by id: the phone shows short labels (Impact, 3D, 2D). */
+/** Tabs are addressed by data-tab-id: the phone shows short labels (Impact, 3D, 2D). */
 async function openTab(page: Page, id: TabId): Promise<void> {
-  await page.locator(`#tab-${id}`).click();
-  await expect(page.locator(`#tab-${id}`)).toHaveAttribute('aria-selected', 'true');
+  const tab = page.locator(`[role="tab"][data-tab-id="${id}"]`);
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  // The outgoing panel stays mounted (hidden) until its exit transition completes; wait for it to go.
+  await expect(page.locator('[role="tabpanel"]')).toHaveCount(1);
 }
 
 async function fitsViewport(loc: Locator, what: string): Promise<void> {
