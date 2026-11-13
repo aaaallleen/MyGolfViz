@@ -13,6 +13,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "dev": "npm run dev -w @fsa/web",
+    "dev:local": "npm run dev:local -w @fsa/web",
     "build:public": "npm run build:public -w @fsa/web",
     "build:local": "npm run build:local -w @fsa/web",
     "local": "npm run build:local && uv run --project apps/api mygolfviz-api --static-dir apps/web/dist-local",
@@ -23,7 +24,9 @@
     "e2e": "playwright test",
     "ci:public": "npm run typecheck && npm test && npm run build:public && npm run verify:public && npm run e2e",
     "api:types": "uv run --project apps/api python -m mygolfviz_api.openapi_dump > apps/web/src/local/openapi.json && npx openapi-typescript apps/web/src/local/openapi.json -o apps/web/src/local/api-types.ts",
-    "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local"
+    "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local",
+    "e2e:local": "playwright test -c playwright.local.config.ts",
+    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

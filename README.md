@@ -47,7 +47,63 @@ is set automatically from the repository name.
 
 ## Local App
 
-A local version (FastAPI + SQLite via Docker Compose) is planned and is not in this release.
+The Local App keeps your sessions. A small backend on your own computer (FastAPI + SQLite) saves
+every import, the original CSV files, your session details, exclusions and file order, and
+serves the same viewer with a session library on top. It only listens on `127.0.0.1` and only
+answers the private link it prints when it starts.
+
+### Prerequisites
+
+```sh
+brew install uv  # Python tooling; uv installs the Python version the backend needs
+nvm use          # Node 24, from .nvmrc
+npm ci
+```
+
+### Run
+
+```sh
+npm run local
+```
+
+This builds the local viewer and starts the backend. It prints one line such as
+`{"port": 8765, "url": "http://127.0.0.1:8765/?token=…"}`: open that URL. The token changes on
+every start, so use the newly printed link each time. Stop the app with Ctrl+C.
+
+### Where data lives
+
+Everything is in one data folder:
+
+- macOS: `~/Library/Application Support/MyGolfViz`
+- Linux: `~/.local/share/MyGolfViz`
+- Windows: `%APPDATA%\MyGolfViz`
+
+It holds the database (`mygolfviz.sqlite3`), the original CSV files (`originals/`), a copy of the
+database taken before each schema upgrade (`backups/`) and the logs (`logs/`). Back up or move
+that folder to keep your sessions. To use another folder, set `MYGOLFVIZ_DATA_DIR` or pass
+`--data-dir`. Only one backend can use a data folder at a time.
+
+### Develop
+
+Run the backend and the Vite dev server in two terminals, with the same fixed token:
+
+```sh
+MYGOLFVIZ_TOKEN=dev uv run --project apps/api mygolfviz-api   # backend on 127.0.0.1:8765
+MYGOLFVIZ_TOKEN=dev npm run dev:local                         # viewer with hot reload; /api goes to the backend
+```
+
+Open the URL Vite prints. The dev server adds the token to every `/api` request, so no sign-in
+link is needed. After changing the API, run `npm run api:types` to regenerate the client types.
+
+### Tests
+
+```sh
+npm run ci:local
+```
+
+This runs the backend tests (pytest), the local build and its verification, and the local
+end-to-end tests (`npm run e2e:local`), which start the real backend on port 8799 with a fresh,
+empty data folder. CI runs it as a separate job next to `ci:public`.
 
 ## Known limitations
 
