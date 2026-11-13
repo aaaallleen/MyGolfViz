@@ -1,10 +1,11 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { WorkingSetProvider, useWorkingSet } from '../state/store';
 import type { ImportRow, SessionRow, ShotOut } from './api';
+import { OpenSessionContext, type OpenSession } from './OpenSession';
 import { sessionToWorkingSet } from './sessionToWorkingSet';
 
 vi.mock('./api', () => ({
@@ -36,12 +37,18 @@ beforeEach(() => {
 
 function Screen() {
   const ws = useWorkingSet();
+  const [open, setOpen] = useState<OpenSession | null>(null);
   useEffect(() => {
+    setOpen({ session, imports: server.imports });
     ws.loadSession({ sessionId: 's1', ...sessionToWorkingSet(session, server.imports, server.shots), keepView: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!ws.workingSet) return null;
-  return ws.workingSet.shots.length === 0 ? <EmptySession /> : <><p data-testid="count">{ws.workingSet.shots.length} shots in session</p><ImportsPanel /></>;
+  return (
+    <OpenSessionContext.Provider value={{ open, setOpen }}>
+      {ws.workingSet.shots.length === 0 ? <EmptySession /> : <><p data-testid="count">{ws.workingSet.shots.length} shots in session</p><ImportsPanel /></>}
+    </OpenSessionContext.Provider>
+  );
 }
 const renderIt = () => render(<MemoryRouter><WorkingSetProvider><Screen /></WorkingSetProvider></MemoryRouter>);
 
@@ -62,6 +69,24 @@ describe('ImportsPanel', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Move down a.csv' }));
     expect(api.reorderImports).toHaveBeenCalledWith('s1', ['i2', 'i1']);
     await waitFor(() => expect(api.getShots).toHaveBeenCalledTimes(1));
+    expect(api.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  test('controls stay disabled while a change is in flight and a second click sends nothing', async () => {
+    let release: () => void = () => {};
+    vi.mocked(api.reorderImports).mockImplementation(() => new Promise<never>((r) => { release = () => r(undefined as never); }));
+    renderIt();
+    const down = await screen.findByRole('button', { name: 'Move down a.csv' });
+    await userEvent.click(down);
+    await waitFor(() => expect(down).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'Remove file b.csv' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete session' })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'Rename b.csv' })).toBeDisabled();
+    await userEvent.click(down);
+    expect(api.reorderImports).toHaveBeenCalledTimes(1);
+    release();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove file b.csv' })).toBeEnabled());
+    expect(api.getSession).toHaveBeenCalledTimes(1);
   });
 
   test('renaming to blank sends null', async () => {

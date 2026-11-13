@@ -4,6 +4,7 @@ import { EmptyState } from '@fsa/ui';
 import { InspectorPage, OverviewPage } from '../routes';
 import { useWorkingSet } from '../state/store';
 import { ApiError, getSession, getShots } from './api';
+import { OpenSessionContext, type OpenSession } from './OpenSession';
 import { EmptySession } from './EmptySession';
 import { sessionToWorkingSet } from './sessionToWorkingSet';
 
@@ -11,6 +12,7 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
   const { id = '' } = useParams();
   const ws = useWorkingSet();
   const { sessionId, loadSession } = ws;
+  const [open, setOpen] = useState<OpenSession | null>(null);
   const [failure, setFailure] = useState<{ id: string; notFound: boolean } | null>(null);
 
   useEffect(() => {
@@ -20,6 +22,7 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
       ([{ session, imports }, shots]) => {
         if (cancelled) return;
         setFailure(null);
+        setOpen({ session, imports });
         loadSession({ sessionId: id, ...sessionToWorkingSet(session, imports, shots), keepView: false });
       },
       (e: unknown) => {
@@ -42,6 +45,10 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
     }
     return <p role="status">Loading session…</p>;
   }
-  if (!ws.workingSet || ws.workingSet.shots.length === 0) return <EmptySession />;
-  return page === 'overview' ? <OverviewPage /> : <InspectorPage />;
+  const empty = !ws.workingSet || ws.workingSet.shots.length === 0;
+  return (
+    <OpenSessionContext.Provider value={{ open, setOpen }}>
+      {empty ? <EmptySession /> : page === 'overview' ? <OverviewPage /> : <InspectorPage />}
+    </OpenSessionContext.Provider>
+  );
 }

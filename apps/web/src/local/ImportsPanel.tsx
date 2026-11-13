@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { toast } from 'sonner';
 import { Button } from '@fsa/ui';
 import { useWorkingSet } from '../state/store';
 import * as api from './api';
-import type { ImportRow, SessionRow } from './api';
+import type { ImportRow } from './api';
+import { useOpenSession } from './OpenSession';
 import { DeleteSessionDialog } from './DeleteSessionDialog';
 import { useReloadSession } from './useReloadSession';
 
@@ -15,34 +16,29 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /** The saved files behind the open session: reorder, rename, download, remove, add more, delete the session. */
 export function ImportsPanel() {
-  const { sessionId, workingSet } = useWorkingSet();
+  const { sessionId } = useWorkingSet();
   const reload = useReloadSession();
-  const [data, setData] = useState<{ session: SessionRow; imports: ImportRow[] } | null>(null);
+  const { open } = useOpenSession();
+  const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<ImportRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Rows come from the server; refetch whenever the store's working set is swapped so both stay in step.
-  useEffect(() => {
-    if (!sessionId) return;
-    let cancelled = false;
-    api.getSession(sessionId).then(
-      (d) => { if (!cancelled) setData({ session: d.session, imports: [...d.imports].sort((a, b) => a.ordinal - b.ordinal) }); },
-      (e: unknown) => { if (!cancelled) toast.error(failure(e)); },
-    );
-    return () => { cancelled = true; };
-  }, [sessionId, workingSet]);
-
   const run = async (action: () => Promise<unknown>) => {
+    if (busy) return;
+    setBusy(true);
     try {
       await action();
       await reload();
     } catch (e) {
       toast.error(failure(e));
+    } finally {
+      setBusy(false);
     }
   };
 
-  if (!sessionId || !data) return null;
-  const { session, imports } = data;
+  if (!sessionId || !open || open.session.id !== sessionId) return null;
+  const { session, imports: rows } = open;
+  const imports = [...rows].sort((a, b) => a.ordinal - b.ordinal);
   const move = (index: number, by: -1 | 1) => {
     const ids = imports.map((i) => i.id);
     const a = ids[index];
@@ -70,9 +66,10 @@ export function ImportsPanel() {
             <span>{new Date(i.importedAt).toLocaleDateString()}</span>
             <span>{plural(i.warnings.length, 'warning', 'warnings')}</span>
             <div className="imports-panel__controls">
-              <Button aria-label={`Move up ${nameOf(i)}`} disabled={index === 0} onClick={() => move(index, -1)}>Move up</Button>
-              <Button aria-label={`Move down ${nameOf(i)}`} disabled={index === imports.length - 1} onClick={() => move(index, 1)}>Move down</Button>
+              <Button aria-label={`Move up ${nameOf(i)}`} disabled={busy || index === 0} onClick={() => move(index, -1)}>Move up</Button>
+              <Button aria-label={`Move down ${nameOf(i)}`} disabled={busy || index === imports.length - 1} onClick={() => move(index, 1)}>Move down</Button>
               <input
+                disabled={busy}
                 key={nameOf(i)}
                 className="imports-panel__rename"
                 aria-label={`Rename ${nameOf(i)}`}
@@ -81,14 +78,14 @@ export function ImportsPanel() {
                 onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
               />
               <a className="fsa-btn fsa-touch" href={api.originalUrl(i.id)} download aria-label={`Download original ${nameOf(i)}`}>Download original</a>
-              <Button aria-label={`Remove file ${nameOf(i)}`} onClick={() => setRemoving(i)}>Remove file</Button>
+              <Button aria-label={`Remove file ${nameOf(i)}`} disabled={busy} onClick={() => setRemoving(i)}>Remove file</Button>
             </div>
           </li>
         ))}
       </ul>
       <div className="imports-panel__actions">
         <Link className="fsa-btn fsa-btn--primary fsa-touch" to={`/import?session=${session.id}`}>Load Session CSV</Link>
-        <Button onClick={() => setDeleting(true)}>Delete session</Button>
+        <Button disabled={busy} onClick={() => setDeleting(true)}>Delete session</Button>
       </div>
 
       <AlertDialog.Root open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }}>
