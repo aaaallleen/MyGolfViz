@@ -68,7 +68,8 @@ export async function importInto(
 ): Promise<void> {
   if (!/#\/import(\?|$)/.test(page.url())) await page.goto('/#/import');
   await expect(page.getByRole('heading', { level: 1, name: 'Load Session CSV' })).toBeVisible();
-  await page.getByLabel('Load Session CSV', { exact: true }).setInputFiles(files);
+  // The page's file input, not the header's + button, which has the same name.
+  await page.getByRole('main').getByLabel('Load Session CSV', { exact: true }).setInputFiles(files);
   await expect(page.getByText(new RegExp(`^${files.length} files? · \\d+ shots? ready$`))).toBeVisible();
 
   const name = 'newName' in dest ? dest.newName : dest.existing;

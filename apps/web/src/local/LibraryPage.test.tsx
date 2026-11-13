@@ -120,3 +120,15 @@ test('with no sessions it shows the empty state and a way to import', async () =
   await userEvent.click(screen.getByRole('link', { name: 'Load Session CSV' }));
   expect(screen.getByTestId('where')).toHaveTextContent('/import');
 });
+
+test('the List / Calendar toggle is the last thing in the header, outside the search and sort group', async () => {
+  const { container } = renderPage();
+  await screen.findByRole('heading', { name: 'Sessions' });
+  const head = container.querySelector('.library__head')!;
+  const view = screen.getByRole('group', { name: 'View' });
+  expect(head.lastElementChild!.contains(view)).toBe(true);
+  expect(container.querySelector('.library__controls')!.contains(view)).toBe(false);
+  await userEvent.click(within(view).getByRole('button', { name: 'Calendar' }));
+  expect(head.lastElementChild!.contains(screen.getByRole('group', { name: 'View' }))).toBe(true);
+});
+

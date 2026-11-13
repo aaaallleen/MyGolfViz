@@ -82,6 +82,8 @@ export function LibraryPage() {
             <input id="library-search" type="search" className="field__input fsa-touch" placeholder="Name, club or note" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           {view === 'list' && <SelectField label="Sort by" value={sort} options={SORTS} onChange={(v) => setSort(v as LibrarySort)} />}
+        </div>
+        <div className="library__view">
           <SegmentedControl
             label="View"
             value={view}

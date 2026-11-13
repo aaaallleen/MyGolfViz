@@ -9,6 +9,13 @@ body { margin: 0; }
 .app-nav__link.is-active { color: var(--text); background: var(--surface-raised); }
 .app-nav__link--primary { margin-right: auto; padding: 0 18px; color: var(--bg); background: var(--text); }
 .app-nav__link--primary.is-active { color: var(--bg); background: var(--text); }
+/* Local build: Load Session CSV as a small + button (its name is the tooltip and the screen-reader label). */
+.app-nav__add { width: 36px; height: 36px; padding: 0; margin-right: auto; justify-content: center; color: var(--text); border: 1px solid var(--border-strong); transition: background-color 150ms ease, border-color 150ms ease; }
+.app-nav__add:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .app-nav__add:hover { background: var(--surface-raised); border-color: var(--text-2); }
+}
+@media (pointer: coarse) { .app-nav__add { width: var(--touch-target); height: var(--touch-target); } }
 .app-main { max-width: 1376px; margin: 0 auto; padding: 28px 32px 48px; }
 .privacy-notice { margin: 0 0 16px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); color: var(--text-2); line-height: 1.5; }
 .help { max-width: 760px; margin-inline: auto; display: flex; flex-direction: column; gap: 12px; line-height: 1.5; color: var(--text-2); }
@@ -23,7 +30,7 @@ body { margin: 0; }
   .app-header { padding: 8px 16px; }
   .app-main { padding: 20px 16px 96px; }
   .app-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; gap: 0; padding: 0; background: var(--surface); border-top: 1px solid var(--border); justify-content: space-around; }
-  .app-nav__link, .app-nav__link--primary { flex: 1; min-height: 56px; justify-content: center; text-align: center; padding: 4px 2px; margin: 0; font-size: 11px; background: transparent; color: var(--muted); border: 0; border-radius: 0; }
+  .app-nav__link, .app-nav__link--primary, .app-nav__add { flex: 1; width: auto; height: auto; min-height: 56px; justify-content: center; text-align: center; padding: 4px 2px; margin: 0; font-size: 11px; background: transparent; color: var(--muted); border: 0; border-radius: 0; }
   .app-nav__link.is-active, .app-nav__link--primary.is-active { color: var(--text); background: var(--surface-raised); }
 }
 
@@ -355,9 +362,16 @@ textarea.field__input { padding: 10px 12px; }
 .library { display: flex; flex-direction: column; gap: 24px; }
 .library h1, .library h2 { font-family: var(--font-display); margin: 0; }
 .library h1 { font-size: 34px; line-height: 1.1; }
-.library__head { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; justify-content: space-between; }
-.library__title { display: flex; flex-direction: column; gap: 8px; }
-.library__controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+/* Title on the left, List / Calendar always at the far right; search and sort sit between them on wide
+   screens and drop to their own row on narrower ones. */
+.library__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title view" "controls controls"; gap: 16px 24px; align-items: end; }
+.library__view { grid-area: view; justify-self: end; }
+@media (min-width: 1100px) {
+  .library__head { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "title controls view"; }
+  .library__search { width: 280px; }
+}
+.library__title { grid-area: title; display: flex; flex-direction: column; gap: 8px; }
+.library__controls { grid-area: controls; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .library__search { flex: 1 1 220px; }
 .lib-muted { color: var(--muted); }
 .lib-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
