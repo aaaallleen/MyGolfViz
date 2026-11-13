@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI
@@ -12,9 +13,21 @@ from .migrate import db_path, upgrade
 from .security import SecurityMiddleware
 
 
+_TOKEN_RE = re.compile(r"(token=)[^&\s\"]+")
+
+
+class RedactTokenFilter(logging.Filter):
+    """Replace any ``token=<value>`` in log messages with ``token=REDACTED``."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = _TOKEN_RE.sub(r"\1REDACTED", record.getMessage())
+        record.args = None
+        return True
+
+
 def attach_log_handler(settings: Settings) -> None:
     path = (settings.data_dir / "logs" / "mygolfviz-api.log").resolve()
-    for name in ("mygolfviz_api", "uvicorn"):
+    for name in ("mygolfviz_api", "uvicorn", "uvicorn.access"):
         logger = logging.getLogger(name)
         if any(
             isinstance(h, RotatingFileHandler) and h.baseFilename == str(path)
@@ -24,10 +37,15 @@ def attach_log_handler(settings: Settings) -> None:
         handler = RotatingFileHandler(
             path, maxBytes=1_000_000, backupCount=3, encoding="utf-8"
         )
+        handler.addFilter(RedactTokenFilter())
         handler.setFormatter(
             logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
         )
         logger.addHandler(handler)
+        # uvicorn.access does not propagate; redact at the logger too so its
+        # console handler never prints the token either.
+        if not any(isinstance(f, RedactTokenFilter) for f in logger.filters):
+            logger.addFilter(RedactTokenFilter())
         if logger.level == logging.NOTSET or logger.level > logging.INFO:
             logger.setLevel(logging.INFO)
 

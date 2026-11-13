@@ -57,3 +57,35 @@ def test_cli_prints_port_line(tmp_path):
     finally:
         p.terminate()
         p.wait(timeout=10)
+
+
+def test_cli_log_never_contains_token(tmp_path):
+    import http.client
+
+    token = "s3cretTOKENvalue"
+    env = {**os.environ, "MYGOLFVIZ_TOKEN": token}
+    p = subprocess.Popen(
+        [sys.executable, "-m", "mygolfviz_api", "--data-dir", str(tmp_path), "--port", "0"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        env=env,
+    )
+    try:
+        info = json.loads(p.stdout.readline())
+        conn = http.client.HTTPConnection("127.0.0.1", info["port"], timeout=10)
+        conn.request("GET", f"/?token={token}")
+        assert conn.getresponse().status == 303
+        conn.close()
+        log = tmp_path / "logs" / "mygolfviz-api.log"
+        deadline = time.time() + 5
+        while time.time() < deadline and "GET /?token=" not in (
+            log.read_text() if log.exists() else ""
+        ):
+            time.sleep(0.1)
+        text = log.read_text()
+        assert "GET /?token=REDACTED" in text
+        assert token not in text
+    finally:
+        p.terminate()
+        p.wait(timeout=10)
