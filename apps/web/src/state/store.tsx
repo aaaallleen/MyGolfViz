@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRe
 import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import type { LandingMode } from '@fsa/analytics';
-import type { View2D, View3D } from '@fsa/visualizations/club3d';
+import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import { initialState, reducer, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';
@@ -31,6 +31,7 @@ export interface WorkingSetApi extends StoreState {
   setInspectorTab(t: InspectorTab): void;
   setClubView3D(v: View3D): void;
   setClubView2D(v: View2D): void;
+  setClubMode3D(m: Mode3D): void;
 }
 
 const Ctx = createContext<WorkingSetApi | null>(null);
@@ -112,6 +113,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),
+      setClubMode3D: (mode) => dispatch({ type: 'setClubMode3D', mode }),
     }),
     [state, visibleShots, pending, addFiles, clear],
   );

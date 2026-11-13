@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import { ClubViews3D } from './ClubViews3D';
 import { REF_M, mOf, sceneOf } from './testFixtures';
-import type { View3D } from './types';
+import type { Mode3D, View3D } from './types';
 
 const scene = sceneOf(REF_M);
 const setup = (over: Partial<Parameters<typeof ClubViews3D>[0]> = {}) => {
   const onSelect = vi.fn<(v: View3D) => void>();
-  render(<ClubViews3D scene={scene} m={REF_M} club="7 Iron" others={[]} large="faceOn" onSelect={onSelect} {...over} />);
-  return { onSelect, gallery: screen.getByRole('region', { name: '3D club views' }) };
+  const onMode = vi.fn<(m: Mode3D) => void>();
+  render(<ClubViews3D scene={scene} m={REF_M} club="7 Iron" others={[]} large="faceOn" onSelect={onSelect} mode="views" onMode={onMode} {...over} />);
+  return { onSelect, onMode, gallery: screen.queryByRole('region', { name: '3D club views' }) as HTMLElement };
 };
 const large = (g: HTMLElement) => g.querySelector('.view-gallery__large') as HTMLElement;
 
@@ -47,12 +48,33 @@ describe('ClubViews3D', () => {
     setup();
     expect(screen.getByText('Illustrative reconstruction')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play replay' })).toBeInTheDocument();
-    expect(screen.getByText('Club head and ball drawn 3× life size so they read; angles are true')).toBeInTheDocument();
+    expect(screen.getByText('Club head and ball drawn 3× life size so they read; angles are true in the Views cameras')).toBeInTheDocument();
   });
 
-  test('Reset view is disabled while the camera is on its preset', () => {
-    setup();
+  test('Views mode: fixed cameras only, no Reset view (nothing to drag)', () => {
+    const { gallery } = setup();
+    expect(gallery).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset view' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Views' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('the mode switch asks for 3D reconstruction', async () => {
+    const { onMode } = setup();
+    await userEvent.click(screen.getByRole('button', { name: '3D reconstruction' }));
+    expect(onMode).toHaveBeenCalledWith('reconstruction');
+  });
+
+  test('3D reconstruction mode: one draggable viewer with every main value, Reset view disabled until moved, no thumbnails', () => {
+    setup({ mode: 'reconstruction' });
+    expect(screen.queryByRole('region', { name: '3D club views' })).toBeNull();
+    const viewer = screen.getByRole('region', { name: '3D reconstruction' });
+    expect(within(viewer).getByText('Drag to rotate · scroll or pinch to zoom')).toBeInTheDocument();
+    expect(Array.from(viewer.querySelectorAll('.view-badges__label')).map((e) => e.textContent))
+      .toEqual(['Club path', 'H-plane', 'V-plane', 'Attack angle', 'Face to path']);
+    expect(within(viewer).queryAllByRole('button', { name: /^Show / })).toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Reset view' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Play replay' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'All shots' })).toBeInTheDocument();
   });
 
   test('a shot with only one of H-plane / V-plane says why the arc is missing, not that nothing was measured', () => {

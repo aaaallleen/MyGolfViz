@@ -40,8 +40,9 @@ describe('camera', () => {
     expect(projectPoint(sub(c.eye, f), c, vp)).toBeNull();
   });
   test('handedness and top up', () => {
-    expect(flightCamera('dtl', [scene.ballFlight!], 'right', 800).eye[0]).toBeLessThan(0);
-    expect(flightCamera('dtl', [scene.ballFlight!], 'left', 800).eye[0]).toBeGreaterThan(0);
+    // DTL sits on the target line for both hands; the perspective camera stands on the golfer's side.
+    expect(flightCamera('perspective', [scene.ballFlight!], 'right', 800).eye[0]).toBeLessThan(0);
+    expect(flightCamera('perspective', [scene.ballFlight!], 'left', 800).eye[0]).toBeGreaterThan(0);
     expect(flightCamera('top', [scene.ballFlight!], 'right', 800).up).toEqual([0, 1, 0]);
   });
 });
@@ -83,4 +84,24 @@ describe('flightCamera at scale', () => {
     expect(Number.isFinite(c.focal)).toBe(true);
     for (const v of [...c.eye, ...c.target]) expect(Number.isFinite(v)).toBe(true);
   });
+});
+
+describe('flightCamera DTL is truly down the line', () => {
+  const wide = [
+    buildReplayScene(shot, 'right').ballFlight!,
+    buildReplayScene({ ...shot, id: 'w', m: { ...shot.m, lateral: -35, launchH: -6 } } as unknown as Shot, 'right').ballFlight!,
+  ];
+  for (const hand of ['right', 'left'] as const) {
+    test(`sits on the target line behind the ball at eye height and keeps the target line vertical through the centre (${hand})`, () => {
+      const c = flightCamera('dtl', wide, hand, 800);
+      expect(c.eye[0]).toBeCloseTo(0, 6);
+      expect(c.eye[1]).toBeLessThan(0);
+      expect(c.eye[2]).toBeGreaterThan(1);
+      expect(c.eye[2]).toBeLessThan(2.5);
+      for (const y of [20, 100, 200]) expect(projectPoint([0, y, 0], c, vp480)!.x).toBeCloseTo(400, 3);
+      const ball = projectPoint([0, 0, 0], c, vp480)!;
+      expect(ball.x).toBeCloseTo(400, 3);
+      expect(ball.y).toBeGreaterThan(240); // the ball sits low in the frame, flights rise above it
+    });
+  }
 });

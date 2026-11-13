@@ -59,17 +59,28 @@ afterAll(() => {
 beforeEach(() => { h.renderers.length = 0; h.controls.length = 0; h.observers.length = 0; h.rendererFails = false; });
 
 const scene = sceneOf(REF_M);
-const view3D = (s = scene) => <ClubViews3D scene={s} m={REF_M} club="7 Iron" others={[]} large="faceOn" onSelect={() => {}} />;
+const view3D = (s = scene, mode: 'views' | 'reconstruction' = 'reconstruction') =>
+  <ClubViews3D scene={s} m={REF_M} club="7 Iron" others={[]} large="faceOn" onSelect={() => {}} mode={mode} onMode={() => {}} />;
 
 describe('club views lifecycle', () => {
-  test('3D: draws every slot, and unmounting disposes the renderer, orbit controls, resize observer and scene geometry', () => {
+  test('3D Views mode draws the four fixed cameras and creates no orbit controls', () => {
+    render(view3D(scene, 'views'));
+    expect(h.renderers[0]!.draw).toHaveBeenCalledTimes(4);
+    expect(h.controls).toHaveLength(0);
+  });
+
+  test('switching from 3D reconstruction back to Views disposes the orbit controls', () => {
+    const { rerender } = render(view3D());
+    expect(h.controls).toHaveLength(1);
+    rerender(view3D(scene, 'views'));
+    expect(h.controls[0]!.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  test('3D reconstruction: unmounting disposes the renderer, orbit controls, resize observer and scene geometry', () => {
     const geoDispose = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose');
     const { unmount } = render(view3D());
     expect(h.renderers).toHaveLength(1);
-    // Whole passes over the four slots (the first pass creates the orbit camera, which re-renders once for its labels).
-    const draws = h.renderers[0]!.draw.mock.calls.length;
-    expect(draws).toBeGreaterThanOrEqual(4);
-    expect(draws % 4).toBe(0);
+    expect(h.renderers[0]!.draw).toHaveBeenCalled();
     expect(h.controls).toHaveLength(1);
     geoDispose.mockClear();
     unmount();

@@ -129,6 +129,19 @@ describe('InspectorPage', () => {
     expect(largeName()).toBe('Top');
   });
 
+  test('3D tab: switching to 3D reconstruction shows the draggable viewer, and the mode survives Next shot', async () => {
+    const user = userEvent.setup();
+    const v = open();
+    await user.click(tab('3D reconstruction'));
+    await user.click(within(panel()).getByRole('button', { name: '3D reconstruction' }));
+    expect(v.store().clubMode3D).toBe('reconstruction');
+    expect(within(panel()).getByRole('region', { name: '3D reconstruction' })).toBeInTheDocument();
+    act(() => v.store().step(1));
+    expect(within(panel()).getByRole('region', { name: '3D reconstruction' })).toBeInTheDocument();
+    await user.click(within(panel()).getByRole('button', { name: 'Views' }));
+    expect(within(panel()).getByRole('region', { name: '3D club views' })).toBeInTheDocument();
+  });
+
   test("File 1 Shot 14, 3D tab: 'Club delivery not measured for this shot'", async () => {
     const user = userEvent.setup();
     const v = open();
@@ -192,7 +205,9 @@ describe('InspectorPage', () => {
     }
     expect(meta.getByRole('combobox', { name: 'Handedness' })).toHaveDisplayValue('Right-handed');
     const tiles = screen.getByRole('region', { name: 'Headline metrics' });
-    expect(tiles).toHaveTextContent('0.23 in toe · 0.84 in high');
+    const impact = within(tiles).getByText('Impact').closest('.fsa-kpi') as HTMLElement;
+    expect(impact.querySelector('.fsa-kpi__value')).toHaveTextContent('0.23in toe');
+    expect(impact.querySelector('.fsa-kpi__sub')).toHaveTextContent('0.84 in high');
     for (const l of ['Carry', 'Spin', 'Club path', 'Face to path', 'Attack angle', 'Impact']) expect(within(tiles).getByText(l)).toBeInTheDocument();
   });
 

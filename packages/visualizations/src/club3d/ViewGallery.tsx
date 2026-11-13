@@ -61,6 +61,17 @@ export function layoutLabels(labels: GalleryLabel[]): PlacedLabel[] {
   return placed;
 }
 
+/** Text labels over a view, kept inside it; hidden from screen readers (the view's aria-label says the same). */
+export function StageLabels({ labels }: { labels: GalleryLabel[] }) {
+  return (
+    <>
+      {layoutLabels(labels).map((l) => (
+        <span key={l.id} className="view-gallery__label" aria-hidden="true" style={{ left: pct(l.x), top: pct(l.y), color: l.color, transform: TRANSFORM[l.anchor] }}>{l.text}</span>
+      ))}
+    </>
+  );
+}
+
 export function Badges({ badges }: { badges: Badge[] }) {
   if (badges.length === 0) return null;
   return (
@@ -113,9 +124,7 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
                 This view needs WebGL, which this browser doesn't provide. The numbers are below.
               </p>
             )}
-            {webgl && layoutLabels(main.labels ?? []).map((l) => (
-              <span key={l.id} className="view-gallery__label" aria-hidden="true" style={{ left: pct(l.x), top: pct(l.y), color: l.color, transform: TRANSFORM[l.anchor] }}>{l.text}</span>
-            ))}
+            {webgl && <StageLabels labels={main.labels ?? []} />}
             {largeOverlay}
           </div>
           <div className="view-gallery__caption">

@@ -5,6 +5,9 @@ export type View3D = 'top' | 'faceOn' | 'dtl' | 'overview';
 /** The four views of the 2D tab, in thumbnail order. */
 export type View2D = 'ftt' | 'ftp' | 'loft' | 'spinAxis';
 
+/** The 3D tab's two modes: four fixed measuring cameras, or one free (draggable) 3D reconstruction. */
+export type Mode3D = 'views' | 'reconstruction';
+
 export const VIEWS_3D: readonly View3D[] = ['top', 'faceOn', 'dtl', 'overview'];
 export const VIEWS_2D: readonly View2D[] = ['ftt', 'ftp', 'loft', 'spinAxis'];
 

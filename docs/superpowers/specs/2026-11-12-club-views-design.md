@@ -23,7 +23,7 @@ matches its number.
 ## Goals
 
 - Rebuild the 3D tab as a real three.js scene: a shaded club model, swing arc, ground and
-  annotations, seen through four preset cameras. The user can drag to orbit the large view.
+  annotations, seen through four preset cameras, plus a separate draggable 3D reconstruction mode.
 - Rebuild the 2D tab with the same layout and the same three.js club model, using fixed cameras
   and true-angle lines.
 - One layout for both tabs: **one large view plus three thumbnails**. Clicking (or tapping) a
@@ -98,10 +98,17 @@ demo data, a camera on the target line would misdraw V-plane (it would show 51.9
 Wedges are drawn only in the orthographic measuring views.
 
 - *My call:* the 3D tab opens on **Face-on** as the large view, with the other three as thumbnails.
-- **Orbit:** dragging the large view orbits its camera, and the wheel or a pinch zooms. A **Reset
-  view** button returns to the preset. While the camera is off its preset, the measuring view's
-  wedges stay drawn but its badges show a small "rotate back to read true" note. *My call.*
-  Thumbnails do not orbit.
+- **Modes (user's decision, revised after review):** a switch at the top of the tab picks between
+  two modes:
+  - **Views:** the four fixed cameras, with no dragging.
+  - **3D reconstruction:** one large draggable viewer. It starts at the 3/4 overview camera:
+    - Dragging rotates and the wheel or a pinch zooms.
+    - **Reset view** returns it to the start, and is enabled once it has been rotated, zoomed or panned.
+    - It shows the translucent swing plane and text labels; there are no angle wedges.
+    - Its badges are the overview's.
+
+  Only the reconstruction canvas captures touch drags. The mode is kept while moving between
+  shots.
 - **Play:** one Play button animates the club along the arc in all four views at once. Keep the
   existing replay clock (`useReplayClock`), phase labels (Downswing / Impact / Follow-through),
   speed and loop controls.

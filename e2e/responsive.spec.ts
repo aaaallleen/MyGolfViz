@@ -79,6 +79,21 @@ for (const [width, height, hasTouch] of [[390, 844, true], [820, 1180, false], [
         await shot(page, `inspector-${tab}`, width);
       }
     });
+
+    test('headline tiles keep their text inside the box, including a measured Impact', async ({ page }) => {
+      await stageFiles(page);
+      await page.getByRole('button', { name: 'Analyze files' }).click();
+      await expect(page.getByText('In this browser only')).toBeVisible();
+      await goInspector(page);
+      const tiles = page.locator('.head-tiles');
+      for (let i = 0; i < 60 && !/\bin (toe|heel|centered)\b/.test(await tiles.innerText()); i++) {
+        await page.getByRole('button', { name: 'Next shot' }).first().click();
+      }
+      await expect(tiles).toContainText(/in (toe|heel|centered)/);
+      const spill = await tiles.locator(':scope > *').evaluateAll((els) =>
+        els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent));
+      expect(spill, 'tiles whose content is wider than the box').toEqual([]);
+    });
   });
 }
 
@@ -137,13 +152,15 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-2d-layout', 390);
   });
 
-  test('touch: only the orbiting 3D large view captures swipes; thumbnails and 2D views let the page scroll', async ({ page }) => {
+  test('touch: only the draggable 3D reconstruction captures swipes; every fixed view lets the page scroll', async ({ page }) => {
     await loadAndAnalyze(page);
     await goInspector(page);
     const touch = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).touchAction);
     await openTab(page, '3d');
-    expect(await touch('.club-data .view-gallery__large canvas')).toBe('none');
+    expect(await touch('.club-data .view-gallery__large canvas')).not.toBe('none');
     expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
+    await page.getByRole('button', { name: '3D reconstruction', exact: true }).click();
+    expect(await touch('.club-data .club-views__recon canvas')).toBe('none');
     await openTab(page, '2d');
     expect(await touch('.club-data .view-gallery__large canvas')).not.toBe('none');
     expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
@@ -265,7 +282,7 @@ for (const width of [1440, 1920] as const) {
 test.describe('club views render @1280', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
-  test('3D tab draws a non-blank WebGL picture, swaps views on click, and orbiting enables Reset view', async ({ page }) => {
+  test('3D tab draws a non-blank WebGL picture and swaps views; dragging works only in 3D reconstruction, where it enables Reset view', async ({ page }) => {
     await loadAndAnalyze(page);
     await goInspector(page);
     await openTab(page, '3d');
@@ -273,13 +290,13 @@ test.describe('club views render @1280', () => {
     const name = panel.locator('.view-gallery__large .view-gallery__name');
     await expect(name).toHaveText('Face-on');
     const canvas = panel.locator('.view-gallery__large canvas');
-    await expect.poll(async () => canvas.evaluate((c: HTMLCanvasElement) => {
-      const ctx = c.getContext('2d')!;
-      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    const colours = (c: typeof canvas) => c.evaluate((el: HTMLCanvasElement) => {
+      const d = el.getContext('2d')!.getImageData(0, 0, el.width, el.height).data;
       const seen = new Set<number>();
       for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!);
       return seen.size;
-    }), { message: 'distinct colours in the large view' }).toBeGreaterThan(8);
+    });
+    await expect.poll(() => colours(canvas), { message: 'distinct colours in the large view' }).toBeGreaterThan(8);
     // Idle, with Play paused: the gallery must not keep redrawing.
     const idleDraws = await page.evaluate(async () => {
       let n = 0;
@@ -293,9 +310,15 @@ test.describe('club views render @1280', () => {
     await panel.getByRole('button', { name: 'Show Top view' }).click();
     await expect(name).toHaveText('Top');
     await expect(panel.getByRole('button', { name: 'Show Face-on view' })).toBeVisible();
-    const reset = panel.getByRole('button', { name: 'Reset view' });
+    await expect(panel.getByRole('button', { name: 'Reset view' })).toHaveCount(0);
+
+    await panel.getByRole('button', { name: '3D reconstruction', exact: true }).click();
+    const recon = panel.getByRole('region', { name: '3D reconstruction' });
+    const rc = recon.locator('canvas');
+    await expect.poll(() => colours(rc), { message: 'distinct colours in the reconstruction' }).toBeGreaterThan(8);
+    const reset = recon.getByRole('button', { name: 'Reset view' });
     await expect(reset).toBeDisabled();
-    const box = (await canvas.boundingBox())!;
+    const box = (await rc.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2 + 150, box.y + box.height / 2 - 50, { steps: 8 });

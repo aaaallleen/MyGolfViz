@@ -25,7 +25,8 @@ const bounds = (pts: Vec3[]) => {
 };
 
 /** Re-centre the target on the framed points, then fit focal so every point sits within FILL of the half-extents. */
-function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewportWidth: number): Camera {
+/** `lockLateral` keeps the view's left-right centre where it is (DTL keeps the target line straight up the middle). */
+function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewportWidth: number, lockLateral = false): Camera {
   let target = initialTarget;
   const offsets = (cam: Camera) => {
     const out: { x: number; y: number; depth: number }[] = [];
@@ -48,7 +49,7 @@ function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewpo
       if (q.y > yHi) yHi = q.y;
       dSum += q.depth;
     }
-    const cx = (xLo + xHi) / 2;
+    const cx = lockLateral ? 0 : (xLo + xHi) / 2;
     const cy = (yLo + yHi) / 2;
     const dAvg = dSum / o.length;
     const f = normalize(sub(target, eye));
@@ -66,6 +67,8 @@ function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewpo
   return { eye, target, up, focal: Math.min(fit, 3 * viewportWidth) };
 }
 
+const DTL_EYE_HEIGHT_YD = 1.6;
+
 function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness, viewportWidth: number): Camera {
   const g = handedness === 'right' ? -1 : 1;
   const { lo, hi, mid } = bounds(pts);
@@ -74,11 +77,13 @@ function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness,
   const behind = Math.max(0, -lo[1]);
   let eye: Vec3, up: Vec3 = [0, 0, 1];
   switch (preset) {
-    case 'dtl': eye = [2.5 * g, -(behind + 10), 3]; break;
+    // Down the line: on the target line, a few yards behind the ball at eye height, looking straight at the target.
+    case 'dtl': eye = [0, -(behind + 6), DTL_EYE_HEIGHT_YD]; break;
     case 'perspective': eye = [0.45 * M * g, -(behind + 0.45 * M), 0.3 * M + Z]; break;
     case 'side': eye = [-(0.8 * M + 20) * g, mid[1], 1.5]; break;
     case 'top': eye = [mid[0], mid[1], Z + M]; up = [0, 1, 0]; break;
   }
+  if (preset === 'dtl') return fitCamera(eye, [0, mid[1], DTL_EYE_HEIGHT_YD], up, pts, viewportWidth, true);
   const target: Vec3 = preset === 'top' ? [mid[0], mid[1], 0] : mid;
   return fitCamera(eye, target, up, pts, viewportWidth);
 }
