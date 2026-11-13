@@ -2,16 +2,17 @@ import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
 import { Button } from '@fsa/ui';
 import { handednessLabel, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
-import { pickerShots, shotOptionLabel } from './shotLabel';
+import { pickerOptionLabel } from './shotLabel';
 
 const HANDEDNESS: Handedness[] = ['right', 'left'];
 
-export function ShotHeader({ shot, shots, ordered, excluded, files, details, onSelect, onStep, onHandedness, onExclude }: {
+export function ShotHeader({ shot, shots, ordered, excludedIds, excluded, files, details, onSelect, onStep, onHandedness, onExclude }: {
   shot: Shot;
   /** The included shots, in display order. */
   shots: readonly Shot[];
-  /** Every shot in the filter, excluded ones too, in display order. */
+  /** Every shot in the filter, excluded ones too, in display order: the picker lists them all. */
   ordered: readonly Shot[];
+  excludedIds: ReadonlySet<string>;
   excluded: boolean;
   files: readonly SourceFile[];
   details: SessionDetails;
@@ -24,7 +25,6 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
   const pos = excluded ? null : selectionPosition(shot.id, shots);
-  const options = pickerShots(shots, excluded ? shot : undefined, ordered);
   return (
     <section className="inspector-head">
       <div className="inspector-head__title">
@@ -53,8 +53,8 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
       <div className="inspector-head__nav">
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>
         <select className="fsa-select fsa-touch" aria-label="Choose shot" value={shot.id} onChange={(e) => onSelect(e.target.value)}>
-          {options.map((s) => (
-            <option key={s.id} value={s.id}>{shotOptionLabel(s, files)}</option>
+          {ordered.map((s) => (
+            <option key={s.id} value={s.id}>{pickerOptionLabel(s, files, excludedIds)}</option>
           ))}
         </select>
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>

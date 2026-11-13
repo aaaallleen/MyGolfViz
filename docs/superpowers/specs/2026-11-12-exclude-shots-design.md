@@ -24,8 +24,9 @@ excluded and which ones, and can bring any of them back.
 - Exclude or re-include shots from the **shot table**, but only in an explicit **"Edit shots"**
   mode. Outside that mode the table can't change exclusions (to avoid misclicks).
 - An excluded shot is left out of: the dispersion plot and its ellipses, the Session averages
-  (KPI grid), the Clubs table, the club filter chip counts, "‹ ›" stepping, the shot pickers, and the
-  Inspector's faint comparison shots.
+  (KPI grid), the Clubs table, the club filter chip counts, "‹ ›" stepping, and the Inspector's
+  faint comparison shots. The shot pickers still list it, marked "(excluded)", so it can be opened
+  on purpose. *(Pickers changed after the first build, at the user's request.)*
 - Excluded shots stay **visible but greyed** in the shot table, so the CSV data is still there to
   read.
 - A **"N excluded" chip** in the filter bar lists the excluded shots. Each has its own undo, and
@@ -108,7 +109,8 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
   list), the card still shows its values, with an "Excluded" tag in place of "6 of 22". The button
   becomes **"Include shot"**. ‹ › from there goes to the nearest included shot in that direction
   in display order.
-- The card's shot picker lists included shots only, plus the current shot when it is excluded.
+- The card's shot picker lists every shot in the filter in display order; excluded ones end in
+  "(excluded)". Picking one opens it as an excluded selection.
 
 ### Shot table (Overview)
 
@@ -156,10 +158,11 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
   **"Include it again"** is the one include action. The breadcrumb's session link (with a ←
   arrow) is the way back to the Overview; there is no separate Back to overview button.
   *(Added after the first build, at the user's request.)*
-- ‹ ›, the shot picker and the faint comparison shots (all shots / same-club shots behind the
-  current one) use included shots only. They already read `visibleShots`, so they follow
-  automatically.
-- If the **selected shot is excluded** (only possible by opening it on purpose from the
+- ‹ › and the faint comparison shots (all shots / same-club shots behind the current one) use
+  included shots only. They already read `visibleShots`, so they follow automatically.
+- The shot picker lists every shot in the filter, excluded ones marked "(excluded)", so an
+  excluded shot can be opened from inside the Inspector. Picking one opens it with the banner.
+- If the **selected shot is excluded** (only possible by opening it on purpose, from the picker or the
   Overview), the Inspector shows that shot rather than falling back to the first visible one,
   which is what `selected ?? visibleShots[0]` would do today. It adds a banner: "This shot is
   excluded. It isn't in your averages or comparisons. **Include it again**". The position reads

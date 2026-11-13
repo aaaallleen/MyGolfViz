@@ -56,7 +56,7 @@ export function OverviewPage() {
   };
   const excludedCount = tableShots.length - shots.length;
   const card = (
-    <SelectedShotCard shots={shots} ordered={tableShots} selected={selected} excluded={selected !== undefined && excludedIds.has(selected.id)}
+    <SelectedShotCard shots={shots} ordered={tableShots} excludedIds={excludedIds} selected={selected} excluded={selected !== undefined && excludedIds.has(selected.id)}
       files={workingSet.files} onSelect={ws.select} onStep={ws.step} onExclude={exclude} onInclude={include}
       color={colors.get(selected?.club ?? '')} />
   );

@@ -3,7 +3,7 @@ import { selectionPosition } from '@fsa/analytics';
 import { formatImpact, formatMeasurement, type MeasurementKey, type Shot, type SourceFile } from '@fsa/domain';
 import { Button, Missing } from '@fsa/ui';
 import { FileBadge } from './FileBadge';
-import { pickerShots, shotLabel, shotOptionLabel } from './shotLabel';
+import { pickerOptionLabel, shotLabel } from './shotLabel';
 
 const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] = [
   { key: 'carry', label: 'Carry', accent: 'ball' },
@@ -15,11 +15,12 @@ const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] 
   { key: 'aoa', label: 'Attack angle', accent: 'club' },
 ];
 
-export function SelectedShotCard({ shots, ordered, selected, excluded, files, onSelect, onStep, onExclude, onInclude, color }: {
+export function SelectedShotCard({ shots, ordered, excludedIds, selected, excluded, files, onSelect, onStep, onExclude, onInclude, color }: {
   /** The included shots, in display order. */
   shots: readonly Shot[];
-  /** Every shot in the filter, excluded ones too, in display order. */
+  /** Every shot in the filter, excluded ones too, in display order: the picker lists them all. */
   ordered: readonly Shot[];
+  excludedIds: ReadonlySet<string>;
   /** The selected shot. When excluded it is not in `shots`. */
   selected: Shot | undefined;
   excluded: boolean;
@@ -33,7 +34,6 @@ export function SelectedShotCard({ shots, ordered, selected, excluded, files, on
 }) {
   const shot = selected;
   const pos = shot && !excluded ? selectionPosition(shot.id, shots) : null;
-  const options = pickerShots(shots, excluded ? shot : undefined, ordered);
   return (
     <div className="panel selected-card">
       <div className="selected-card__head">
@@ -56,8 +56,8 @@ export function SelectedShotCard({ shots, ordered, selected, excluded, files, on
             </h3>
             <select className="selected-card__select" aria-label="Choose shot" value={shot?.id ?? ''} onChange={(e) => onSelect(e.target.value)}>
               {!shot && <option value="" disabled>Choose a shot</option>}
-              {options.map((s) => (
-                <option key={s.id} value={s.id}>{shotOptionLabel(s, files)}</option>
+              {ordered.map((s) => (
+                <option key={s.id} value={s.id}>{pickerOptionLabel(s, files, excludedIds)}</option>
               ))}
             </select>
           </div>

@@ -24,13 +24,7 @@ export function shotOptionLabel(s: Shot, files: readonly SourceFile[]): string {
   return `${s.club} · ${badge}shot ${s.shotLabel ?? s.sourceRow} · ${carryText(s)}`;
 }
 
-/**
- * The shots a picker lists: the included ones, plus an excluded current shot at its place in display order
- * (`ordered` is every shot in the filter, excluded ones too).
- */
-export function pickerShots(included: readonly Shot[], current: Shot | undefined, ordered: readonly Shot[]): Shot[] {
-  if (!current || included.some((s) => s.id === current.id)) return [...included];
-  const keep = new Set(included.map((s) => s.id));
-  keep.add(current.id);
-  return ordered.filter((s) => keep.has(s.id));
+/** A picker option: every shot in the filter is listed, and excluded ones say so. */
+export function pickerOptionLabel(s: Shot, files: readonly SourceFile[], excludedIds: ReadonlySet<string>): string {
+  return excludedIds.has(s.id) ? `${shotOptionLabel(s, files)} (excluded)` : shotOptionLabel(s, files);
 }

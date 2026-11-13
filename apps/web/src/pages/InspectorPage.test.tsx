@@ -402,28 +402,38 @@ describe('InspectorPage', () => {
       expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toMatch(/included · \d+ shots used/);
     });
 
-    test('an excluded open shot sits at its display-order position in the picker', () => {
+    test('an excluded open shot sits at its display-order position in the picker, marked excluded', () => {
       const v = open();
       const ordered = v.store().tableShots;
       const target = ordered[3]!;
       act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
       const files = v.store().workingSet!.files;
       const names = within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent);
-      const at = names.indexOf(shotOptionLabel(target, files));
-      expect(at).toBe(3);
-      expect(names[at - 1]).toBe(shotOptionLabel(ordered[2]!, files));
-      expect(names[at + 1]).toBe(shotOptionLabel(ordered[4]!, files));
+      expect(names[3]).toBe(`${shotOptionLabel(target, files)} (excluded)`);
+      expect(names[2]).toBe(shotOptionLabel(ordered[2]!, files));
+      expect(names[4]).toBe(shotOptionLabel(ordered[4]!, files));
     });
 
-    test('with an included shot open, the picker does not list excluded shots', () => {
+    test('with an included shot open, the picker still lists excluded shots, and picking one opens it', async () => {
+      const user = userEvent.setup();
       const v = open();
       const [x, y] = [v.store().visibleShots[1]!, v.store().visibleShots[2]!];
       act(() => { v.store().setExcluded(x.id, true); v.store().select(y.id); });
       const files = v.store().workingSet!.files;
-      const names = within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent);
-      expect(names).not.toContain(shotOptionLabel(x, files));
+      const picker = screen.getByRole('combobox', { name: 'Choose shot' });
+      const names = within(picker).getAllByRole('option').map((o) => o.textContent);
+      expect(names).toHaveLength(v.store().tableShots.length);
+      expect(names).toContain(`${shotOptionLabel(x, files)} (excluded)`);
       expect(names).toContain(shotOptionLabel(y, files));
       expect(screen.queryByText(BANNER)).toBeNull();
+      await user.selectOptions(picker, x.id);
+      expect(v.store().selectedId).toBe(x.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      // Stepping on from it and back still skips it; the picker keeps listing it.
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).not.toBe(x.id);
+      expect(within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent))
+        .toContain(`${shotOptionLabel(x, files)} (excluded)`);
     });
 
     test('all shots in the filter excluded: all-excluded empty state with Include all', async () => {

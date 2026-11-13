@@ -97,7 +97,7 @@ export function InspectorPage() {
   return (
     <div className="inspector">
       <p role="status" className="visually-hidden">{announcement}</p>
-      <ShotHeader shot={shot} shots={visibleShots} ordered={tableShots} excluded={excluded} files={workingSet.files} details={details}
+      <ShotHeader shot={shot} shots={visibleShots} ordered={tableShots} excludedIds={excludedIds} excluded={excluded} files={workingSet.files} details={details}
         onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })}
         onExclude={exclude} />
       {excluded && (

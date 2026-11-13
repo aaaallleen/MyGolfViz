@@ -390,6 +390,17 @@ describe('OverviewPage', () => {
   });
 
   describe('excluding shots from the card', () => {
+    test("the shot card's picker lists excluded shots too, marked excluded", () => {
+      const r = renderWithData([F1, F2]);
+      const [x, y] = [r.store().visibleShots[1]!, r.store().visibleShots[2]!];
+      act(() => { r.store().setExcluded(x.id, true); r.store().select(y.id); });
+      const picker = within(document.querySelector('.selected-card') as HTMLElement).getByLabelText('Choose shot');
+      const options = within(picker).getAllByRole('option') as HTMLOptionElement[];
+      expect(options).toHaveLength(r.store().tableShots.length);
+      expect(options.find((o) => o.value === x.id)!.textContent).toMatch(/ \(excluded\)$/);
+      expect(options.find((o) => o.value === y.id)!.textContent).not.toMatch(/excluded/);
+    });
+
     const countOf = () => Number(/(\d+) shots$/.exec(screen.getByRole('heading', { level: 2, name: /^Averages/ }).textContent ?? '')![1]);
 
     test('Exclude shot drops the shot from the averages count and moves the card to the next shot', async () => {
