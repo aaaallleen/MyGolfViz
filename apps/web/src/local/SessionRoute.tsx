@@ -4,7 +4,7 @@ import { EmptyState } from '@fsa/ui';
 import { InspectorPage, OverviewPage } from '../routes';
 import { useWorkingSet } from '../state/store';
 import { ApiError, getSession, getShots } from './api';
-import { OpenSessionContext, type OpenSession } from './OpenSession';
+import { useOpenSession } from './OpenSession';
 import { EmptySession } from './EmptySession';
 import { sessionToWorkingSet } from './sessionToWorkingSet';
 
@@ -12,11 +12,13 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
   const { id = '' } = useParams();
   const ws = useWorkingSet();
   const { sessionId, loadSession } = ws;
-  const [open, setOpen] = useState<OpenSession | null>(null);
+  const { open, setOpen } = useOpenSession();
+  const openId = open?.session.id;
   const [failure, setFailure] = useState<{ id: string; notFound: boolean } | null>(null);
 
   useEffect(() => {
-    if (sessionId === id) return;
+    // Load when the store or the files panel's rows don't hold this session yet (fresh page load, or the store was filled elsewhere).
+    if (sessionId === id && openId === id) return;
     let cancelled = false;
     Promise.all([getSession(id), getShots(id)]).then(
       ([{ session, imports }, shots]) => {
@@ -32,9 +34,9 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
     return () => {
       cancelled = true;
     };
-  }, [id, sessionId, loadSession]);
+  }, [id, sessionId, openId, loadSession, setOpen]);
 
-  if (sessionId !== id) {
+  if (sessionId !== id || openId !== id) {
     if (failure?.id === id) {
       const back = <Link to="/sessions">Sessions</Link>;
       return failure.notFound ? (
@@ -46,9 +48,5 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
     return <p role="status">Loading session…</p>;
   }
   const empty = !ws.workingSet || ws.workingSet.shots.length === 0;
-  return (
-    <OpenSessionContext.Provider value={{ open, setOpen }}>
-      {empty ? <EmptySession /> : page === 'overview' ? <OverviewPage /> : <InspectorPage />}
-    </OpenSessionContext.Provider>
-  );
+  return empty ? <EmptySession /> : page === 'overview' ? <OverviewPage /> : <InspectorPage />;
 }

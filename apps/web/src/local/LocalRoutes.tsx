@@ -6,6 +6,7 @@ import { HelpPage } from '../pages/HelpPage';
 import { LoadPage } from '../pages/LoadPage';
 import { listSessions, UNAUTHORISED_EVENT } from './api';
 import { ImportResultPage } from './ImportResultPage';
+import { OpenSessionProvider } from './OpenSession';
 import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
 import { useSessionSync } from './useSessionSync';
@@ -32,6 +33,7 @@ export default function LocalRoutes() {
     );
   }
   return (
+    <OpenSessionProvider>
     <AppShell>
       <Routes>
         <Route path="/" element={<Navigate to="/sessions" replace />} />
@@ -44,5 +46,6 @@ export default function LocalRoutes() {
         <Route path="*" element={<Navigate to="/sessions" replace />} />
       </Routes>
     </AppShell>
+    </OpenSessionProvider>
   );
 }
