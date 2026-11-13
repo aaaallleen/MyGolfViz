@@ -25,9 +25,27 @@ class RedactTokenFilter(logging.Filter):
     """Replace any ``token=<value>`` in log messages with ``token=REDACTED``."""
 
     def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = _TOKEN_RE.sub(r"\1REDACTED", record.getMessage())
-        record.args = None
+        # Redact inside msg and each argument rather than merging them: uvicorn's access formatter
+        # unpacks record.args, so the arguments must keep their shape.
+        if isinstance(record.msg, str):
+            record.msg = _redact(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(_redact_arg(a) for a in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {k: _redact_arg(v) for k, v in record.args.items()}
         return True
+
+
+def _redact(text: str) -> str:
+    return _TOKEN_RE.sub(r"\1REDACTED", text)
+
+
+def _redact_arg(value: object) -> object:
+    if isinstance(value, str):
+        return _redact(value)
+    # Anything else that would print the token is replaced by its redacted text.
+    text = str(value)
+    return _redact(text) if _TOKEN_RE.search(text) else value
 
 
 def attach_log_handler(settings: Settings) -> None:

@@ -67,10 +67,11 @@ def test_cli_log_never_contains_token(tmp_path):
     p = subprocess.Popen(
         [sys.executable, "-m", "mygolfviz_api", "--data-dir", str(tmp_path), "--port", "0"],
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         text=True,
         env=env,
     )
+    stopped = False
     try:
         info = json.loads(p.stdout.readline())
         conn = http.client.HTTPConnection("127.0.0.1", info["port"], timeout=10)
@@ -86,6 +87,16 @@ def test_cli_log_never_contains_token(tmp_path):
         text = log.read_text()
         assert "GET /?token=REDACTED" in text
         assert token not in text
-    finally:
+        # The console access log is formatted by uvicorn, which needs the record's arguments: it must print the
+        # redacted request line, not a logging error.
         p.terminate()
-        p.wait(timeout=10)
+        out, err = p.communicate(timeout=10)
+        console = out + err
+        stopped = True
+        assert "Logging error" not in console
+        assert "GET /?token=REDACTED" in console
+        assert token not in console
+    finally:
+        if not stopped:
+            p.terminate()
+            p.wait(timeout=10)
