@@ -278,6 +278,27 @@ describe('store', () => {
     expect(result.current.includeAll('session')).toBeNull();
   });
 
+  test('excludeAll excludes every included shot in the filter, keeps the selection, and its undo restores the set', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    await act(async () => { await result.current.addFiles([mkFile(), new File([new Uint8Array(readFileSync(FIXTURE_B))], 'y.csv', { type: 'text/csv' })]); });
+    act(() => { result.current.analyze(); });
+    const club = result.current.tableShots[0]!.club;
+    act(() => { result.current.setClub(club); });
+    const inClub = result.current.tableShots.map((s) => s.id);
+    const selected = result.current.selectedId;
+    act(() => { result.current.setExcluded(inClub[1]!, true); });
+    let out: ReturnType<typeof result.current.excludeAll> = null;
+    act(() => { out = result.current.excludeAll(); });
+    expect(out!.count).toBe(inClub.length - 1);
+    expect(result.current.visibleShots).toHaveLength(0);
+    expect(result.current.excludedIds.size).toBe(inClub.length);
+    expect(result.current.selectedId).toBe(selected);
+    act(() => { out!.undo(); });
+    expect([...result.current.excludedIds]).toEqual([inClub[1]]);
+    act(() => { result.current.excludeAll(); });
+    expect(result.current.excludeAll()).toBeNull();
+  });
+
   test('includeAll(filter) only includes the shots of the filtered club', async () => {
     const { result } = renderHook(() => useWorkingSet(), { wrapper });
     await act(async () => { await result.current.addFiles([mkFile(), new File([new Uint8Array(readFileSync(FIXTURE_B))], 'y.csv', { type: 'text/csv' })]); });

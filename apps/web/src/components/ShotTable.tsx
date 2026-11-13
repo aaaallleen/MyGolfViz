@@ -120,7 +120,7 @@ const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
  * the Shot and Club columns stay in view. Sort by any column, hide columns from the Columns menu, and
  * (with all clubs showing) rows sit under one heading per club.
  */
-export function ShotTable({ title, note, shots, files, selectedId, onSelect, grouped, excludedIds, onSetExcluded, onIncludeAll }: {
+export function ShotTable({ title, note, shots, files, selectedId, onSelect, grouped, excludedIds, onSetExcluded, onIncludeAll, onExcludeAll }: {
   /** The panel heading; it reads "Editing shots" while Edit shots is on. */
   title: string;
   /** Shown under the heading row, before the sort hint. */
@@ -133,6 +133,7 @@ export function ShotTable({ title, note, shots, files, selectedId, onSelect, gro
   excludedIds: ReadonlySet<string>;
   onSetExcluded(id: string, excluded: boolean): void;
   onIncludeAll(): void;
+  onExcludeAll(): void;
 }) {
   const other = useMemo(() => unparsedHeaders(rawHeaders(shots)), [shots]);
   // Rebuild column definitions only when the set of extra CSV columns changes, not on every filter.
@@ -200,6 +201,7 @@ export function ShotTable({ title, note, shots, files, selectedId, onSelect, gro
         <div className="shots-table__actions">
           {editing ? (
             <>
+              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" disabled={!shots.some((s) => !excludedIds.has(s.id))} onClick={onExcludeAll}>Exclude all</button>
               <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" disabled={!shots.some((s) => excludedIds.has(s.id))} onClick={onIncludeAll}>Include all</button>
               <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" onClick={() => setEditing(false)}>Done</button>
             </>

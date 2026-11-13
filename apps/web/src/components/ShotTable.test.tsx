@@ -16,7 +16,7 @@ function setup(opts: { files?: SourceFile[]; shots?: Shot[]; excluded?: string[]
   const files = opts.files ?? [file(1)];
   const shots = opts.shots ?? [shot('f1', 1), shot('f1', 2)];
   const props = {
-    onSelect: vi.fn(), onSetExcluded: vi.fn(), onIncludeAll: vi.fn(),
+    onSelect: vi.fn(), onSetExcluded: vi.fn(), onIncludeAll: vi.fn(), onExcludeAll: vi.fn(),
   };
   const utils = render(
     <ShotTable title="Shots" shots={shots} files={files} selectedId={opts.selectedId ?? null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
@@ -29,7 +29,7 @@ describe('ShotTable header', () => {
   it('puts the title, Edit shots and Columns in one header row', () => {
     render(
       <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
-        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} />,
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} onExcludeAll={vi.fn()} />,
     );
     const head = screen.getByRole('heading', { level: 2, name: 'Shots' }).parentElement!;
     expect(within(head).getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('ShotTable header', () => {
     const user = userEvent.setup();
     render(
       <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
-        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} />,
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} onExcludeAll={vi.fn()} />,
     );
     await user.click(screen.getByRole('button', { name: 'Edit shots' }));
     const head = screen.getByRole('heading', { level: 2, name: 'Editing shots' }).parentElement!;
@@ -121,6 +121,20 @@ describe('ShotTable exclusion', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
+  });
+
+  it('Exclude all calls onExcludeAll', async () => {
+    const { onExcludeAll } = setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Exclude all' }));
+    expect(onExcludeAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('the edit-mode Exclude all is disabled when every row is already excluded', async () => {
+    setup({ excluded: ['f1-1', 'f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Exclude all' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeEnabled();
   });
 
   it('the edit-mode Include all is disabled until a row is excluded', async () => {

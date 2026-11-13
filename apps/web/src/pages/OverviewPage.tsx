@@ -8,7 +8,7 @@ import { FilterBar } from '../components/FilterBar';
 import { KpiGrid } from '../components/KpiGrid';
 import { SelectedShotCard } from '../components/SelectedShotCard';
 import { SessionDetailsForm } from '../components/SessionDetailsForm';
-import { includeAllWithUndo } from '../components/includeAllWithUndo';
+import { excludeAllWithUndo, includeAllWithUndo } from '../components/bulkWithUndo';
 import { shotLabel } from '../components/shotLabel';
 import { ShotTable } from '../components/ShotTable';
 import { ShotPatternPanel } from '../components/ShotPatternPanel';
@@ -63,7 +63,8 @@ export function OverviewPage() {
   const shotsPanel = (
     <section className="panel">
       <ShotTable title="Shots" note="Ordered by club within each file · the selected row, plot point and shot card stay in step" shots={tableShots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null}
-        excludedIds={excludedIds} onSetExcluded={ws.setExcluded} onIncludeAll={() => includeAllWithUndo(ws.includeAll, 'filter')} />
+        excludedIds={excludedIds} onSetExcluded={ws.setExcluded} onIncludeAll={() => includeAllWithUndo(ws.includeAll, 'filter')}
+        onExcludeAll={() => excludeAllWithUndo(ws.excludeAll)} />
       <p className="panel__note">{`${shots.length} used · ${excludedCount} excluded · “–” means the CSV held no value; it is never treated as zero`}</p>
     </section>
   );

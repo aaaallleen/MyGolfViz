@@ -3,7 +3,7 @@ import { Popover } from '@base-ui/react/popover';
 import { displayOrder } from '@fsa/analytics';
 import { useWorkingSet } from '../state/store';
 import { FileBadge } from './FileBadge';
-import { includeAllWithUndo } from './includeAllWithUndo';
+import { includeAllWithUndo } from './bulkWithUndo';
 import { carryText, fileOrdinal, shotLabel } from './shotLabel';
 
 /** Lists every excluded shot in the session: pick one to find it, or include it again. */

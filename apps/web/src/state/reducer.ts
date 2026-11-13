@@ -39,6 +39,7 @@ export type Action =
   | { type: 'setExcluded'; id: string; excluded: boolean }
   | { type: 'excludeAndAdvance'; id: string }
   | { type: 'includeShots'; ids: readonly string[] }
+  | { type: 'excludeShots'; ids: readonly string[] }
   | { type: 'setExcludedKeys'; excluded: ReadonlySet<string> }
   | { type: 'reveal'; id: string }
   | { type: 'setLandingMode'; mode: LandingMode }
@@ -150,6 +151,15 @@ export function reducer(state: StoreState, action: Action): StoreState {
       for (const id of action.ids) {
         const key = keyOfShot(state.workingSet, id);
         if (key !== null) keys.delete(key);
+      }
+      return { ...state, excluded: keys };
+    }
+    case 'excludeShots': {
+      // Like setExcluded, the selection stays where it is.
+      const keys = new Set(state.excluded);
+      for (const id of action.ids) {
+        const key = keyOfShot(state.workingSet, id);
+        if (key !== null) keys.add(key);
       }
       return { ...state, excluded: keys };
     }

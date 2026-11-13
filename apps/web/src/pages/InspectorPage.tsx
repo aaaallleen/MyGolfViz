@@ -8,7 +8,7 @@ import { Club2DTab } from '../components/Club2DTab';
 import { Club3DTab } from '../components/Club3DTab';
 import { HeadTiles } from '../components/HeadTiles';
 import { ImpactTab } from '../components/ImpactTab';
-import { includeAllWithUndo } from '../components/includeAllWithUndo';
+import { includeAllWithUndo } from '../components/bulkWithUndo';
 import { shotLabel } from '../components/shotLabel';
 import { ShotHeader } from '../components/ShotHeader';
 import { usePhone } from '../components/usePhone';

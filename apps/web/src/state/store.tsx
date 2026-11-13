@@ -43,6 +43,8 @@ export interface WorkingSetApi extends StoreState {
    * The undo does nothing once exclusions have changed since.
    */
   includeAll(scope: 'session' | 'filter'): { count: number; undo: () => void } | null;
+  /** Excludes every included shot in the club/file filter (Edit shots). Null when none is left to exclude. */
+  excludeAll(): { count: number; undo: () => void } | null;
   setLandingMode(m: LandingMode): void;
   setInspectorTab(t: InspectorTab): void;
   setClubView3D(v: View3D): void;
@@ -113,14 +115,12 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
   const tableShots = useMemo(() => tableOf({ workingSet, filters }), [workingSet, filters]);
   const excludedIds = useMemo(() => (workingSet ? excludedShotIds(workingSet, excluded) : new Set<string>()), [workingSet, excluded]);
 
-  const includeAll = useCallback((scope: 'session' | 'filter') => {
-    const cur = latest.current;
-    const all = cur.workingSet ? excludedShotIds(cur.workingSet, cur.excluded) : new Set<string>();
-    const ids = scope === 'session' ? [...all] : tableOf(cur).filter((s) => all.has(s.id)).map((s) => s.id);
+  // Applies one bulk change to the exclusion set and returns an undo that works only while nothing has touched the set since.
+  const bulk = useCallback((type: 'includeShots' | 'excludeShots', ids: readonly string[]) => {
     if (ids.length === 0) return null;
+    const cur = latest.current;
     const before = cur.excluded;
-    // The include is computed here too, so the undo can tell whether anything touched the set afterwards.
-    const after = reducer(cur, { type: 'includeShots', ids }).excluded;
+    const after = reducer(cur, { type, ids }).excluded;
     dispatch({ type: 'setExcludedKeys', excluded: after });
     return {
       count: ids.length,
@@ -129,6 +129,12 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       },
     };
   }, []);
+  const includeAll = useCallback((scope: 'session' | 'filter') => {
+    const cur = latest.current;
+    const all = cur.workingSet ? excludedShotIds(cur.workingSet, cur.excluded) : new Set<string>();
+    return bulk('includeShots', scope === 'session' ? [...all] : tableOf(cur).filter((s) => all.has(s.id)).map((s) => s.id));
+  }, [bulk]);
+  const excludeAll = useCallback(() => bulk('excludeShots', visibleOf(latest.current).map((s) => s.id)), [bulk]);
   const value = useMemo<WorkingSetApi>(
     () => ({
       ...state,
@@ -150,13 +156,14 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       excludeAndAdvance: (id) => dispatch({ type: 'excludeAndAdvance', id }),
       reveal: (id) => dispatch({ type: 'reveal', id }),
       includeAll,
+      excludeAll,
       setLandingMode: (mode) => dispatch({ type: 'setLandingMode', mode }),
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),
       setClubMode3D: (mode) => dispatch({ type: 'setClubMode3D', mode }),
     }),
-    [state, visibleShots, tableShots, excludedIds, pending, addFiles, clear, includeAll],
+    [state, visibleShots, tableShots, excludedIds, pending, addFiles, clear, includeAll, excludeAll],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
