@@ -13,8 +13,6 @@ export interface HeadSpec {
   headWidthIn: number;
   headDepthIn: number;
   headHeightIn: number;
-  /** How far below the ground line the sole may sit before the shot is drawn on a tee (inches). */
-  turfIn: number;
   /** blade only: face height at the toe and heel ends, and top-line thickness. */
   toeHeightIn?: number;
   heelHeightIn?: number;
@@ -59,7 +57,6 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headWidthIn: 5.0, // 4.8 in the design table; widened with the rounder body below so the crown flares past the face from above
     headDepthIn: 4.6, // 4.5 in the design table
     headHeightIn: 2.5,
-    turfIn: 0.35,
     exponent: 2.2, // rounder than the 2.5 default: a rounded-triangle planform rather than a squared cup
     planform: { widestAt: 0.38, gain: 1.08, tail: 0.92 }, // broad and deep, widest about 40 % back
     crown: { holdTo: 0.15, drop: 0.4 }, // peaks just behind the face, low trailing edge
@@ -76,7 +73,6 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headWidthIn: 4.4, // 4.2 in the design table; see the driver
     headDepthIn: 3.4,
     headHeightIn: 1.6,
-    turfIn: 0.35,
     exponent: 2.2,
     flatTop: true,
     planform: { widestAt: 0.45, gain: 1.06, tail: 0.85 }, // pear: widest further back, tapering rear
@@ -94,7 +90,6 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headWidthIn: 3.6, // 3.9 in the design table; narrowed so the flat cut gives the full 1.4 in face height
     headDepthIn: 2.3,
     headHeightIn: 1.55,
-    turfIn: 0.35,
     exponent: 3,
     flatTop: true,
     planform: { widestAt: 0.4, gain: 1.04, tail: 0.9 }, // compact
@@ -112,7 +107,6 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headWidthIn: 3.2,
     headDepthIn: 0.7,
     headHeightIn: 2.2,
-    turfIn: 0.75, // played off the turf: an iron takes a divot
     toeHeightIn: 2.2,
     heelHeightIn: 1.2,
     topLineIn: 0.25,

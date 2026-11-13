@@ -35,8 +35,8 @@ export interface ClubScene {
   /** Shows these annotations. With a `key`, the layer is built on first use and reused after. */
   setAnnotations(a: Annotation[], key?: string): void;
   /**
-   * Box around the club head at the impact pose, in scene yards, stretched down to the ground when the ground was
-   * lowered for a tee. Measuring views keep it in frame so a teed or deeply tipped head is never cut off.
+   * Box around the club head at the impact pose, in scene yards. Measuring views keep it in frame so a head that
+   * reaches below the ground or is deeply tipped is never cut off.
    */
   headBounds: { min: Vec3; max: Vec3 };
   dispose(): void;
@@ -121,15 +121,6 @@ function modelMesh(model: THREE.Object3D, name: 'club-head' | 'club-face'): THRE
   const mesh = model.getObjectByName(name);
   if (!(mesh instanceof THREE.Mesh)) throw new Error(`Club model has no mesh named ${name}`);
   return mesh;
-}
-
-/** A thin tee from the lowered ground up to the bottom of the ball. */
-function teeMesh(groundZ: number, ballR: number): THREE.Mesh {
-  const tee = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * ballR, 0.12 * ballR, -groundZ, 16), new THREE.MeshStandardMaterial({ color: '#C9D3CD', roughness: 0.6 }));
-  tee.name = 'tee';
-  tee.rotation.x = Math.PI / 2; // CylinderGeometry stands along y; the tee stands along z
-  tee.position.z = groundZ / 2;
-  return tee;
 }
 
 /** Disposes the GPU resources under `o`, except geometry shared between scenes (club heads). */
@@ -246,15 +237,8 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
     const margin = FACE_MARGIN_IN * IN;
     contact = new THREE.Vector3(0, 0, THREE.MathUtils.clamp(ideal, face.min.z + margin, face.max.z - margin));
   }
-  const minZ = placeAt(contact);
-  // How deep this head's sole may sit in the turf (inches, scaled with the head) before the ball is teed up instead.
-  if (minZ < -model.turfIn * IN * headScale) {
-    // Deeper than a sole brushing the turf: tee the ball up instead. The ground and target line drop to the head's
-    // lowest point, and the ball stays at the origin every angle line is drawn from.
-    ground.position.z = minZ;
-    target.position.z = minZ;
-    root.add(teeMesh(minZ, ballR));
-  }
+  // Nothing adjusts for the ground: a sole below z = 0 is a normal strike into the ground and is drawn that way.
+  placeAt(contact);
 
   holder.updateMatrix();
   const hoselBase = model.hoselBase.clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
@@ -276,7 +260,6 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   // The pivot is still identity here, so this is the impact pose; `precise` follows the vertices, not the tilted box.
   pivot.updateMatrixWorld(true);
   const headBox = new THREE.Box3().setFromObject(headMesh, true);
-  headBox.min.z = Math.min(headBox.min.z, ground.position.z);
   const headBounds = { min: headBox.min.toArray() as Vec3, max: headBox.max.toArray() as Vec3 };
 
   const ball = new THREE.Mesh(new THREE.SphereGeometry(ballR, 32, 20), new THREE.MeshStandardMaterial({ color: '#F4F6F5', roughness: 0.55 }));

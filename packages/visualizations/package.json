@@ -15,9 +15,6 @@
     "@fsa/ui": "*",
     "three": "0.187.0"
   },
-  "devDependencies": {
-    "@fsa/csv-parser": "*"
-  },
   "peerDependencies": {
     "react": "^19.0.0"
   }

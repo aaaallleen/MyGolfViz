@@ -23,8 +23,6 @@ export interface ClubModelData {
   hoselLengthYd: number;
   hoselRadiusYd: number;
   hoselColor: string;
-  /** How far below the ground line the sole may sit before the shot is drawn on a tee, in inches (HeadSpec.turfIn). */
-  turfIn: number;
 }
 
 interface HeadGeometry {
@@ -73,7 +71,6 @@ export function buildClubModel(category: ClubCategory, handedness: Handedness): 
     hoselLengthYd: spec.hosel.lengthIn * IN,
     hoselRadiusYd: spec.hosel.radiusIn * IN,
     hoselColor: finish.hosel,
-    turfIn: spec.turfIn,
   };
   model.userData = data;
 

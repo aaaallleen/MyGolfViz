@@ -95,17 +95,16 @@ describe('ClubViews3D', () => {
     expect(screen.getByText('Club delivery not measured for this shot')).toBeInTheDocument();
   });
 
-  test.each(['right', 'left'] as const)('a teed Driver (35°, high-heel strike, %s) stays inside every measuring view, ground and all', (hand) => {
+  test.each(['right', 'left'] as const)('a Driver below the ground line (35°, high-heel strike, %s) stays inside every measuring view', (hand) => {
     const m = { ...REF_M, dynamicLoft: 35, impactLateral: -0.5, impactVertical: 0.5 };
     const sc = sceneOf(m, hand);
     const s = buildClubScene({ scene: sc, m, club: 'Driver', others: [], headScale: 3, mode: '3d', annotations: [] });
     s.setProgress(0.63);
     s.root.updateMatrixWorld(true);
     const head = new THREE.Box3().setFromObject(s.root.getObjectByName('club-head')!, true);
-    const groundZ = s.root.getObjectByName('ground')!.position.z;
-    expect(groundZ).toBeLessThan(0);
-    // the head's real extremes and the lowered ground under the ball
-    const must = [...boxCorners({ min: head.min.toArray(), max: head.max.toArray() }), [0, 0, groundZ] as [number, number, number]];
+    expect(head.min.z).toBeLessThan(0); // the case that used to clip: the head reaches below the ground
+    // the head's real extremes, its lowest point among them
+    const must = boxCorners({ min: head.min.toArray(), max: head.max.toArray() });
     for (const v of ['dtl', 'faceOn', 'top'] as const) {
       for (const aspect of [1.6, 0.6]) {
         const cam = frameCamera(camera3D(v, sc, m), framePoints(sc, annotations3D(v, sc, m), s.headBounds), aspect);
