@@ -132,11 +132,20 @@ test('face impact: positive y above centre; data-category; no provisional note',
   expect(container.textContent!.toLowerCase()).not.toContain('provisional');
 });
 
-const bboxW = (d: string) => { const xs = [...d.matchAll(/[ML]\s*(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => Number(m[1])); return Math.max(...xs) - Math.min(...xs); };
+/** Bounding box of a path's M/L points. */
+const bbox = (d: string) => {
+  const pts = [...d.matchAll(/[ML]\s*(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])] as const);
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+};
 test.each(['driver', 'wood', 'hybrid', 'iron'] as const)('face impact %s: outline is the spec face at 40 px per inch, centred on the grid centre', (category) => {
   const { container } = render(<FaceImpactDiagram {...face({ category })} />);
-  const d = role(container, 'face-outline')!.getAttribute('d')!;
-  expect(bboxW(d)).toBeCloseTo(HEAD_SPECS[category].faceWidthIn * 40, 0);
+  const b = bbox(role(container, 'face-outline')!.getAttribute('d')!);
+  const spec = HEAD_SPECS[category];
+  expect(b.maxX - b.minX).toBeCloseTo(spec.faceWidthIn * 40, 0);
+  expect(Math.abs((b.minX + b.maxX) / 2 - num(role(container, 'face-center')!, 'x1'))).toBeLessThanOrEqual(0.5);
+  const tall = (spec.kind === 'blade' ? spec.toeHeightIn! : spec.faceHeightIn) * 40;
+  expect(Math.abs(b.maxY - b.minY - tall) / tall).toBeLessThanOrEqual(0.1);
   expect(roles(container, 'score-line')).toHaveLength(scoreLines(HEAD_SPECS[category]).length);
   expect(roles(container, 'body-silhouette')).toHaveLength(category === 'iron' ? 0 : 1);
   expect(roles(container, 'hosel')).toHaveLength(1);
