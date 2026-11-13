@@ -26,7 +26,31 @@ export interface ViewGalleryProps<V extends string> {
   largeOverlay?: ReactNode;
 }
 
-const clampPct = (f: number) => `${Math.round(Math.min(0.96, Math.max(0.04, f)) * 1000) / 10}%`;
+const clamp = (f: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, f));
+const pct = (f: number) => `${Math.round(f * 1000) / 10}%`;
+const MIN_GAP_Y = 0.06;
+const NEAR_X = 0.3;
+const TRANSFORM = { start: 'translate(0, -50%)', middle: 'translate(-50%, -50%)', end: 'translate(-100%, -50%)' } as const;
+
+export interface PlacedLabel extends GalleryLabel { anchor: 'start' | 'middle' | 'end' }
+
+/** Keeps labels inside the slot (anchored toward the nearer edge) and pushes overlapping ones apart vertically. */
+export function layoutLabels(labels: GalleryLabel[]): PlacedLabel[] {
+  const placed = labels.map((l) => ({
+    ...l,
+    x: clamp(l.x, 0.02, 0.98),
+    y: clamp(l.y, 0.04, 0.96),
+    anchor: (l.x < 0.25 ? 'start' : l.x > 0.75 ? 'end' : 'middle') as PlacedLabel['anchor'],
+  }));
+  const byY = [...placed].sort((a, b) => a.y - b.y);
+  for (let i = 0; i < byY.length; i++) {
+    for (let j = 0; j < i; j++) {
+      const a = byY[j]!, b = byY[i]!;
+      if (Math.abs(a.x - b.x) < NEAR_X && b.y - a.y < MIN_GAP_Y) b.y = a.y + MIN_GAP_Y;
+    }
+  }
+  return placed;
+}
 
 export function Badges({ badges }: { badges: Badge[] }) {
   if (badges.length === 0) return null;
@@ -63,8 +87,8 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
                 This view needs WebGL, which this browser doesn't provide. The numbers are below.
               </p>
             )}
-            {webgl && main.labels?.map((l) => (
-              <span key={l.id} className="view-gallery__label" style={{ left: clampPct(l.x), top: clampPct(l.y), color: l.color }}>{l.text}</span>
+            {webgl && layoutLabels(main.labels ?? []).map((l) => (
+              <span key={l.id} className="view-gallery__label" style={{ left: pct(l.x), top: pct(l.y), color: l.color, transform: TRANSFORM[l.anchor] }}>{l.text}</span>
             ))}
             {largeOverlay}
           </div>

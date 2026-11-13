@@ -108,28 +108,29 @@ describe('InspectorPage', () => {
     }
   });
 
-  test('3D tab: Show checkboxes exactly Top view, AoA, V-plane, Side view (checked); the Club data panel has no ball flight', async () => {
+  test('3D tab: a gallery of four views opens on Face-on with Top, Down the line and 3/4 overview as thumbnails; no ball flight', async () => {
     const user = userEvent.setup();
     open();
     await user.click(tab('3D reconstruction'));
-    expect(checks(panel())).toEqual([['Top view', true], ['AoA', true], ['V-plane', true], ['Side view', true]]);
+    const gallery = within(panel()).getByRole('region', { name: '3D club views' });
+    expect(within(gallery.querySelector('.view-gallery__large') as HTMLElement).getByText('Face-on')).toBeInTheDocument();
+    expect(within(gallery).getAllByRole('button', { name: /^Show / }).map((b) => b.getAttribute('aria-label')))
+      .toEqual(['Show Top view', 'Show Down the line view', 'Show 3/4 overview view']);
+    expect(within(panel()).queryByRole('group', { name: 'Show' })).toBeNull();
     expect(panel().querySelector('[data-role="ball-flight"]')).toBeNull();
     expect(within(panel()).getByText('Illustrative reconstruction')).toBeInTheDocument();
   });
 
-  test("3D tab: unchecking Top view / V-plane / Side view removes their elements", async () => {
+  test('3D tab: clicking "Show Top view" makes Top large, and the choice survives Next shot', async () => {
     const user = userEvent.setup();
-    open();
+    const v = open();
     await user.click(tab('3D reconstruction'));
-    expect(within(panel()).getByText('Top view · face to path')).toBeInTheDocument();
-    expect(within(panel()).getByText('Side view · everything')).toBeInTheDocument();
-    expect(panel().querySelector('[data-role="v-plane"]')).not.toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Top view' }));
-    expect(within(panel()).queryByText('Top view · face to path')).toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'V-plane' }));
-    expect(panel().querySelector('[data-role="v-plane"]')).toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Side view' }));
-    expect(within(panel()).queryByText('Side view · everything')).toBeNull();
+    await user.click(within(panel()).getByRole('button', { name: 'Show Top view' }));
+    const largeName = () => (panel().querySelector('.view-gallery__large .view-gallery__name') as HTMLElement).textContent;
+    expect(largeName()).toBe('Top');
+    expect(v.store().clubView3D).toBe('top');
+    act(() => v.store().step(1));
+    expect(largeName()).toBe('Top');
   });
 
   test("File 1 Shot 14, 3D tab: 'Club delivery not measured for this shot'", async () => {

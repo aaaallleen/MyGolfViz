@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
-import { ViewGallery, type GalleryView } from './ViewGallery';
+import { ViewGallery, layoutLabels, type GalleryView } from './ViewGallery';
 
 type V = 'a' | 'b' | 'c' | 'd';
 const views: GalleryView<V>[] = [
@@ -48,11 +48,12 @@ describe('ViewGallery', () => {
     expect(within(region).getAllByRole('button')).toHaveLength(3);
   });
 
-  test('labels are clamped to 4–96 % of the slot', () => {
+  test('labels are clamped inside the slot; one near the right edge is right-anchored', () => {
     const { region } = setup();
     const label = within(region).getByText('Club path 8.3° R', { selector: '.view-gallery__label' });
-    expect(label.style.left).toBe('96%');
+    expect(label.style.left).toBe('98%');
     expect(label.style.top).toBe('4%');
+    expect(label.style.transform).toBe('translate(-100%, -50%)');
   });
 
   test('toolbar and largeOverlay render', () => {
@@ -66,3 +67,20 @@ function cleanupAndRender(large: V) {
   document.body.innerHTML = '';
   render(<ViewGallery<V> label="3D club views" views={views} large={large} onSelect={() => {}} canvasRef={() => {}} webgl />);
 }
+
+describe('layoutLabels', () => {
+  const l = (id: string, x: number, y: number) => ({ id, text: id, color: '#fff', x, y });
+  test('anchors by side: start near the left edge, end near the right edge, middle otherwise', () => {
+    expect(layoutLabels([l('a', 0.1, 0.5), l('b', 0.5, 0.2), l('c', 0.9, 0.8)]).map((x) => x.anchor)).toEqual(['start', 'middle', 'end']);
+  });
+  test('labels that would overlap are pushed apart vertically by at least 0.06', () => {
+    const out = layoutLabels([l('a', 0.3, 0.40), l('b', 0.35, 0.41), l('c', 0.32, 0.42)]);
+    const ys = out.map((x) => x.y).sort((p, q) => p - q);
+    expect(ys[1]! - ys[0]!).toBeGreaterThanOrEqual(0.06 - 1e-9);
+    expect(ys[2]! - ys[1]!).toBeGreaterThanOrEqual(0.06 - 1e-9);
+  });
+  test('labels far apart horizontally keep their own heights', () => {
+    const out = layoutLabels([l('a', 0.1, 0.4), l('b', 0.8, 0.41)]);
+    expect(out.map((x) => x.y)).toEqual([0.4, 0.41]);
+  });
+});

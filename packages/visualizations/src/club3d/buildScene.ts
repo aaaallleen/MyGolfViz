@@ -29,7 +29,8 @@ export interface ClubScene {
   setProgress(p: number): void;
   setShowOthers(on: boolean): void;
   setPlaneVisible(on: boolean): void;
-  setAnnotations(a: Annotation[]): void;
+  /** Shows these annotations. With a `key`, the layer is built on first use and reused after. */
+  setAnnotations(a: Annotation[], key?: string): void;
   dispose(): void;
 }
 
@@ -176,6 +177,10 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   holder.position.copy(yAxis).multiplyScalar(-ballR); // face touches the back of the ball
   holder.add(head);
   club.add(holder);
+  // Sit the sole on the ground: lift the head so its lowest point is at z = 0.
+  holder.updateMatrixWorld(true);
+  const bottom = new THREE.Box3().setFromObject(head.getObjectByName('club-head')!).min.z;
+  holder.position.z -= bottom;
 
   holder.updateMatrix();
   head.updateMatrix();
@@ -195,14 +200,27 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
 
   const ball = new THREE.Mesh(new THREE.SphereGeometry(ballR, 32, 20), new THREE.MeshStandardMaterial({ color: '#F4F6F5', roughness: 0.55 }));
   ball.name = 'ball';
+  ball.position.z = ballR; // resting on the ground
   root.add(ball);
 
   const annotations = new THREE.Group();
   annotations.name = 'annotations';
   root.add(annotations);
-  const setAnnotations = (list: Annotation[]) => {
-    for (const c of [...annotations.children]) { annotations.remove(c); disposeTree(c); }
-    for (const a of list) { const o = annotationObject(a, dash); if (o) annotations.add(o); }
+  // Each key's layer is built once and then only shown or hidden, so swapping views per frame is cheap.
+  const setAnnotations = (list: Annotation[], key?: string) => {
+    const name = `layer:${key ?? ''}`;
+    let layer = key === undefined ? undefined : annotations.getObjectByName(name);
+    if (!layer) {
+      if (key === undefined) {
+        const old = annotations.getObjectByName(name);
+        if (old) { annotations.remove(old); disposeTree(old); }
+      }
+      layer = new THREE.Group();
+      layer.name = name;
+      for (const a of list) { const o = annotationObject(a, dash); if (o) layer.add(o); }
+      annotations.add(layer);
+    }
+    for (const c of annotations.children) c.visible = c === layer;
   };
   setAnnotations(input.annotations);
 

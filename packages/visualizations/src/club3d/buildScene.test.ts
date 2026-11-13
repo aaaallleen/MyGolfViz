@@ -34,11 +34,23 @@ describe('buildClubScene', () => {
     const s = buildClubScene(input());
     s.setProgress(0.63);
     s.root.updateMatrixWorld(true);
-    expect(worldOf(named(s.root, 'club-face-centre')!).length()).toBeLessThan(0.1);
+    expect(worldOf(named(s.root, 'club-face-centre')!).length()).toBeLessThan(0.15);
     s.setProgress(0);
     s.root.updateMatrixWorld(true);
     const a0 = new THREE.Vector3(...scene.clubArc![0]!);
-    expect(worldOf(named(s.root, 'club-face-centre')!).distanceTo(a0)).toBeLessThan(0.1);
+    expect(worldOf(named(s.root, 'club-face-centre')!).distanceTo(a0)).toBeLessThan(0.15);
+    s.dispose();
+  });
+
+  test.each(['7 Iron', 'Driver', '4 Hybrid'])('%s at impact: the ball rests on the ground and the head sole sits on it', (club) => {
+    const s = buildClubScene(input({ club }));
+    s.setProgress(0.63);
+    s.root.updateMatrixWorld(true);
+    const ball = named(s.root, 'ball')!;
+    const r = ((ball as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius;
+    expect(worldOf(ball).z).toBeCloseTo(r, 6);
+    const head = new THREE.Box3().setFromObject(named(s.root, 'club-head')!);
+    expect(head.min.z).toBeCloseTo(0, 3);
     s.dispose();
   });
 
@@ -61,12 +73,34 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test('setAnnotations replaces the annotation children', () => {
+  const visibleNames = (root: THREE.Object3D) => {
+    const out: string[] = [];
+    const walk = (o: THREE.Object3D) => { if (!o.visible) return; out.push(o.name); o.children.forEach(walk); };
+    walk(named(root, 'annotations')!);
+    return out;
+  };
+
+  test('setAnnotations replaces the annotations', () => {
     const s = buildClubScene(input());
     s.setAnnotations(annotations3D('dtl', scene, REF_M));
-    const kids = named(s.root, 'annotations')!.children.map((c) => c.name);
-    expect(kids.some((n) => n.startsWith('vplane'))).toBe(true);
-    expect(kids.some((n) => n.startsWith('path'))).toBe(false);
+    const names = visibleNames(s.root);
+    expect(names).toContain('vplane');
+    expect(names).not.toContain('path');
+    s.dispose();
+  });
+
+  test('setAnnotations with a key builds each layer once and shows only that layer', () => {
+    const s = buildClubScene(input({ annotations: [] }));
+    s.setAnnotations(annotations3D('top', scene, REF_M), 'top');
+    const topLayer = named(s.root, 'annotations')!.getObjectByName('layer:top')!;
+    expect(topLayer).toBeDefined();
+    s.setAnnotations(annotations3D('dtl', scene, REF_M), 'dtl');
+    expect(visibleNames(s.root)).toContain('vplane');
+    expect(visibleNames(s.root)).not.toContain('path');
+    s.setAnnotations(annotations3D('top', scene, REF_M), 'top');
+    expect(named(s.root, 'annotations')!.getObjectByName('layer:top')).toBe(topLayer);
+    expect(visibleNames(s.root)).toContain('path');
+    expect(visibleNames(s.root)).not.toContain('vplane');
     s.dispose();
   });
 
@@ -87,7 +121,7 @@ describe('buildClubScene', () => {
     s.setProgress(0.2);
     s.root.updateMatrixWorld(true);
     expect(named(s.root, 'arc')!.children).toHaveLength(0);
-    expect(worldOf(named(s.root, 'club-face-centre')!).length()).toBeLessThan(0.1);
+    expect(worldOf(named(s.root, 'club-face-centre')!).length()).toBeLessThan(0.15);
     s.dispose();
   });
 

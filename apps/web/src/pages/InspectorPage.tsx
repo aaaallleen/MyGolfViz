@@ -38,6 +38,12 @@ export function InspectorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scenes, shot?.id],
   );
+  // The 3D club views' "All shots" overlay compares against the same club only.
+  const sameClub = useMemo(
+    () => visibleShots.filter((s) => s.id !== shot?.id && s.club === shot?.club).map((s) => scenes.get(s.id)!),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scenes, shot?.id, shot?.club],
+  );
 
   const { select } = ws;
   useEffect(() => {
@@ -68,7 +74,7 @@ export function InspectorPage() {
           <TabList label="Club data view" tabs={TABS.map((t) => ({ id: t.id, label: phone ? t.short : t.label }))} />
         </div>
         <TabPanel value="impact"><ImpactTab shot={shot} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
-        <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} /></TabPanel>
+        <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} others={sameClub} /></TabPanel>
         <TabPanel value="2d"><Club2DTab shot={shot} visibleShots={visibleShots} /></TabPanel>
       </Tabs>
       <ProvenanceLegend />

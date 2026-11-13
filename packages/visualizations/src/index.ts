@@ -12,3 +12,4 @@ export { clubCamera, flightCamera, planeQuad, projectPoint, type Camera, type Ca
 export { ClubReplay3D, type ClubReplay3DProps } from './ClubReplay3D';
 export { BallFlight3D, type BallFlight3DProps } from './BallFlight3D';
 export { useReplayClock, ReplayControls, type ReplayClock } from './ReplayControls';
+export * from './club3d';
