@@ -14,4 +14,14 @@ describe('resolveDataDir', () => {
       path.join('/Users/x/Library/Application Support', 'MyGolfViz'),
     );
   });
+
+  it('resolves a relative MYGOLFVIZ_DATA_DIR against the working directory', () => {
+    const r = resolveDataDir({ MYGOLFVIZ_DATA_DIR: 'golf-data' }, '/Users/x/Library/Application Support');
+    expect(path.isAbsolute(r)).toBe(true);
+    expect(r).toBe(path.resolve(process.cwd(), 'golf-data'));
+  });
+
+  it('always returns an absolute path', () => {
+    expect(path.isAbsolute(resolveDataDir({}, 'Library/Application Support'))).toBe(true);
+  });
 });

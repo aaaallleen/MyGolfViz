@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, screen, session, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, screen, session, shell, type IpcMainInvokeEvent } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,16 +42,43 @@ let quitState: 'running' | 'stopping' | 'done' = 'running';
 
 app.setName(APP_NAME);
 const dataDir = resolveDataDir(process.env, app.getPath('appData'));
-app.setPath('userData', path.join(dataDir, 'electron'));
+const userDataDir = path.join(dataDir, 'electron');
 const logsDir = path.join(dataDir, 'logs');
-const windowStateFile = path.join(app.getPath('userData'), 'window-state.json');
+const windowStateFile = path.join(userDataDir, 'window-state.json');
 
-if (!app.requestSingleInstanceLock()) {
-  // Another instance owns this data folder; it focuses its window on 'second-instance'.
-  app.quit();
-} else {
-  run(openDesktopLog(path.join(logsDir, 'mygolfviz-desktop.log')));
+const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+/** Startup failed before the window and logs exist: the error page cannot work, so use a native dialog. */
+function failStartup(reason: string): void {
+  console.error(`MyGolfViz couldn't start: ${reason}`);
+  dialog.showErrorBox("MyGolfViz couldn't start", reason);
+  app.exit(1);
 }
+
+function main(): void {
+  try {
+    fs.mkdirSync(userDataDir, { recursive: true });
+    app.setPath('userData', userDataDir);
+  } catch (err) {
+    failStartup(`The data folder ${dataDir} could not be created: ${errorMessage(err)}`);
+    return;
+  }
+  if (!app.requestSingleInstanceLock()) {
+    // Another instance owns this data folder; it focuses its window on 'second-instance'.
+    app.quit();
+    return;
+  }
+  let log: DesktopLog;
+  try {
+    log = openDesktopLog(path.join(logsDir, 'mygolfviz-desktop.log'));
+  } catch (err) {
+    failStartup(`The logs folder ${logsDir} could not be created: ${errorMessage(err)}`);
+    return;
+  }
+  run(log);
+}
+
+main();
 
 function run(log: DesktopLog): void {
   log.write(`app starting (version ${app.getVersion()}, ${app.isPackaged ? 'packaged' : 'development'})`);
@@ -83,7 +110,7 @@ function run(log: DesktopLog): void {
           : w.loadURL(next.url);
     load.catch((err: unknown) => {
       // A load superseded by the next one rejects with ERR_ABORTED; the log redacts any token.
-      log.write(`window load failed: ${err instanceof Error ? err.message : String(err)}`);
+      log.write(`window load failed: ${errorMessage(err)}`);
     });
   }
 
@@ -134,7 +161,7 @@ function run(log: DesktopLog): void {
         const detail = err.kind === 'failed' ? proc.stderrTail.slice(-DETAIL_LINES).join('\n') : undefined;
         showError(err.kind, detail);
       } else {
-        log.write(`backend failed to start: ${err instanceof Error ? err.message : String(err)}`);
+        log.write(`backend failed to start: ${errorMessage(err)}`);
         showError('failed');
       }
     }
@@ -168,7 +195,7 @@ function run(log: DesktopLog): void {
   const openDataFolder = () => openFolder(dataDir);
   const openLogs = () => openFolder(logsDir);
   const fromMenu = (action: () => Promise<void>) => () => {
-    action().catch((err: unknown) => log.write(`menu action failed: ${err instanceof Error ? err.message : String(err)}`));
+    action().catch((err: unknown) => log.write(`menu action failed: ${errorMessage(err)}`));
   };
 
   function guardNavigation(event: { preventDefault(): void }, url: string): void {
@@ -176,7 +203,9 @@ function run(log: DesktopLog): void {
     if (decision === 'allow') return;
     event.preventDefault();
     if (decision === 'external') {
-      void shell.openExternal(url);
+      shell.openExternal(url).catch((err: unknown) => {
+        log.write(`could not open ${describeUrl(url)} in the browser: ${errorMessage(err)}`);
+      });
     } else {
       log.write(`blocked navigation to ${describeUrl(url)}`);
     }
@@ -202,6 +231,7 @@ function run(log: DesktopLog): void {
     });
     w.once('ready-to-show', () => w.show());
     w.webContents.on('will-navigate', (event) => guardNavigation(event, event.url));
+    w.webContents.on('will-redirect', (event) => guardNavigation(event, event.url));
     w.webContents.setWindowOpenHandler(({ url }) => {
       guardNavigation({ preventDefault: () => {} }, url);
       return { action: 'deny' };
@@ -212,7 +242,7 @@ function run(log: DesktopLog): void {
       try {
         saveWindowState(windowStateFile, w.getNormalBounds());
       } catch (err) {
-        log.write(`could not save window state: ${err instanceof Error ? err.message : String(err)}`);
+        log.write(`could not save window state: ${errorMessage(err)}`);
       }
     });
     w.on('closed', () => {
@@ -266,7 +296,7 @@ function run(log: DesktopLog): void {
         await proc?.stop(STOP_TIMEOUT_MS);
         await pendingRestart;
       } catch (err) {
-        log.write(`error while stopping backend: ${err instanceof Error ? err.message : String(err)}`);
+        log.write(`error while stopping backend: ${errorMessage(err)}`);
       }
       backendPid = null;
       log.write('backend stopped; quitting');
@@ -282,11 +312,12 @@ function run(log: DesktopLog): void {
   });
 
   app.on('activate', () => {
-    if (quitState === 'running' && !win) createWindow();
+    if (app.isReady() && quitState === 'running' && !win) createWindow();
   });
 
   void app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    session.defaultSession.setPermissionCheckHandler(() => false);
     Menu.setApplicationMenu(
       Menu.buildFromTemplate(buildMenuTemplate({
           appName: APP_NAME,
