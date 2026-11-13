@@ -5,7 +5,13 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { WorkingSetProvider } from '../state/store';
 import type { SessionRow } from './api';
 
-vi.mock('./api', () => ({ listSessions: vi.fn(), deleteSession: vi.fn() }));
+vi.mock('./api', () => ({
+  listSessions: vi.fn(),
+  deleteSession: vi.fn(),
+  ApiError: class ApiError extends Error {
+    constructor(public status: number, detail: string) { super(detail); }
+  },
+}));
 import * as api from './api';
 import { LibraryPage } from './LibraryPage';
 import { todayLocal } from './library';
@@ -32,6 +38,26 @@ function renderPage(path = '/sessions') {
 beforeEach(() => {
   vi.mocked(api.listSessions).mockReset().mockResolvedValue([old, recent]);
   vi.mocked(api.deleteSession).mockReset().mockResolvedValue(undefined);
+});
+
+describe('load failure', () => {
+  test('a failed load says so and Retry loads the list', async () => {
+    vi.mocked(api.listSessions).mockReset().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue([old, recent]);
+    renderPage();
+    expect(await screen.findByText("Couldn't load your sessions")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('2 sessions · 119 shots · 5 source files')).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load your sessions")).toBeNull();
+    expect(api.listSessions).toHaveBeenCalledTimes(2);
+  });
+
+  test('a 401 is left to the sign-in hint', async () => {
+    vi.mocked(api.listSessions).mockReset().mockRejectedValue(new api.ApiError(401, 'no'));
+    renderPage();
+    await waitFor(() => expect(api.listSessions).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByText("Couldn't load your sessions")).toBeNull();
+  });
 });
 
 describe('list', () => {

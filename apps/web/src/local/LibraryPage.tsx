@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { toast } from 'sonner';
-import { EmptyState, SegmentedControl, SelectField } from '@fsa/ui';
+import { Button, EmptyState, SegmentedControl, SelectField } from '@fsa/ui';
 import * as api from './api';
 import type { SessionRow } from './api';
 import { filterSessions, sortSessions, type LibrarySort } from './library';
@@ -19,6 +18,8 @@ const SORTS: { value: LibrarySort; label: string }[] = [
 
 export function LibraryPage() {
   const [rows, setRows] = useState<SessionRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<LibrarySort>('date-desc');
   const [params, setParams] = useSearchParams();
@@ -26,18 +27,30 @@ export function LibraryPage() {
 
   useEffect(() => {
     let live = true;
+    setFailed(false);
     api.listSessions().then(
       (r) => { if (live) setRows(r); },
       (e: unknown) => {
         // A 401 is shown by the app shell as the sign-in hint.
-        if (live && !(e instanceof api.ApiError && e.status === 401)) toast.error(e instanceof Error ? e.message : 'Could not load sessions.');
+        if (live && !(e instanceof api.ApiError && e.status === 401)) setFailed(true);
       },
     );
     return () => { live = false; };
-  }, []);
+  }, [attempt]);
 
   const shown = useMemo(() => sortSessions(filterSessions(rows ?? [], query), sort), [rows, query, sort]);
-  if (rows === null) return null;
+  if (rows === null) {
+    if (!failed) return null;
+    return (
+      <div className="library">
+        <EmptyState
+          title="Couldn't load your sessions"
+          body="Check that MyGolfViz is still running, then retry."
+          action={<Button variant="primary" onClick={() => setAttempt((n) => n + 1)}>Retry</Button>}
+        />
+      </div>
+    );
+  }
 
   if (rows.length === 0) {
     return (
