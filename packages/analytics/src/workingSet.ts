@@ -16,9 +16,26 @@ export function displayOrder(shots: readonly Shot[]): Shot[] {
   return [...groups.values()].flat();
 }
 
-export function clubCounts(shots: readonly Shot[]): { club: string; count: number }[] {
+/** Content-based key for a shot: survives re-import, unlike the shot id. */
+export function exclusionKey(sha256: string, sourceRow: number): string {
+  return `${sha256}:${sourceRow}`;
+}
+
+/** Ids of the shots in `ws` whose exclusion key is in `excluded`. */
+export function excludedShotIds(ws: WorkingSet, excluded: ReadonlySet<string>): Set<string> {
+  const sha = new Map(ws.files.map((f) => [f.id, f.sha256]));
+  const ids = new Set<string>();
+  for (const s of ws.shots) {
+    const h = sha.get(s.fileId);
+    if (h !== undefined && excluded.has(exclusionKey(h, s.sourceRow))) ids.add(s.id);
+  }
+  return ids;
+}
+
+/** Counts included shots only; a club whose shots are all excluded stays, with count 0. */
+export function clubCounts(shots: readonly Shot[], excludedIds: ReadonlySet<string> = new Set()): { club: string; count: number }[] {
   const counts = new Map<string, number>();
-  for (const s of shots) counts.set(s.club, (counts.get(s.club) ?? 0) + 1);
+  for (const s of shots) counts.set(s.club, (counts.get(s.club) ?? 0) + (excludedIds.has(s.id) ? 0 : 1));
   return [...counts].map(([club, count]) => ({ club, count }));
 }
 
@@ -38,4 +55,31 @@ export function selectionPosition(selectedId: string | null, visible: readonly S
   if (selectedId === null) return null;
   const i = visible.findIndex((s) => s.id === selectedId);
   return i < 0 ? null : { index: i + 1, total: visible.length };
+}
+
+/** Nearest included shot strictly after/before `selectedId` in table order (which includes excluded shots). */
+export function stepAround(
+  selectedId: string | null, ordered: readonly Shot[], excludedIds: ReadonlySet<string>, delta: 1 | -1,
+): string | null {
+  const included = (s: Shot) => !excludedIds.has(s.id);
+  const first = ordered.find(included)?.id ?? null;
+  const i = selectedId === null ? -1 : ordered.findIndex((s) => s.id === selectedId);
+  if (i < 0) return first;
+  const scan = (dir: 1 | -1): string | null => {
+    for (let j = i + dir; j >= 0 && j < ordered.length; j += dir) if (included(ordered[j]!)) return ordered[j]!.id;
+    return null;
+  };
+  const ahead = scan(delta);
+  if (ahead !== null) return ahead;
+  if (included(ordered[i]!)) return ordered[i]!.id;
+  return scan(delta === 1 ? -1 : 1);
+}
+
+/** After excluding `id` (already in `excludedIds`): next included shot, else previous, else null. */
+export function nextAfterExclude(id: string, ordered: readonly Shot[], excludedIds: ReadonlySet<string>): string | null {
+  const i = ordered.findIndex((s) => s.id === id);
+  if (i < 0) return null;
+  for (let j = i + 1; j < ordered.length; j++) if (!excludedIds.has(ordered[j]!.id)) return ordered[j]!.id;
+  for (let j = i - 1; j >= 0; j--) if (!excludedIds.has(ordered[j]!.id)) return ordered[j]!.id;
+  return null;
 }
