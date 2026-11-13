@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
+import { Route, Routes, useLocation } from 'react-router';
 import { AppRoutes } from '../routes';
 import { WorkingSetProvider, useWorkingSet } from '../state/store';
 
@@ -219,5 +220,98 @@ describe('LoadPage', () => {
     expect(await screen.findByText('Only .csv files can be loaded')).toBeInTheDocument();
     expect(screen.getByText('Skipped notes.pdf')).toBeInTheDocument();
     expect(await screen.findByText('1 file · 16 shots ready')).toBeInTheDocument();
+  });
+});
+
+describe('LoadPage in local mode', () => {
+  const commitImport = vi.fn();
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+    commitImport.mockReset();
+  });
+
+  /** The lazy local pieces are chosen at module load, so build the page after stubbing the mode. */
+  async function setupLocal() {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    vi.resetModules();
+    vi.doMock('../local/api', () => ({
+      listSessions: vi.fn().mockResolvedValue([]),
+      checkImports: vi.fn().mockResolvedValue({ results: [] }),
+      commitImport,
+      ApiError: class extends Error {},
+    }));
+    const { LoadPage } = await import('./LoadPage');
+    const { WorkingSetProvider, useWorkingSet } = await import('../state/store');
+    let local: ReturnType<typeof useWorkingSet> | null = null;
+    const Where = () => {
+      local = useWorkingSet();
+      return <div data-testid="where">{useLocation().pathname}</div>;
+    };
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/import']}>
+        <WorkingSetProvider>
+          <Routes>
+            <Route path="/import" element={<LoadPage />} />
+            <Route path="*" element={<Where />} />
+          </Routes>
+        </WorkingSetProvider>
+      </MemoryRouter>,
+    );
+    const input = () => screen.getByLabelText('Load Session CSV', { selector: 'input' });
+    return { user, input, ws: () => local! };
+  }
+
+  test('shows the destination block and local buttons, not the public extras', async () => {
+    await setupLocal();
+    expect(await screen.findByRole('radio', { name: 'New session' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear files' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import files' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Analyze files' })).toBeNull();
+    expect(screen.queryByText(/Run Local App/)).toBeNull();
+    expect(screen.queryByText('Session details')).toBeNull();
+  });
+
+  test('Import files is disabled while the new-session name is blank', async () => {
+    const { user, input } = await setupLocal();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    const btn = await screen.findByRole('button', { name: 'Import files' });
+    expect(btn).toBeDisabled();
+    await user.type(screen.getByLabelText(/^Session name/), 'Range day');
+    expect(btn).toBeEnabled();
+  });
+
+  test('a successful commit clears the staged list and opens the result', async () => {
+    const response = { session: { id: 's9', name: 'Range day' }, results: [] };
+    commitImport.mockResolvedValue(response);
+    const { user, input, ws } = await setupLocal();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    await user.type(await screen.findByLabelText(/^Session name/), 'Range day');
+    await user.click(screen.getByRole('button', { name: 'Import files' }));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/import/result'));
+    expect(ws().staged).toEqual([]);
+    expect(commitImport).toHaveBeenCalledTimes(1);
+    const [manifest, files] = commitImport.mock.calls[0]!;
+    expect(manifest.destination.newSession.name).toBe('Range day');
+    expect(manifest.files[0]).toMatchObject({ field: 'file0', acceptCrossSessionDuplicate: false });
+    expect(files[0].file).toBeInstanceOf(File);
+  });
+
+  test('Import files stays disabled while a commit runs and a failure is not retried', async () => {
+    let reject!: (e: Error) => void;
+    commitImport.mockReturnValue(new Promise((_, rej) => { reject = rej; }));
+    const { user, input } = await setupLocal();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    await user.type(await screen.findByLabelText(/^Session name/), 'Range day');
+    const btn = screen.getByRole('button', { name: 'Import files' });
+    await user.click(btn);
+    expect(btn).toBeDisabled();
+    reject(new Error('boom'));
+    await waitFor(() => expect(btn).toBeEnabled());
+    expect(commitImport).toHaveBeenCalledTimes(1);
   });
 });

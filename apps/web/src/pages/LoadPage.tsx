@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from 'react';
+import { lazy, Suspense, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { SessionDetails } from '@fsa/domain';
@@ -10,6 +10,16 @@ import { SessionDetailsForm } from '../components/SessionDetailsForm';
 import { useAppPaths } from '../paths';
 import { REPO_URL } from '../mode';
 import { useWorkingSet } from '../state/store';
+import type { ImportDestinationValue } from '../local/ImportDestination';
+
+// Local-only code is reached through this inline comparison so the public build drops it entirely.
+const LOCAL = import.meta.env.VITE_APP_MODE === 'local';
+const ImportDestination = import.meta.env.VITE_APP_MODE === 'local'
+  ? lazy(() => import('../local/ImportDestination').then((m) => ({ default: m.ImportDestination })))
+  : null;
+const ImportActions = import.meta.env.VITE_APP_MODE === 'local'
+  ? lazy(() => import('../local/ImportDestination').then((m) => ({ default: m.ImportActions })))
+  : null;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -20,6 +30,7 @@ export function LoadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLButtonElement>(null);
   const undoToast = useRef<string | number | null>(null);
+  const [dest, setDest] = useState<ImportDestinationValue>({ newSession: { name: '', date: '', notes: '', handedness: 'right' }, accept: {} });
 
   const included = ws.staged.filter((f) => f.include && f.parse.ok);
   const shotCount = included.reduce((n, f) => n + f.parse.shots.length, 0);
@@ -63,14 +74,20 @@ export function LoadPage() {
         onFiles={addFiles}
         onReject={(files) => toast.warning('Only .csv files can be loaded', { description: `Skipped ${files.map((f) => f.name).join(', ')}` })}
       />
-      <PrivacyNotice />
-      <p><a className="load-page__local" href={`${REPO_URL}#local-app`}>Want saved history? Run Local App</a></p>
+      {LOCAL && ImportDestination ? (
+        <Suspense fallback={null}><ImportDestination staged={ws.staged} value={dest} onChange={setDest} /></Suspense>
+      ) : (
+        <>
+          <PrivacyNotice />
+          <p><a className="load-page__local" href={`${REPO_URL}#local-app`}>Want saved history? Run Local App</a></p>
 
-      <section className="load-page__details" aria-labelledby="details-h">
-        <h2 id="details-h">Session details</h2>
-        <SessionDetailsForm value={ws.details} onChange={setDetails} />
-        <p className="load-page__helper">Set by you. File names and CSV contents are never used for the name or date. Kept in this tab only.</p>
-      </section>
+          <section className="load-page__details" aria-labelledby="details-h">
+            <h2 id="details-h">Session details</h2>
+            <SessionDetailsForm value={ws.details} onChange={setDetails} />
+            <p className="load-page__helper">Set by you. File names and CSV contents are never used for the name or date. Kept in this tab only.</p>
+          </section>
+        </>
+      )}
 
       <section className="load-page__files">
         <div className="load-page__files-head">
@@ -84,17 +101,23 @@ export function LoadPage() {
       <section className="load-page__footer">
         <div className="load-page__summary">{`${plural(included.length, 'file', 'files')} · ${plural(shotCount, 'shot', 'shots')} ready`}</div>
         <div className="load-page__actions">
-          <Button onClick={clear}>Clear analysis</Button>
-          <Button
-            variant="primary"
-            disabled={shotCount === 0}
-            onClick={() => {
-              ws.analyze();
-              navigate(paths.overview);
-            }}
-          >
-            Analyze files
-          </Button>
+          {LOCAL && ImportActions ? (
+            <Suspense fallback={null}><ImportActions dest={dest} shotCount={shotCount} /></Suspense>
+          ) : (
+            <>
+              <Button onClick={clear}>Clear analysis</Button>
+              <Button
+                variant="primary"
+                disabled={shotCount === 0}
+                onClick={() => {
+                  ws.analyze();
+                  navigate(paths.overview);
+                }}
+              >
+                Analyze files
+              </Button>
+            </>
+          )}
         </div>
       </section>
     </div>

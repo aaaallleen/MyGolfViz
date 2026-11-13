@@ -3,13 +3,12 @@ import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@fsa/ui';
 import { AppShell } from '../layout/AppShell';
 import { HelpPage } from '../pages/HelpPage';
+import { LoadPage } from '../pages/LoadPage';
 import { listSessions, UNAUTHORISED_EVENT } from './api';
+import { ImportResultPage } from './ImportResultPage';
 import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
 import { useSessionSync } from './useSessionSync';
-
-// Placeholders: the import and inspector pages arrive in later tasks.
-const Placeholder = ({ title }: { title: string }) => <h1>{title}</h1>;
 
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
@@ -39,8 +38,8 @@ export default function LocalRoutes() {
         <Route path="/sessions" element={<LibraryPage />} />
         <Route path="/sessions/:id" element={<SessionRoute page="overview" />} />
         <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
-        <Route path="/import" element={<Placeholder title="Load Session CSV" />} />
-        <Route path="/import/result" element={<Placeholder title="Import result" />} />
+        <Route path="/import" element={<LoadPage />} />
+        <Route path="/import/result" element={<ImportResultPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="*" element={<Navigate to="/sessions" replace />} />
       </Routes>
