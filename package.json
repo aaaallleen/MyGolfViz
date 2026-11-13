@@ -26,7 +26,9 @@
     "api:types": "uv run --project apps/api python -m mygolfviz_api.openapi_dump > apps/web/src/local/openapi.json && npx openapi-typescript apps/web/src/local/openapi.json -o apps/web/src/local/api-types.ts",
     "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local",
     "e2e:local": "playwright test -c playwright.local.config.ts",
-    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local"
+    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local",
+    "desktop:prep": "npm run build:local && uv sync --project apps/api && npm run build -w @fsa/desktop",
+    "desktop:dev": "npm run desktop:prep && electron apps/desktop"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
