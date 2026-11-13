@@ -170,8 +170,8 @@ FTT, Dynamic Loft, Swing V, Swing H, AOA, Club Path, Low Point, Lateral Impact, 
 | AOA, club path, low point | already drive the arc the head travels along; unchanged | unchanged |
 
 Both impact values are needed to shift the head; if either is missing the strike counts as
-unmeasured. (Forcing face-centre contact when the height is unknown would lift every iron onto a
-tee, because a ball on the ground meets a lofted face below its centre.) A head with no face angle and no loft therefore lies flat, square, soled, at static loft:
+unmeasured. (Forcing face-centre contact when the height is unknown would push every iron's sole
+below the ground line, because a ball on the ground meets a lofted face below its centre.) A head with no face angle and no loft therefore lies flat, square, soled, at static loft:
 the "lay it flat" case. Labels and badges still never show a value that was not measured.
 
 Ground and ball. The ball rests on the ground and never moves; the head is placed against it.
@@ -270,5 +270,5 @@ These were decided during the build and replace earlier wording where they diffe
 - **Hosel.** Drawn by the scene along the shaft direction from the model's hosel base.
 - **Framing.** `cameras.ts` is unchanged, but the 3D measuring views now also keep the club
   head's box in frame, so a head below the ground line is not cut off.
-- **Tuning after the visual check.** Black finish lightened to `#262B31`; driver body 5.0 × 4.6 in
+- **Tuning after the visual check.** Black finish drawn as dark graphite `#4A525B` (hosel `#3A4149`) after the user found the head too close to the background; driver body 5.0 × 4.6 in
   and wood 4.4 in wide before the warp; hybrid 3.6 in wide; iron score-line spacing 0.13 in.

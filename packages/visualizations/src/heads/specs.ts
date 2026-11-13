@@ -38,11 +38,12 @@ export interface HeadSpec {
 }
 
 const BLACK_FINISH: HeadSpec['finish'] = {
-  // lightened from #1B1F23 / #15191C so the body and hosel stand off the #101714 surface (3D and Face impact)
-  body: '#262B31',
+  // A dark graphite rather than true black: black disappears into the #101714 surface in the 3D views
+  // and the Face impact drawing. The gloss highlight still reads as a black-finished head.
+  body: '#4A525B',
   face: '#AEB7BF',
   lines: '#2B3036',
-  hosel: '#22272C',
+  hosel: '#3A4149',
   metalness: 0.3,
   roughness: 0.18,
 };
