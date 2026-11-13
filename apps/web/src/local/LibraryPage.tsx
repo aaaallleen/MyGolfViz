@@ -1,29 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Button, EmptyState, SegmentedControl, SelectField } from '@fsa/ui';
+import { Button, EmptyState, SegmentedControl } from '@fsa/ui';
 import * as api from './api';
 import type { SessionRow } from './api';
-import { filterSessions, sortSessions, type LibrarySort } from './library';
+import { DEFAULT_SORT, filterSessions, nextSort, readSort, sortSessions, type SortColumn } from './library';
 import { LibraryCalendar } from './LibraryCalendar';
 import { LibraryList } from './LibraryList';
-
-const SORTS: { value: LibrarySort; label: string }[] = [
-  { value: 'date-desc', label: 'Session date · newest first' },
-  { value: 'date-asc', label: 'Session date · oldest first' },
-  { value: 'shots-desc', label: 'Number of shots · most first' },
-  { value: 'shots-asc', label: 'Number of shots · fewest first' },
-  { value: 'name-asc', label: 'Session name · A to Z' },
-  { value: 'name-desc', label: 'Session name · Z to A' },
-];
 
 export function LibraryPage() {
   const [rows, setRows] = useState<SessionRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<LibrarySort>('date-desc');
   const [params, setParams] = useSearchParams();
   const view = params.get('view') === 'calendar' ? 'calendar' : 'list';
+  // In the URL, like the view, so a reload or Back from a session keeps the order.
+  const sort = readSort(params.get('sort'));
 
   useEffect(() => {
     let live = true;
@@ -68,6 +60,13 @@ export function LibraryPage() {
   const files = rows.reduce((n, r) => n + r.fileCount, 0);
   const setView = (v: 'list' | 'calendar') =>
     setParams((p) => { const next = new URLSearchParams(p); if (v === 'calendar') next.set('view', 'calendar'); else next.delete('view'); return next; });
+  const sortBy = (column: SortColumn) =>
+    setParams((p) => {
+      const next = new URLSearchParams(p);
+      const s = nextSort(sort, column);
+      if (s === DEFAULT_SORT) next.delete('sort'); else next.set('sort', s);
+      return next;
+    }, { replace: true });
 
   return (
     <div className="library">
@@ -81,7 +80,8 @@ export function LibraryPage() {
             <label htmlFor="library-search">Find a session</label>
             <input id="library-search" type="search" className="field__input fsa-touch" placeholder="Name, club or note" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
-          {view === 'list' && <SelectField label="Sort by" value={sort} options={SORTS} onChange={(v) => setSort(v as LibrarySort)} />}
+        </div>
+        <div className="library__view">
           <SegmentedControl
             label="View"
             value={view}
@@ -94,7 +94,7 @@ export function LibraryPage() {
         ? <LibraryCalendar rows={shown} />
         : shown.length === 0
           ? <p className="lib-muted">No session matches that search.</p>
-          : <LibraryList rows={shown} onDeleted={(id) => setRows((r) => (r ?? []).filter((x) => x.id !== id))} />}
+          : <LibraryList rows={shown} sort={sort} onSort={sortBy} onDeleted={(id) => setRows((r) => (r ?? []).filter((x) => x.id !== id))} />}
     </div>
   );
 }

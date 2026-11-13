@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { SessionRow } from './api';
-import { filterSessions, monthGrid, sessionsByDate, sortSessions, todayLocal } from './library';
+import { filterSessions, monthGrid, nextSort, readSort, sessionsByDate, sortSessions, todayLocal } from './library';
 
 const row = (o: Partial<SessionRow> & { id: string }): SessionRow =>
   ({ name: o.id, date: '2026-11-01', notes: '', handedness: 'right', createdAt: '2026-11-01T10:00:00Z', updatedAt: '', shotCount: 10, fileCount: 1, clubs: [], ...o }) as SessionRow;
@@ -36,6 +36,12 @@ describe('sortSessions', () => {
     expect(ids(sortSessions([c, a, b], 'name-asc'))).toEqual(['a', 'b', 'c']);
     expect(ids(sortSessions([c, a, b], 'name-desc'))).toEqual(['c', 'b', 'a']);
   });
+  test('files both ways', () => {
+    const files = (id: string, fileCount: number) => ({ ...a, id, fileCount });
+    const [x, y, z] = [files('x', 2), files('y', 5), files('z', 1)];
+    expect(ids(sortSessions([x, y, z], 'files-desc'))).toEqual(['y', 'x', 'z']);
+    expect(ids(sortSessions([x, y, z], 'files-asc'))).toEqual(['z', 'x', 'y']);
+  });
   test('does not change the input', () => {
     const input = [a, b, c];
     sortSessions(input, 'name-desc');
@@ -66,3 +72,26 @@ test('todayLocal uses the local calendar fields', () => {
   expect(todayLocal(new Date(2026, 10, 12, 23, 30))).toBe('2026-11-12');
   expect(todayLocal(new Date(2026, 0, 5, 0, 5))).toBe('2026-01-05');
 });
+
+describe('nextSort (clicking a column header)', () => {
+  test('a new column starts in its natural direction: names A to Z, dates and counts biggest first', () => {
+    expect(nextSort('date-desc', 'name')).toBe('name-asc');
+    expect(nextSort('name-asc', 'date')).toBe('date-desc');
+    expect(nextSort('date-desc', 'shots')).toBe('shots-desc');
+    expect(nextSort('date-desc', 'files')).toBe('files-desc');
+  });
+  test('the sorted column flips direction', () => {
+    expect(nextSort('date-desc', 'date')).toBe('date-asc');
+    expect(nextSort('date-asc', 'date')).toBe('date-desc');
+    expect(nextSort('name-asc', 'name')).toBe('name-desc');
+  });
+});
+
+describe('readSort', () => {
+  test('accepts a known sort and falls back to newest first otherwise', () => {
+    expect(readSort('shots-asc')).toBe('shots-asc');
+    expect(readSort(null)).toBe('date-desc');
+    expect(readSort('clubs-asc')).toBe('date-desc');
+  });
+});
+

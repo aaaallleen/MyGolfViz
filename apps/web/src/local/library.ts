@@ -1,6 +1,25 @@
 import type { SessionRow } from './api';
 
-export type LibrarySort = 'date-desc' | 'date-asc' | 'shots-desc' | 'shots-asc' | 'name-asc' | 'name-desc';
+export type SortColumn = 'name' | 'date' | 'shots' | 'files';
+export type LibrarySort = `${SortColumn}-${'asc' | 'desc'}`;
+
+export const DEFAULT_SORT: LibrarySort = 'date-desc';
+const SORTS: readonly LibrarySort[] = ['name-asc', 'name-desc', 'date-asc', 'date-desc', 'shots-asc', 'shots-desc', 'files-asc', 'files-desc'];
+
+/** The sort named in the URL, or newest first when it is missing or unknown. */
+export function readSort(value: string | null): LibrarySort {
+  return SORTS.includes(value as LibrarySort) ? (value as LibrarySort) : DEFAULT_SORT;
+}
+
+/**
+ * The sort after clicking `column`'s header: the sorted column flips direction; another column starts in its
+ * natural direction (names A to Z, dates and counts biggest first).
+ */
+export function nextSort(current: LibrarySort, column: SortColumn): LibrarySort {
+  const [col, dir] = current.split('-') as [SortColumn, 'asc' | 'desc'];
+  if (col === column) return `${column}-${dir === 'asc' ? 'desc' : 'asc'}`;
+  return `${column}-${column === 'name' ? 'asc' : 'desc'}`;
+}
 
 export function filterSessions(rows: SessionRow[], query: string): SessionRow[] {
   const q = query.trim().toLowerCase();
@@ -22,6 +41,8 @@ export function sortSessions(rows: SessionRow[], sort: LibrarySort): SessionRow[
     'date-asc': (a, b) => cmp(a.date, b.date),
     'shots-desc': (a, b) => cmp(b.shotCount, a.shotCount),
     'shots-asc': (a, b) => cmp(a.shotCount, b.shotCount),
+    'files-desc': (a, b) => cmp(b.fileCount, a.fileCount),
+    'files-asc': (a, b) => cmp(a.fileCount, b.fileCount),
     'name-asc': (a, b) => a.name.localeCompare(b.name),
     'name-desc': (a, b) => b.name.localeCompare(a.name),
   };

@@ -4,6 +4,7 @@ import { Menu } from '@base-ui/react/menu';
 import { formatSessionDate } from '@fsa/domain';
 import type { SessionRow } from './api';
 import { DeleteSessionDialog } from './DeleteSessionDialog';
+import type { LibrarySort, SortColumn } from './library';
 
 export function ClubChips({ clubs }: { clubs: SessionRow['clubs'] }) {
   return (
@@ -38,17 +39,52 @@ function RowMenu({ session, onDeleted }: { session: SessionRow; onDeleted(id: st
   );
 }
 
-export function LibraryList({ rows, onDeleted }: { rows: SessionRow[]; onDeleted(id: string): void }) {
+const SortArrow = () => (
+  <svg className="lib-sort__arrow" aria-hidden="true" width="10" height="10" viewBox="0 0 10 10">
+    <path d="M5 1.5v7M2 5.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** A column header that sorts the table; aria-sort marks the sorted column for screen readers. */
+function SortHeader({ column, label, sort, onSort }: { column: SortColumn; label: string; sort: LibrarySort; onSort(c: SortColumn): void }) {
+  const [col, dir] = sort.split('-');
+  const active = col === column;
+  return (
+    <th scope="col" aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      <button
+        type="button"
+        className={`lib-sort${active ? ` is-sorted lib-sort--${dir}` : ''}`}
+        onClick={() => onSort(column)}
+      >
+        {label}
+        <SortArrow />
+      </button>
+    </th>
+  );
+}
+
+export function LibraryList({
+  rows,
+  sort,
+  onSort,
+  onDeleted,
+}: {
+  rows: SessionRow[];
+  sort: LibrarySort;
+  onSort(column: SortColumn): void;
+  onDeleted(id: string): void;
+}) {
+  const header = { sort, onSort };
   return (
     <section className="lib-card">
       <div className="lib-table-wrap">
         <table className="lib-table">
           <thead>
             <tr>
-              <th scope="col">Session</th>
-              <th scope="col">Date</th>
-              <th scope="col">Shots</th>
-              <th scope="col">Files</th>
+              <SortHeader column="name" label="Session" {...header} />
+              <SortHeader column="date" label="Date" {...header} />
+              <SortHeader column="shots" label="Shots" {...header} />
+              <SortHeader column="files" label="Files" {...header} />
               <th scope="col">Clubs</th>
               <th scope="col"><span className="lib-sr">Actions</span></th>
             </tr>
