@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/desktop/tsconfig.json",
     "dev": "npm run dev -w @fsa/web",
     "dev:local": "npm run dev:local -w @fsa/web",
     "build:public": "npm run build:public -w @fsa/web",

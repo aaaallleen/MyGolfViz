@@ -1,0 +1,40 @@
+// Fake backend for BackendProcess tests. Usage: node fake-backend.mjs <mode>
+// Env: FAKE_MARKER = file written once the chatty output has fully flushed.
+import http from 'node:http';
+import fs from 'node:fs';
+
+const mode = process.argv[2] ?? 'ok';
+
+if (mode === 'exit3') {
+  process.stderr.write('MyGolfViz is already running with this data folder\n', () => process.exit(3));
+} else if (mode === 'exit4') {
+  process.stderr.write("MyGolfViz couldn't start: boom\n", () => process.exit(4));
+} else if (mode === 'silent') {
+  setInterval(() => {}, 1000);
+} else {
+  const server = http.createServer((req, res) => {
+    res.statusCode = req.url === '/api/v1/health' ? 200 : 404;
+    res.end('{}');
+  });
+  server.listen(0, '127.0.0.1', () => {
+    const { port } = server.address();
+    process.stdout.write(JSON.stringify({ port, url: `http://127.0.0.1:${port}/?token=t` }) + '\n');
+    if (mode === 'ignore-term') {
+      process.on('SIGTERM', () => {});
+      return;
+    }
+    process.on('SIGTERM', () => process.exit(0));
+    process.stdin.on('end', () => process.exit(0));
+    process.stdin.resume();
+    if (mode === 'chatty') {
+      const chunk = 'x'.repeat(1023) + '\n';
+      const blob = chunk.repeat(4 * 1024);
+      let pending = 2;
+      const done = () => {
+        if (--pending === 0 && process.env.FAKE_MARKER) fs.writeFileSync(process.env.FAKE_MARKER, 'done');
+      };
+      process.stdout.write(blob, done);
+      process.stderr.write(blob, done);
+    }
+  });
+}
