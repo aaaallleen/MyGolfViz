@@ -131,23 +131,27 @@ describe('reducer: excluding shots', () => {
     expect(s.selectedId).toBe(order[2]!.id);
   });
 
-  test('step from an excluded selection goes to the nearest included shot each way', async () => {
+  test('step walks every shot in the filter in table order, excluded ones too', async () => {
     let s = await analyzed();
     const o = tableOf(s);
     s = reducer(s, { type: 'setExcluded', id: o[2]!.id, excluded: true });
-    s = reducer(s, { type: 'select', id: o[2]!.id });
+    s = reducer(s, { type: 'select', id: o[1]!.id });
+    s = reducer(s, { type: 'step', delta: 1 });
+    expect(s.selectedId).toBe(o[2]!.id);
     expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(o[3]!.id);
     expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(o[1]!.id);
   });
 
-  test('step with every shot in the filter excluded keeps the open excluded shot', async () => {
+  test('step with every shot in the filter excluded still walks them, clamping at the ends', async () => {
     let s = await analyzed();
     s = reducer(s, { type: 'setClub', club: 'Driver' });
     const ids = tableOf(s).map((v) => v.id);
     for (const id of ids) s = reducer(s, { type: 'setExcluded', id, excluded: true });
     s = reducer(s, { type: 'select', id: ids[1]! });
-    expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(ids[1]);
-    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[1]);
+    expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(ids[2]);
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[0]);
+    s = reducer(s, { type: 'select', id: ids[0]! });
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[0]);
   });
 
   test('a filter change keeps an excluded selection while it is still in the table', async () => {

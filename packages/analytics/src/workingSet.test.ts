@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import type { Shot, WorkingSet } from '@fsa/domain';
 import {
   clubCounts, displayOrder, excludedShotIds, exclusionKey, filterShots, nextAfterExclude, reconcileSelection,
-  selectionPosition, stepAround, stepSelection,
+  selectionPosition, stepSelection,
 } from './workingSet';
 
 const mk = (id: string, fileId: string, club: string, sourceRow: number): Shot => ({
@@ -60,18 +60,6 @@ describe('working set ops', () => {
   });
   test('clubCounts counts included shots and keeps a club whose shots are all excluded', () => {
     expect(clubCounts(shots, new Set(['D1', 'D2']))).toEqual([{ club: 'Driver', count: 0 }, { club: '7 Iron', count: 2 }]);
-  });
-  test('stepAround skips excluded shots and steps off an excluded selection', () => {
-    const ord = displayOrder(shots);
-    const ex = new Set(['D2']);
-    expect(stepAround('D1', ord, ex, 1)).toBe('I1');
-    expect(stepAround('I1', ord, ex, -1)).toBe('D1');
-    expect(stepAround('D2', ord, ex, 1)).toBe('I1');
-    expect(stepAround('D2', ord, ex, -1)).toBe('D1');
-    expect(stepAround('I2', ord, ex, 1)).toBe('I2');
-    expect(stepAround(null, ord, new Set(['D1']), 1)).toBe('D2');
-    expect(stepAround('D1', ord, new Set(['D1', 'D2', 'I1', 'I2']), 1)).toBeNull();
-    expect(stepAround('I2', ord, new Set(['D2', 'I2']), 1)).toBe('I1');
   });
   test('nextAfterExclude: next included, else previous, else null', () => {
     const ord = displayOrder(shots);

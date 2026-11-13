@@ -24,7 +24,8 @@ export function ShotHeader({ shot, shots, ordered, excludedIds, excluded, files,
 }) {
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
-  const pos = excluded ? null : selectionPosition(shot.id, shots);
+  // Position in the same list the picker and ‹ › walk: every shot in the filter.
+  const pos = selectionPosition(shot.id, ordered);
   return (
     <section className="inspector-head">
       <div className="inspector-head__title">

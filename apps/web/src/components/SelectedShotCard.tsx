@@ -33,7 +33,8 @@ export function SelectedShotCard({ shots, ordered, excludedIds, selected, exclud
   color?: string;
 }) {
   const shot = selected;
-  const pos = shot && !excluded ? selectionPosition(shot.id, shots) : null;
+  // Position in the same list the picker and ‹ › walk: every shot in the filter.
+  const pos = shot && !excluded ? selectionPosition(shot.id, ordered) : null;
   return (
     <div className="panel selected-card">
       <div className="selected-card__head">

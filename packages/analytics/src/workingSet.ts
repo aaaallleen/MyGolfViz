@@ -57,24 +57,6 @@ export function selectionPosition(selectedId: string | null, visible: readonly S
   return i < 0 ? null : { index: i + 1, total: visible.length };
 }
 
-/** Nearest included shot strictly after/before `selectedId` in table order (which includes excluded shots). */
-export function stepAround(
-  selectedId: string | null, ordered: readonly Shot[], excludedIds: ReadonlySet<string>, delta: 1 | -1,
-): string | null {
-  const included = (s: Shot) => !excludedIds.has(s.id);
-  const first = ordered.find(included)?.id ?? null;
-  const i = selectedId === null ? -1 : ordered.findIndex((s) => s.id === selectedId);
-  if (i < 0) return first;
-  const scan = (dir: 1 | -1): string | null => {
-    for (let j = i + dir; j >= 0 && j < ordered.length; j += dir) if (included(ordered[j]!)) return ordered[j]!.id;
-    return null;
-  };
-  const ahead = scan(delta);
-  if (ahead !== null) return ahead;
-  if (included(ordered[i]!)) return ordered[i]!.id;
-  return scan(delta === 1 ? -1 : 1);
-}
-
 /** After excluding `id` (already in `excludedIds`): next included shot, else previous, else null. */
 export function nextAfterExclude(id: string, ordered: readonly Shot[], excludedIds: ReadonlySet<string>): string | null {
   const i = ordered.findIndex((s) => s.id === id);

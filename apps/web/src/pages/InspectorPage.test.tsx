@@ -311,34 +311,33 @@ describe('InspectorPage', () => {
   describe('excluded shots', () => {
     const BANNER = "This shot is excluded. It isn't in your averages or comparisons.";
 
-    test('an excluded selected shot opens with the excluded banner; ‹ › skip excluded shots', async () => {
+    test('‹ › step onto excluded shots too: they open with the banner and the position', async () => {
       const user = userEvent.setup();
       const v = open();
-      const target = v.store().visibleShots[3]!;
-      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
-      expect(screen.getByText(BANNER)).toBeInTheDocument();
-      expect(screen.getByText('Excluded')).toBeInTheDocument();
-      expect(v.store().selectedId).toBe(target.id);
-      await user.click(screen.getByRole('button', { name: 'Next shot' }));
-      expect(v.store().excludedIds.has(v.store().selectedId!)).toBe(false);
+      const o = v.store().tableShots;
+      act(() => { v.store().setExcluded(o[3]!.id, true); v.store().select(o[2]!.id); });
       expect(screen.queryByText(BANNER)).toBeNull();
-      for (let i = 0; i < 6; i++) {
-        await user.click(screen.getByRole('button', { name: 'Previous shot' }));
-        expect(v.store().selectedId).not.toBe(target.id);
-      }
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(o[3]!.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      expect(screen.getByText(`4 of ${o.length}`)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(o[4]!.id);
+      expect(screen.queryByText(BANNER)).toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Previous shot' }));
+      expect(v.store().selectedId).toBe(o[3]!.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
     });
 
-    test('with every shot in the filter excluded, Next keeps the open excluded shot', async () => {
+    test('with every shot in the filter excluded, Next moves to the next excluded shot and never empties the page', async () => {
       const user = userEvent.setup();
       const v = open();
       act(() => v.store().setClub('Driver'));
       const ids = v.store().tableShots.map((s) => s.id);
       act(() => { for (const id of ids) v.store().setExcluded(id, true); v.store().select(ids[1]!); });
-      const heading = screen.getByRole('heading', { level: 1 }).textContent;
       await user.click(screen.getByRole('button', { name: 'Next shot' }));
-      expect(v.store().selectedId).toBe(ids[1]);
+      expect(v.store().selectedId).toBe(ids[2]);
       expect(screen.getByText(BANNER)).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(heading);
       expect(screen.queryByText(/shots here are excluded/)).toBeNull();
     });
 
@@ -429,9 +428,11 @@ describe('InspectorPage', () => {
       await user.selectOptions(picker, x.id);
       expect(v.store().selectedId).toBe(x.id);
       expect(screen.getByText(BANNER)).toBeInTheDocument();
-      // Stepping on from it and back still skips it; the picker keeps listing it.
+      // Stepping off it and back lands on it again; the picker keeps listing it.
       await user.click(screen.getByRole('button', { name: 'Next shot' }));
-      expect(v.store().selectedId).not.toBe(x.id);
+      expect(v.store().selectedId).toBe(y.id);
+      await user.click(screen.getByRole('button', { name: 'Previous shot' }));
+      expect(v.store().selectedId).toBe(x.id);
       expect(within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent))
         .toContain(`${shotOptionLabel(x, files)} (excluded)`);
     });

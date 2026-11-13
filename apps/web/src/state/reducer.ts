@@ -1,7 +1,7 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import type { Shot } from '@fsa/domain';
-import { displayOrder, exclusionKey, excludedShotIds, filterShots, nextAfterExclude, stepAround, type Filters, type LandingMode } from '@fsa/analytics';
+import { displayOrder, exclusionKey, excludedShotIds, filterShots, nextAfterExclude, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 
 export type InspectorTab = 'impact' | '3d' | '2d';
@@ -133,12 +133,9 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return withFilters(state, { ...state.filters, fileId: action.fileId });
     case 'select':
       return { ...state, selectedId: action.id };
-    case 'step': {
-      const table = tableOf(state);
-      // With nothing included to step to, stay on the shot that is open (it may be excluded on purpose).
-      const stay = table.some((s) => s.id === state.selectedId) ? state.selectedId : null;
-      return { ...state, selectedId: stepAround(state.selectedId, table, excludedIdsOf(state), action.delta) ?? stay };
-    }
+    case 'step':
+      // ‹ › walk every shot in the filter, in table order; an excluded one opens with its banner.
+      return { ...state, selectedId: stepSelection(state.selectedId, tableOf(state), action.delta) };
     case 'setExcluded':
       return { ...state, excluded: withExcluded(state, action.id, action.excluded) };
     case 'excludeAndAdvance': {
