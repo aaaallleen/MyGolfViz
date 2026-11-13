@@ -9,8 +9,8 @@ import { useWorkingSet } from './state/store';
 
 // Load and Help are in the main file; Overview and Inspector, the heavy pages, are separate files
 // that preloadPages() fetches as soon as the app starts, so they still open after going offline.
-const OverviewPage = lazyPage(() => import('./pages/OverviewPage').then((m) => m.OverviewPage));
-const InspectorPage = lazyPage(() => import('./pages/InspectorPage').then((m) => m.InspectorPage));
+export const OverviewPage = lazyPage(() => import('./pages/OverviewPage').then((m) => m.OverviewPage));
+export const InspectorPage = lazyPage(() => import('./pages/InspectorPage').then((m) => m.InspectorPage));
 
 export function preloadPages(): Promise<void> {
   return Promise.all([OverviewPage.preload(), InspectorPage.preload()]).then(() => undefined);

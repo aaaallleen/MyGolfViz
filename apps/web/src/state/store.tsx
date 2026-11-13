@@ -34,6 +34,8 @@ export interface WorkingSetApi extends StoreState {
   select(id: string | null): void;
   step(delta: 1 | -1): void;
   setExcluded(id: string, excluded: boolean): void;
+  /** Replaces the whole exclusion set (used to roll back a failed save). */
+  setExcludedKeys(keys: ReadonlySet<string>): void;
   /** Excludes the shot; when it is the selected one, the selection moves to the next included shot. */
   excludeAndAdvance(id: string): void;
   /** Widens the filter just enough to show the shot, then selects it. */
@@ -157,6 +159,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       select: (id) => dispatch({ type: 'select', id }),
       step: (delta) => dispatch({ type: 'step', delta }),
       setExcluded: (id, excl) => dispatch({ type: 'setExcluded', id, excluded: excl }),
+      setExcludedKeys: (keys) => dispatch({ type: 'setExcludedKeys', excluded: keys }),
       excludeAndAdvance: (id) => dispatch({ type: 'excludeAndAdvance', id }),
       reveal: (id) => dispatch({ type: 'reveal', id }),
       includeAll,

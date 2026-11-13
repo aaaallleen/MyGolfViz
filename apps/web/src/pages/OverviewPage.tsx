@@ -94,7 +94,7 @@ export function OverviewPage() {
         </div>
         <Button onClick={() => setEditing((e) => !e)} aria-expanded={editing}>{editing ? 'Done' : 'Edit details'}</Button>
       </section>
-      {editing && <SessionDetailsForm value={details} onChange={ws.setDetails} />}
+      {editing && <SessionDetailsForm value={details} onChange={ws.setDetails} required={import.meta.env.VITE_APP_MODE === 'local'} />}
 
       <FilterBar />
 
