@@ -13,6 +13,7 @@ import * as api from './api';
 import { toast } from 'sonner';
 
 const session = { id: 's1', name: 'Range', date: '2026-01-02', notes: '', handedness: 'right' } as SessionRow;
+const session2 = { id: 's2', name: 'Wedges', date: '2026-01-03', notes: '', handedness: 'right' } as SessionRow;
 const imp = { id: 'a', ordinal: 1, originalFilename: 'a.csv', displayName: null, sha256: 'sha-a', byteLength: 1, parserVersion: 'p' } as ImportRow;
 const shot = (id: string, sourceRow: number) =>
   ({ id, importId: 'a', sourceRow, club: 'Driver', excluded: false, flags: [], location: null, m: { carry: 1 }, mode: null, raw: {}, shotLabel: null, shotType: null }) as ShotOut;
@@ -28,6 +29,11 @@ function setup() {
   });
   return hook;
 }
+const loadS2 = (hook: ReturnType<typeof setup>) =>
+  act(() => {
+    const loaded = sessionToWorkingSet(session2, [imp], shots);
+    hook.result.current.loadSession({ sessionId: 's2', ...loaded, keepView: false });
+  });
 const patchSession = vi.mocked(api.patchSession);
 const patchExclusions = vi.mocked(api.patchExclusions);
 const flush = () => act(async () => { await vi.advanceTimersByTimeAsync(0); });
@@ -76,6 +82,73 @@ describe('details', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     expect(toast.error).toHaveBeenCalledWith("Couldn't save session details");
     expect(result.current.details.notes).toBe('');
+  });
+});
+
+describe('details are not lost', () => {
+  afterEach(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+  });
+
+  test('typing then loading another session saves the typed value to the old session', async () => {
+    const hook = setup();
+    act(() => hook.result.current.setDetails({ notes: 'typed' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    loadS2(hook);
+    await flush();
+    expect(patchSession).toHaveBeenCalledTimes(1);
+    expect(patchSession).toHaveBeenCalledWith('s1', { notes: 'typed' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(patchSession).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.details.name).toBe('Wedges');
+  });
+
+  test('typing then pagehide sends a keepalive PATCH at once', () => {
+    const { result } = setup();
+    act(() => result.current.setDetails({ notes: 'typed' }));
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    expect(patchSession).toHaveBeenCalledTimes(1);
+    expect(patchSession).toHaveBeenCalledWith('s1', { notes: 'typed' }, { keepalive: true });
+  });
+
+  test('typing then the tab going hidden sends a keepalive PATCH; a debounce does not send it again', async () => {
+    const { result } = setup();
+    act(() => result.current.setDetails({ notes: 'typed' }));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(patchSession).toHaveBeenCalledWith('s1', { notes: 'typed' }, { keepalive: true });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(patchSession).toHaveBeenCalledTimes(1);
+  });
+
+  test('nothing pending: pagehide sends nothing', () => {
+    setup();
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    expect(patchSession).not.toHaveBeenCalled();
+  });
+
+  test('typing then unmounting saves the typed value', async () => {
+    const hook = setup();
+    act(() => hook.result.current.setDetails({ notes: 'typed' }));
+    hook.unmount();
+    await flush();
+    expect(patchSession).toHaveBeenCalledWith('s1', { notes: 'typed' });
+  });
+
+  test('a save that fails after a session switch still sends the new session\'s queued edits', async () => {
+    let reject!: (e: Error) => void;
+    patchSession.mockImplementationOnce(() => new Promise((_, rej) => { reject = rej; }));
+    const hook = setup();
+    act(() => hook.result.current.setDetails({ notes: 'one' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(patchSession).toHaveBeenCalledTimes(1);
+    loadS2(hook);
+    act(() => hook.result.current.setDetails({ notes: 'two' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(patchSession).not.toHaveBeenCalledWith('s2', expect.anything());
+    await act(async () => { reject(new Error('boom')); await vi.advanceTimersByTimeAsync(0); });
+    expect(patchSession).toHaveBeenCalledWith('s2', { notes: 'two' });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
 

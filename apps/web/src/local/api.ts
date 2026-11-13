@@ -44,8 +44,9 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export function request<T>(method: string, path: string, body?: unknown, init: RequestInit = {}): Promise<T> {
   return send<T>(path, {
+    ...init,
     method,
     ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   });
@@ -56,7 +57,9 @@ const enc = encodeURIComponent;
 export const listSessions = () => request<SessionRow[]>('GET', '/api/v1/sessions');
 export const createSession = (body: SessionIn) => request<SessionRow>('POST', '/api/v1/sessions', body);
 export const getSession = (id: string) => request<SessionDetail>('GET', `/api/v1/sessions/${enc(id)}`);
-export const patchSession = (id: string, body: SessionPatch) => request<SessionRow>('PATCH', `/api/v1/sessions/${enc(id)}`, body);
+/** `keepalive` lets the request outlive the page (pagehide, tab hidden). */
+export const patchSession = (id: string, body: SessionPatch, opts?: { keepalive?: boolean }) =>
+  request<SessionRow>('PATCH', `/api/v1/sessions/${enc(id)}`, body, opts?.keepalive ? { keepalive: true } : {});
 export const deleteSession = (id: string) => request<void>('DELETE', `/api/v1/sessions/${enc(id)}`);
 export const getShots = (id: string) => request<ShotOut[]>('GET', `/api/v1/sessions/${enc(id)}/shots`);
 export const reorderImports = (id: string, importIds: string[]) =>

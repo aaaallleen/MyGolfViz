@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { ApiError, commitImport, request } from './api';
+import { ApiError, commitImport, patchSession, request } from './api';
 import type { ImportManifest } from './importPayload';
 
 function mockFetch(status: number, body: unknown) {
@@ -42,6 +42,27 @@ describe('request', () => {
   test('204 resolves undefined', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 204 })));
     await expect(request('DELETE', '/api/v1/sessions/x')).resolves.toBeUndefined();
+  });
+});
+
+describe('patchSession', () => {
+  test('keepalive: a same-origin JSON PATCH that survives the page going away', async () => {
+    const fn = mockFetch(200, { id: 's1' });
+    await patchSession('s 1', { notes: 'n' }, { keepalive: true });
+    const [url, init] = fn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/v1/sessions/s%201');
+    expect(init.method).toBe('PATCH');
+    expect(init.keepalive).toBe(true);
+    expect(init.credentials).toBe('same-origin');
+    expect(init.body).toBe(JSON.stringify({ notes: 'n' }));
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
+  });
+
+  test('without options it is an ordinary request', async () => {
+    const fn = mockFetch(200, { id: 's1' });
+    await patchSession('s1', { notes: 'n' });
+    const [, init] = fn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.keepalive).toBeUndefined();
   });
 });
 
