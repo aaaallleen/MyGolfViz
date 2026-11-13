@@ -4,16 +4,17 @@ import { EmptyState } from '@fsa/ui';
 import { AppShell } from '../layout/AppShell';
 import { HelpPage } from '../pages/HelpPage';
 import { listSessions, UNAUTHORISED_EVENT } from './api';
+import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
 import { useSessionSync } from './useSessionSync';
 
-// Placeholders: the sessions, import and inspector pages arrive in later tasks.
+// Placeholders: the import and inspector pages arrive in later tasks.
 const Placeholder = ({ title }: { title: string }) => <h1>{title}</h1>;
 
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
   useSessionSync();
-  // Check the token on start: a 401 here shows the sign-in hint instead of a half-working app.
+  // Check the token on start (any route, including Help, which makes no call of its own): a 401 here shows the sign-in hint instead of a half-working app.
   useEffect(() => {
     listSessions().catch(() => {});
   }, []);
@@ -35,7 +36,7 @@ export default function LocalRoutes() {
     <AppShell>
       <Routes>
         <Route path="/" element={<Navigate to="/sessions" replace />} />
-        <Route path="/sessions" element={<Placeholder title="Sessions" />} />
+        <Route path="/sessions" element={<LibraryPage />} />
         <Route path="/sessions/:id" element={<SessionRoute page="overview" />} />
         <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
         <Route path="/import" element={<Placeholder title="Load Session CSV" />} />
