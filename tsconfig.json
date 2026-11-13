@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["apps/web/src", "packages/*/src", "tests", "scripts", "e2e", "e2e-local", "playwright.local.config.ts", "vitest.config.ts", "vitest.setup.ts", "apps/web/vite.config.ts"]
+  "include": ["apps/web/src", "packages/*/src", "tests", "scripts", "e2e", "e2e-local", "e2e-desktop", "playwright.local.config.ts", "playwright.desktop.config.ts", "vitest.config.ts", "vitest.setup.ts", "apps/web/vite.config.ts"]
 }

@@ -19,6 +19,9 @@ jobs:
     name: Typecheck, unit tests, build, e2e
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # These jobs never launch Electron, so skip its binary download.
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -42,6 +45,9 @@ jobs:
     name: Local App - backend tests, local build, local e2e
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # These jobs never launch Electron, so skip its binary download.
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -62,5 +68,36 @@ jobs:
         with:
           name: playwright-results-local
           path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  desktop:
+    name: Mac App - build and packaged e2e
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - run: npm ci
+      # The packaged-app tests drive Electron itself through Playwright, so no browser download is needed.
+      # Build the web app, the PyInstaller backend and the unsigned .dmg
+      - run: npm run desktop:dist
+      # Launch the packaged MyGolfViz.app with a fresh data folder
+      - run: npm run e2e:desktop:packaged
+      - name: Upload failure traces and the built .dmg
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-results
+          path: |
+            test-results/
+            apps/desktop/release/*.dmg
           retention-days: 7
           if-no-files-found: ignore

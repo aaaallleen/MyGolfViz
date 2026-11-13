@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/desktop/tsconfig.json",
     "dev": "npm run dev -w @fsa/web",
     "dev:local": "npm run dev:local -w @fsa/web",
     "build:public": "npm run build:public -w @fsa/web",
@@ -26,7 +26,14 @@
     "api:types": "uv run --project apps/api python -m mygolfviz_api.openapi_dump > apps/web/src/local/openapi.json && npx openapi-typescript apps/web/src/local/openapi.json -o apps/web/src/local/api-types.ts",
     "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local",
     "e2e:local": "playwright test -c playwright.local.config.ts",
-    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local"
+    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local",
+    "desktop:prep": "npm run build:local && uv sync --project apps/api && npm run build -w @fsa/desktop",
+    "desktop:dev": "npm run desktop:prep && electron apps/desktop",
+    "e2e:desktop": "npm run desktop:prep && playwright test -c playwright.desktop.config.ts",
+    "api:bin": "uv run --project apps/api --group build pyinstaller apps/api/packaging/mygolfviz-api.spec --noconfirm --distpath apps/api/dist --workpath apps/api/build",
+    "desktop:icon": "node scripts/make-icon.mjs",
+    "desktop:dist": "rm -rf apps/desktop/dist apps/desktop/release && npm run build:local && npm run api:bin && npm run build -w @fsa/desktop && electron-builder --mac dmg --arm64 --projectDir apps/desktop",
+    "e2e:desktop:packaged": "MYGOLFVIZ_DESKTOP_EXECUTABLE=apps/desktop/release/mac-arm64/MyGolfViz.app/Contents/MacOS/MyGolfViz playwright test -c playwright.desktop.config.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

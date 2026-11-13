@@ -11,3 +11,7 @@ dist-local/
 apps/api/.venv/
 __pycache__/
 .pytest_cache/
+apps/desktop/dist/
+apps/desktop/release/
+apps/api/build/
+apps/api/dist/

@@ -351,3 +351,28 @@ def test_concurrent_failure_keeps_shared_original(client, settings, monkeypatch)
     assert rs[0].json()["results"][0]["reason"] == "storage_error"
     assert rs[1].json()["results"][0]["status"] == "imported"
     assert (settings.data_dir / "originals" / f"{expected(NAMES[0])['sha256']}.csv").exists()
+
+
+def test_put_fsyncs_directory(tmp_path, monkeypatch):
+    import os
+    import stat
+
+    from mygolfviz_api.storage import OriginalStore
+
+    store = OriginalStore(tmp_path)
+    events: list[str] = []
+    real_fsync = os.fsync
+    real_replace = os.replace
+
+    def fsync(fd):
+        events.append("fsync-dir" if stat.S_ISDIR(os.fstat(fd).st_mode) else "fsync-file")
+        real_fsync(fd)
+
+    def replace(a, b):
+        events.append("replace")
+        real_replace(a, b)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    monkeypatch.setattr(os, "replace", replace)
+    store.put(b"hello")
+    assert events == ["fsync-file", "replace", "fsync-dir"]

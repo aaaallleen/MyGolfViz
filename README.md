@@ -107,6 +107,43 @@ This runs the backend tests (pytest), the local build and its verification, and 
 end-to-end tests (`npm run e2e:local`), which start the real backend on port 8799 with a fresh,
 empty data folder. CI runs it as a separate job next to `ci:public`.
 
+## Mac app
+
+The Mac app is the Local App in its own window, with nothing to install first: no Python and no
+Node. It is for Apple Silicon Macs.
+
+### Build
+
+```sh
+npm run desktop:dist
+```
+
+The disk image lands in `apps/desktop/release/`, as `MyGolfViz-<version>-arm64.dmg`. The version
+comes from `apps/desktop/package.json`: bump it for each build you install over an older one
+(your data is kept either way).
+
+### Install and first launch
+
+Open the `.dmg` and drag MyGolfViz to Applications. A dmg you build yourself on this Mac is not
+quarantined and opens directly. The app is not signed, so for a downloaded or copied dmg (for
+example the CI artifact) macOS blocks the first launch:
+
+- macOS 15 and later: open the app once, then go to System Settings → Privacy & Security and
+  choose **Open Anyway**.
+- Earlier macOS: right-click the app and choose Open.
+
+### Your data
+
+The app uses the same data folder as `npm run local`:
+`~/Library/Application Support/MyGolfViz`. Installing a newer build keeps your data, and a copy
+of the database is saved in `backups/` before any schema upgrade. The app menu has **Open Data
+Folder** and **Open Logs**.
+
+Do not run `npm run local` while the app is open: they share the data folder, and only one
+backend can use it at a time.
+
+Before a release, work through [docs/desktop-manual-checklist.md](docs/desktop-manual-checklist.md).
+
 ## Known limitations
 
 - The CSV header map has only been validated against the Mevo Gen 2 exports in

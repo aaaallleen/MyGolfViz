@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import secrets
+import signal
 import socket
 import sys
+import threading
 from pathlib import Path
 
 import uvicorn
@@ -33,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--static-dir", type=Path, default=None)
+    parser.add_argument("--exit-with-stdin", action="store_true")
     args = parser.parse_args(argv)
 
     data_dir = args.data_dir
@@ -51,16 +55,21 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         host = "127.0.0.1"
-        sock = open_listening_socket(host, args.port)
-        port = sock.getsockname()[1]
-        settings = Settings(
-            data_dir=data_dir,
-            token=token,
-            host=host,
-            port=port,
-            static_dir=args.static_dir,
-        )
-        app = create_app(settings)
+        try:
+            sock = open_listening_socket(host, args.port)
+            port = sock.getsockname()[1]
+            settings = Settings(
+                data_dir=data_dir,
+                token=token,
+                host=host,
+                port=port,
+                static_dir=args.static_dir,
+            )
+            app = create_app(settings)
+        except Exception as e:
+            logging.getLogger("mygolfviz_api").exception("startup failed")
+            print(f"MyGolfViz couldn't start: {e}", file=sys.stderr)
+            return 4
         print(
             json.dumps({"port": port, "url": f"http://{host}:{port}/?token={token}"}),
             flush=True,
@@ -69,11 +78,37 @@ def main(argv: list[str] | None = None) -> int:
         # Config() runs dictConfig, which strips handlers from the uvicorn
         # logger; re-attach the file handler afterwards.
         attach_log_handler(settings)
-        server = uvicorn.Server(config)
+        server = _Server(config)
+        if args.exit_with_stdin:
+            threading.Thread(target=_exit_on_stdin_eof, args=(server,), daemon=True).start()
         server.run(sockets=[sock])
     finally:
         lock.__exit__(None, None, None)
     return 0
+
+
+class _Server(uvicorn.Server):
+    """uvicorn re-raises a captured SIGTERM once it has shut down, which would
+    turn a graceful stop into exit status -15. We want a clean 0 and a released
+    lock, so shut down on the signal without recording it for re-raise."""
+
+    # (uvicorn 0.54 re-raises captured signals after shutdown.) Otherwise this
+    # mirrors upstream: a second SIGINT forces exit.
+    def handle_exit(self, sig, frame) -> None:  # noqa: ANN001
+        if self.should_exit and sig == signal.SIGINT:
+            self.force_exit = True
+        else:
+            self.should_exit = True
+
+
+def _exit_on_stdin_eof(server: uvicorn.Server) -> None:
+    """Ask uvicorn to shut down gracefully once the parent closes our stdin."""
+    try:
+        while sys.stdin.buffer.read(4096):
+            pass
+    except (OSError, ValueError):
+        pass
+    server.should_exit = True
 
 
 if __name__ == "__main__":

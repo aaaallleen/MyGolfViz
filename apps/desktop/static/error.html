@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:" />
+    <title>MyGolfViz</title>
+    <link rel="stylesheet" href="pages.css" />
+    <script src="error.js" defer></script>
+  </head>
+  <body>
+    <main class="error" role="alert">
+      <h1 id="title"></h1>
+      <p id="body"></p>
+      <p class="logs" id="logs" hidden></p>
+      <pre id="detail" hidden></pre>
+      <div class="actions">
+        <button type="button" class="primary" id="restart">Restart backend</button>
+        <button type="button" id="open-logs">Open logs</button>
+        <button type="button" id="quit">Quit</button>
+      </div>
+    </main>
+  </body>
+</html>

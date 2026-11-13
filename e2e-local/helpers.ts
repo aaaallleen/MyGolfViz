@@ -23,6 +23,29 @@ export function cut(from: CsvFile, rows: number, name: string): CsvFile {
   return { name: basename(name), mimeType: 'text/csv', buffer: Buffer.from(lines.slice(0, rows + 1).join('\n')) };
 }
 
+const csp = new WeakMap<Page, string[]>();
+
+/**
+ * Records every Content-Security-Policy violation of the page, across navigations and reloads: the browser
+ * event is reported to Node through a binding, and console messages about the policy are collected too.
+ */
+export async function trackCspViolations(page: Page): Promise<void> {
+  const found: string[] = [];
+  csp.set(page, found);
+  await page.exposeBinding('__cspReport', (_source, report: string) => void found.push(report));
+  await page.addInitScript(() => {
+    document.addEventListener('securitypolicyviolation', (e) =>
+      (window as unknown as { __cspReport: (r: string) => void }).__cspReport(`${e.violatedDirective} ${e.blockedURI}`),
+    );
+  });
+  page.on('console', (m) => {
+    if (/content security policy/i.test(m.text())) found.push(`console: ${m.text()}`);
+  });
+}
+
+/** The violations seen so far on `page`. */
+export const cspViolations = (page: Page): string[] => csp.get(page) ?? [];
+
 /** Signs in with the test token: the backend sets the cookie and sends the browser to the library. */
 export async function signIn(page: Page): Promise<void> {
   await page.goto('/?token=e2e');

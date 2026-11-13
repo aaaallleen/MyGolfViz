@@ -25,8 +25,13 @@ class SecurityMiddleware:
         self.allowed_hosts = frozenset(h.lower() for h in allowed_hosts)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] == "lifespan":
             await self.app(scope, receive, send)
+            return
+        if scope["type"] != "http":
+            # No WebSocket (or other) endpoints exist; refuse rather than skip the checks.
+            if scope["type"] == "websocket":
+                await send({"type": "websocket.close", "code": 1008})
             return
 
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope["headers"]}

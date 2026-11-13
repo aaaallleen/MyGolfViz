@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,8 @@ from sqlalchemy import create_engine
 from .config import Settings
 
 KEEP_BACKUPS = 5
+
+logger = logging.getLogger(__name__)
 
 
 def db_path(settings: Settings) -> Path:
@@ -53,12 +56,17 @@ def backup_database(settings: Settings, from_rev: str | None) -> Path:
 
 
 def upgrade(settings: Settings) -> str:
-    cfg = make_config(settings)
-    head = ScriptDirectory.from_config(cfg).get_current_head()
-    assert head is not None
-    if db_path(settings).exists():
-        current = current_revision(settings)
-        if current != head:
-            backup_database(settings, current)
-    command.upgrade(cfg, "head")
+    try:
+        cfg = make_config(settings)
+        head = ScriptDirectory.from_config(cfg).get_current_head()
+        assert head is not None
+        if db_path(settings).exists():
+            current = current_revision(settings)
+            if current != head:
+                dest = backup_database(settings, current)
+                logger.info("migration backup written to %s", dest)
+        command.upgrade(cfg, "head")
+    except Exception:
+        logger.exception("migration failed")
+        raise
     return head

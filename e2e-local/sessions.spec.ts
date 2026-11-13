@@ -3,7 +3,16 @@
 // Here a full page reload, with only the cookie to go on, shows that everything on the session page comes back from
 // the server and not from the tab.
 import { expect, test, type Page } from '@playwright/test';
-import { cut, fileNames, FIXTURES, importInto, resultSummary, signIn } from './helpers';
+import { cspViolations, cut, fileNames, FIXTURES, importInto, resultSummary, signIn, trackCspViolations } from './helpers';
+
+test.beforeEach(async ({ page }) => {
+  await trackCspViolations(page);
+});
+
+// The backend's Content-Security-Policy must never block anything the app does.
+test.afterEach(async ({ page }) => {
+  expect(cspViolations(page)).toEqual([]);
+});
 
 const filesPanel = (page: Page) => page.getByRole('region', { name: 'Files' });
 

@@ -2,10 +2,11 @@ import { REPO_URL } from '../mode';
 import { PrivacyNotice } from '../components/PrivacyNotice';
 
 export function HelpPage() {
+  const local = import.meta.env.VITE_APP_MODE === 'local';
   return (
     <article className="help">
-      <h1>Help / Get Local Version</h1>
-      {import.meta.env.VITE_APP_MODE === 'local' ? (
+      <h1>{local ? 'Help' : 'Help / Get Local Version'}</h1>
+      {local ? (
         <p>Your sessions and the original CSV files are saved on this computer in the MyGolfViz data folder.</p>
       ) : (
         <>
