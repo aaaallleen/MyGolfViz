@@ -1,6 +1,6 @@
 # Club head models: driver, fairway wood, hybrid, iron — design
 
-Date: 2026-11-12 · Status: ready for review
+Date: 2026-11-12 · Status: built (branch `feat/club-head-models`); amended during the build, see "Changes made while building"
 
 ## Why
 
@@ -101,8 +101,10 @@ grid and its handedness mirroring. It draws the spec's face outline at true scal
 lines, the hosel, and for driver, wood and hybrid a darker body silhouette showing above and
 around the face, as seen face-on. The 0.5 in grid and the impact dots are unchanged.
 
-Starting dimensions. These are typical real-club figures; the builder may tune any of them by up
-to about 10% for looks, but loft, lie and face width are used as written.
+Design dimensions. These are typical real-club figures; the builder may tune any of them by up
+to about 10% for looks, but loft, lie and face width are used as written. The built values live
+in `packages/visualizations/src/heads/specs.ts`; a test holds the built driver, wood and hybrid
+bodies within 10% of this table.
 
 | | Driver | Fairway wood | Hybrid | Iron |
 |---|---|---|---|---|
@@ -175,11 +177,10 @@ the "lay it flat" case. Labels and badges still never show a value that was not 
 Ground and ball. The ball rests on the ground and never moves; the head is placed against it.
 With a measured strike the ball touches the face exactly there. With no measured strike the
 contact is centred heel-to-toe, at the height that lets the sole rest on the ground, but never
-off the face (kept at least 0.1 in inside its top and bottom edges). After placing, a sole up to
-0.35 in below the ground line is left alone: that is the club brushing the turf. If the head
-would be deeper than that, the ground and target line are lowered to the head's lowest point and
-a small tee is drawn under the ball. The contact point is never falsified to avoid this, and a
-head that ends up above the ground is left there.
+off the face (kept at least 0.1 in inside its top and bottom edges). Nothing then adjusts for
+the ground: if the head ends up below the ground line it is drawn through it, because a normal
+golf shot does hit into the ground. No tee is ever drawn and the ground never moves (the user's
+decision). The contact point is never falsified.
 
 Hosel and shaft. The shaft and hosel form one straight line: the hosel is aimed along the shaft
 direction from its base at the heel, rather than fixed at the spec's lie angle, so there is no
@@ -190,7 +191,7 @@ these rules.
 
 ### 5. The slot for a loaded model later
 
-`buildClubModel` is the slot. Its contract (the frame, the named children and `hoselTop` above)
+`buildClubModel` is the slot. Its contract (the frame, the named children and the hosel base above)
 plus static loft, lie and the hosel base, is written down as a doc comment and covered by a test that runs against all four categories, so
 a future loaded model only has to satisfy the same contract. No loader, registry or async path is
 built now.
@@ -220,8 +221,9 @@ built now.
 - Geometry cached per club type; no model loader or file export in this round.
 - No limit on how far the body tips with measured loft; a 60° wedge shot on the shared 33° iron
   will look laid back, because that is what was measured.
-- The tee: when the measured contact point would sink the head, head and ball rise together and
-  a tee is drawn, for any club type.
+- No tee and no moving ground: this began as a designer call to draw a tee whenever the head
+  would sink, and the user replaced it with "never draw a tee; the club may go through the
+  ground".
 - The hosel is aimed along the shaft so the two never kink.
 - Head roll is not modelled; the leading edge stays level.
 
@@ -238,15 +240,35 @@ built now.
 ## How we'll know it's right
 
 - Unit tests: category mapping including hybrids; each head meets the frame contract (face
-  vertices lie on y = 0 with normal +y, named children exist, `hoselTop` is above and heel-side
+  vertices lie on y = 0 with normal +y, named children exist, the hosel base is heel-side and behind the face
   of the face centre, left-handed is the mirror); bounding sizes match the spec within tolerance;
   triangle budget; the Face impact outline width in pixels equals spec width × 40.
 - Pose tests for all four types: measured loft and face angle give that face normal; missing
   loft gives static loft with the sole on the ground; a measured impact point puts the ball's
-  touch point at that offset on the face (right- and left-handed); the head is never below the
-  ground and the ball rises with it; shaft and hosel are collinear; missing plane uses the lie.
+  touch point at that offset on the face (right- and left-handed); the ground and target line stay at zero and no tee
+  exists, whatever the pose; shaft and hosel are collinear; missing plane uses the lie.
 - Existing angle tests (`annotations.test.ts`, `cameras.test.ts`) pass untouched.
 - A visual check in the running app: for each of the four types, look at the 3D tab's four
   cameras (including a high-loft wedge shot, a shot with no loft, and an off-centre strike) and reconstruction mode, the 2D tab's four views, and the Face impact tab, right- and
   left-handed, and compare by eye against the reference screenshots for shape, not style.
 - `npm test`, the e2e suite and `scripts/verify-public-build.mjs` pass.
+
+## Changes made while building
+
+These were decided during the build and replace earlier wording where they differ.
+
+- **Unmeasured strike.** The first draft put the ball on the face centre. That forced every iron
+  onto a tee, because a ball on the ground meets a lofted face below its centre. Now the contact
+  is centred heel-to-toe at the height that rests the sole on the ground, kept on the face.
+- **No tee (user's decision).** Intermediate versions drew a tee when the head would sink, first
+  for any depth, then past a turf allowance. On the fixture sessions that still put 41–48% of
+  measured-strike iron shots on a tee. The user's rule replaces all of it: never draw a tee; the
+  club may pass through the ground line.
+- **Iron body.** The blade's back runs level-backward from the face, so its sole is level at its
+  static loft. Wood-kind bodies are warped behind the face so the crown peaks just behind the
+  face and the head is widest about 40% back; the warp is the identity on the face plane.
+- **Hosel.** Drawn by the scene along the shaft direction from the model's hosel base.
+- **Framing.** `cameras.ts` is unchanged, but the 3D measuring views now also keep the club
+  head's box in frame, so a head below the ground line is not cut off.
+- **Tuning after the visual check.** Black finish lightened to `#262B31`; driver body 5.0 × 4.6 in
+  and wood 4.4 in wide before the warp; hybrid 3.6 in wide; iron score-line spacing 0.13 in.
