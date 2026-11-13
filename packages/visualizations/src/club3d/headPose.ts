@@ -54,21 +54,3 @@ export function arcCenter(arc: Vec3[]): Vec3 {
   const t2 = scale(cross(ac, n), dot(ab, ab));
   return add(a, scale(add(t1, t2), 1 / (2 * n2)));
 }
-
-export interface OutlineSegment { op: 'M' | 'L' | 'C' | 'Z'; pts: [number, number][] }
-
-/** Parses the absolute M/L/C/Z path data used by FACE_OUTLINES. */
-export function parseOutline(d: string): OutlineSegment[] {
-  const tokens = d.match(/[MLCZ]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) ?? [];
-  const out: OutlineSegment[] = [];
-  const counts = { M: 1, L: 1, C: 3, Z: 0 } as const;
-  let i = 0;
-  while (i < tokens.length) {
-    const op = tokens[i++]!.toUpperCase() as OutlineSegment['op'];
-    if (!(op in counts)) throw new Error(`Unsupported path command ${op}`);
-    const pts: [number, number][] = [];
-    for (let k = 0; k < counts[op]; k++) pts.push([Number(tokens[i++]), Number(tokens[i++])]);
-    out.push({ op, pts });
-  }
-  return out;
-}

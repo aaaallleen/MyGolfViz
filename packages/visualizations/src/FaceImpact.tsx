@@ -1,5 +1,6 @@
 import { formatMeasurement, type ClubCategory, type Handedness } from '@fsa/domain';
-import { FACE_OUTLINES } from './faceOutlines';
+import { HEAD_SPECS, type HeadSpec } from './heads/specs';
+import { bodySilhouette, faceOutline, scoreLines, type Pt } from './heads/shape';
 import { BALL, BALL_EDGE, BORDER, CLUB, FACE_FILL, FONT, INK, MUTED, SURFACE } from './theme';
 
 export interface FaceImpactDiagramProps {
@@ -13,15 +14,33 @@ export interface FaceImpactDiagramProps {
 const PX_PER_IN = 40;
 const GRID_IN = 0.5;
 const W = 400, H = 280, CX = W / 2, CY = H / 2;
+interface HeadDrawing { spec: HeadSpec; face: Pt[]; lines: { z: number; x1: number; x2: number }[]; body: Pt[] | null }
+const DRAWINGS = new Map<ClubCategory, HeadDrawing>();
+/** Shape data per category, built once: bodySilhouette rebuilds a mesh on every call. */
+function drawingFor(category: ClubCategory): HeadDrawing {
+  let d = DRAWINGS.get(category);
+  if (!d) {
+    const spec = HEAD_SPECS[category];
+    d = { spec, face: faceOutline(spec), lines: scoreLines(spec), body: bodySilhouette(spec) };
+    DRAWINGS.set(category, d);
+  }
+  return d;
+}
+const loop = (pts: Pt[], at: (p: Pt) => string) => `${pts.map((p, i) => `${i ? 'L' : 'M'}${at(p)}`).join(' ')} Z`;
+
 const CATEGORY_NAME: Record<ClubCategory, string> = { driver: 'Driver', wood: 'Wood', hybrid: 'Hybrid', iron: 'Iron' };
 
 /** Face-on view. Right-handed: toe on the viewer's left, so +lateral (toe) plots left. Left-handed mirrors. */
 export function FaceImpactDiagram({ category, handedness, selected, others, showOthers }: FaceImpactDiagramProps) {
-  const o = FACE_OUTLINES[category];
+  const { spec, face, lines, body } = drawingFor(category);
   const side = handedness === 'right' ? 1 : -1; // +1: toe on the left
   const px = (x: number) => CX - side * x * PX_PER_IN;
   const py = (y: number) => CY - y * PX_PER_IN;
-  const s = (o.widthIn * PX_PER_IN) / o.frameWidth;
+  const at = ([x, z]: Pt) => `${px(x).toFixed(2)} ${py(z).toFixed(2)}`;
+  const hoselEnd: Pt = [
+    spec.hosel.base[0] - spec.hosel.lengthIn * Math.cos((spec.lieDeg * Math.PI) / 180),
+    spec.hosel.base[2] + spec.hosel.lengthIn * Math.sin((spec.lieDeg * Math.PI) / 180),
+  ];
   const step = GRID_IN * PX_PER_IN;
   const vLines = Array.from({ length: Math.floor(W / 2 / step) * 2 + 1 }, (_, i) => CX + (i - Math.floor(W / 2 / step)) * step);
   const hLines = Array.from({ length: Math.floor(H / 2 / step) * 2 + 1 }, (_, i) => CY + (i - Math.floor(H / 2 / step)) * step);
@@ -40,15 +59,13 @@ export function FaceImpactDiagram({ category, handedness, selected, others, show
       <svg role="img" aria-label={aria} data-category={category} viewBox={`0 0 ${W} ${H}`}
         style={{ width: '100%', height: 'auto', display: 'block' }}>
         <rect x={0} y={0} width={W} height={H} rx={8} fill={SURFACE} />
-        <g transform={`translate(${CX} ${CY}) scale(${side} 1) scale(${s}) translate(${-o.centre.x} ${-o.centre.y})`}>
-          {o.hosel && <line {...o.hosel} stroke={INK} strokeWidth={9} strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
-          <path data-role="face-outline" d={o.d} fill={FACE_FILL} stroke={INK} strokeWidth={2} strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke" />
-          {o.grooves && (
-            <g stroke={BORDER} strokeWidth={1}>
-              {o.grooves.ys.map((y) => <line key={y} x1={o.grooves!.x1} x2={o.grooves!.x2} y1={y} y2={y} vectorEffect="non-scaling-stroke" />)}
-            </g>
-          )}
+        {body && <path data-role="body-silhouette" d={loop(body, at)} fill={spec.finish.body} fillOpacity={0.9} />}
+        <line data-role="hosel" x1={px(spec.hosel.base[0])} y1={py(spec.hosel.base[2])} x2={px(hoselEnd[0])} y2={py(hoselEnd[1])}
+          stroke={spec.finish.hosel} strokeWidth={2 * spec.hosel.radiusIn * PX_PER_IN} strokeLinecap="round" />
+        <path d={loop(face, at)} fill={FACE_FILL} />
+        <path data-role="face-outline" d={loop(face, at)} fill={spec.finish.face} fillOpacity={0.35} stroke={INK} strokeWidth={2} strokeLinejoin="round" />
+        <g stroke={BORDER} strokeWidth={1}>
+          {lines.map((l, i) => <line key={i} data-role="score-line" x1={px(l.x1)} x2={px(l.x2)} y1={py(l.z)} y2={py(l.z)} />)}
         </g>
         <g stroke={BORDER} strokeWidth={1} strokeOpacity={0.6}>
           {vLines.map((x) => <line key={`v${x}`} x1={x} x2={x} y1={0} y2={H} />)}

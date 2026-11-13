@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { CLUB_ARC_RADIUS_YD } from '@fsa/analytics';
-import { arcCenter, headPose, parseOutline } from './headPose';
+import { arcCenter, headPose } from './headPose';
 import { REF_M, dot, mOf, rad, sceneOf } from './testFixtures';
 
 const H = { loftDeg: 33, lieDeg: 62.5 };
@@ -70,16 +70,5 @@ describe('arcCenter', () => {
     const arc = sceneOf(REF_M).clubArc!;
     const c = arcCenter(arc);
     for (const p of arc) expect(Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2])).toBeCloseTo(CLUB_ARC_RADIUS_YD, 6);
-  });
-});
-
-describe('parseOutline', () => {
-  test('reads M, L, C and Z commands into absolute segments', () => {
-    expect(parseOutline('M45 150 C45 95 90 66 200 62 L10 20 Z')).toEqual([
-      { op: 'M', pts: [[45, 150]] },
-      { op: 'C', pts: [[45, 95], [90, 66], [200, 62]] },
-      { op: 'L', pts: [[10, 20]] },
-      { op: 'Z', pts: [] },
-    ]);
   });
 });

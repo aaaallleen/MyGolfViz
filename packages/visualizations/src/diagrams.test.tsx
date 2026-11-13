@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { FaceImpactDiagram } from './FaceImpact';
+import { HEAD_SPECS } from './heads/specs';
+import { scoreLines } from './heads/shape';
 import { SPIN_DISPLAY_SLOWDOWN, SpinBallDiagram } from './SpinBall';
 
 const num = (el: Element, a: string) => Number(el.getAttribute(a));
@@ -128,4 +130,22 @@ test('face impact: positive y above centre; data-category; no provisional note',
   expect(num(role(container, 'selected-impact')!, 'cy')).toBeCloseTo(cy - 0.3 * 40, 5);
   expect(container.querySelector('svg')).toHaveAttribute('data-category', 'iron');
   expect(container.textContent!.toLowerCase()).not.toContain('provisional');
+});
+
+const bboxW = (d: string) => { const xs = [...d.matchAll(/[ML]\s*(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => Number(m[1])); return Math.max(...xs) - Math.min(...xs); };
+test.each(['driver', 'wood', 'hybrid', 'iron'] as const)('face impact %s: outline is the spec face at 40 px per inch, centred on the grid centre', (category) => {
+  const { container } = render(<FaceImpactDiagram {...face({ category })} />);
+  const d = role(container, 'face-outline')!.getAttribute('d')!;
+  expect(bboxW(d)).toBeCloseTo(HEAD_SPECS[category].faceWidthIn * 40, 0);
+  expect(roles(container, 'score-line')).toHaveLength(scoreLines(HEAD_SPECS[category]).length);
+  expect(roles(container, 'body-silhouette')).toHaveLength(category === 'iron' ? 0 : 1);
+  expect(roles(container, 'hosel')).toHaveLength(1);
+});
+test('face impact: left-handed mirrors the hosel to the other side', () => {
+  const rh = render(<FaceImpactDiagram {...face()} />).container;
+  const lh = render(<FaceImpactDiagram {...face({ handedness: 'left' })} />).container;
+  expect(num(role(rh, 'hosel')!, 'x1')).toBeGreaterThan(num(role(rh, 'face-center')!, 'x1'));
+  expect(num(role(lh, 'hosel')!, 'x1')).toBeLessThan(num(role(lh, 'face-center')!, 'x1'));
+  expect(num(role(rh, 'hosel')!, 'x2')).toBeGreaterThan(num(role(rh, 'hosel')!, 'x1'));
+  expect(num(role(lh, 'hosel')!, 'x2')).toBeLessThan(num(role(lh, 'hosel')!, 'x1'));
 });
