@@ -50,7 +50,7 @@ export function InspectorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scenes, shot?.id],
   );
-  // The 3D club views' "All shots" overlay compares against the same club only.
+  // Same-club shots: the 3D club views' "All shots" overlay, and Ball flight's default comparison.
   const sameClub = useMemo(
     () => visibleShots.filter((s) => s.id !== shot?.id && s.club === shot?.club).map((s) => scenes.get(s.id)!),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +109,7 @@ export function InspectorPage() {
         </div>
       )}
       <HeadTiles shot={shot} />
-      <BallDataPanel shot={shot} scene={scene} others={others} />
+      <BallDataPanel shot={shot} scene={scene} sameClub={sameClub} others={others} />
       <Tabs<InspectorTab> value={inspectorTab} onChange={ws.setInspectorTab}
         render={<section />} className="club-data" aria-labelledby="club-data-label">
         <div className="club-data__bar">

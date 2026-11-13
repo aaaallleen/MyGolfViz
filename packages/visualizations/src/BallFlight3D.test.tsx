@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Shot } from '@fsa/domain';
 import { buildReplayScene } from '@fsa/analytics';
@@ -17,7 +17,12 @@ const wedge = {
 const emptyShot = { id: 'e', fileId: 'f', sourceRow: 1, m: {
   swingH: null, swingV: null, aoa: null, ftt: null, carry: null, lateral: null, launchH: null, height: null, launchV: null, descentV: null,
 } } as unknown as Shot;
+const iron = {
+  id: 'i', fileId: 'f', sourceRow: 3,
+  m: { swingH: 7, swingV: 50.5, aoa: -1.3, ftt: 8.6, carry: 150, lateral: 3, launchH: 0.5, height: 110, launchV: 24, descentV: 48 },
+} as unknown as Shot;
 const sel = buildReplayScene(driver, 'right');
+const ironScene = buildReplayScene(iron, 'right');
 const wedgeScene = buildReplayScene(wedge, 'right');
 const nullScene = buildReplayScene(emptyShot, 'right');
 const role = (c: HTMLElement, r: string) => c.querySelector(`[data-role="${r}"]`);
@@ -40,7 +45,7 @@ const tick = (ts: number) => act(() => {
 const live = () => frames.filter((f) => !cancelled.has(f.id)).length;
 
 test('flight banner copy present; camera buttons with Perspective pressed; defaults', () => {
-  const { container } = render(<BallFlight3D selected={sel} others={[wedgeScene, nullScene]} />);
+  const { container } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[wedgeScene, nullScene]} others={[wedgeScene, nullScene]} />);
   expect(container.textContent).toContain('Illustrative flight path');
   expect(container.textContent).toContain('Drawn from launch angle, apex height, descent angle, carry and lateral landing. It is not a measured flight track.');
   for (const n of ['DTL', 'Perspective', 'Side', 'Top']) expect(screen.getByRole('button', { name: n })).toBeInTheDocument();
@@ -55,18 +60,36 @@ test('flight banner copy present; camera buttons with Perspective pressed; defau
   expect(live()).toBe(0);
 });
 
-test("'Show other shots' checked → 1 other-flight (null-flight skipped, opacity <= 0.3); unchecked → 0", () => {
-  const { container } = render(<BallFlight3D selected={sel} others={[wedgeScene, nullScene]} />);
-  const cb = screen.getByLabelText('Show other shots');
-  expect(cb).toBeChecked();
+test('Other shots: same club by default, All clubs adds the rest, None hides them (null flights never drawn)', () => {
+  const { container } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[wedgeScene, nullScene]} others={[wedgeScene, nullScene, ironScene]} />);
+  const group = screen.getByRole('group', { name: 'Other shots' });
+  const option = (name: string) => within(group).getByRole('button', { name });
+  expect(option('Driver')).toHaveAttribute('aria-pressed', 'true');
   expect(all(container, 'other-flight')).toHaveLength(1);
   expect(Number(role(container, 'other-flight')!.getAttribute('opacity'))).toBeLessThanOrEqual(0.3);
-  fireEvent.click(cb);
+
+  fireEvent.click(option('All clubs'));
+  expect(option('All clubs')).toHaveAttribute('aria-pressed', 'true');
+  expect(all(container, 'other-flight')).toHaveLength(2);
+
+  fireEvent.click(option('None'));
   expect(all(container, 'other-flight')).toHaveLength(0);
+  expect(all(container, 'landing')).toHaveLength(1); // only the selected shot's
+
+  fireEvent.click(option('Driver'));
+  expect(all(container, 'other-flight')).toHaveLength(1);
+});
+
+test('the Other shots choice stays when another shot is selected', () => {
+  const { container, rerender } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[wedgeScene]} others={[wedgeScene, ironScene]} />);
+  fireEvent.click(screen.getByRole('button', { name: 'All clubs' }));
+  rerender(<BallFlight3D selected={wedgeScene} club="Driver" sameClub={[sel]} others={[sel, ironScene]} />);
+  expect(screen.getByRole('button', { name: 'All clubs' })).toHaveAttribute('aria-pressed', 'true');
+  expect(all(container, 'other-flight')).toHaveLength(2);
 });
 
 test('the selected flight stands out: other shots are a neutral colour, the selected one is the ball colour over a dark halo', () => {
-  const { container } = render(<BallFlight3D selected={sel} others={[wedgeScene]} />);
+  const { container } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[wedgeScene]} others={[wedgeScene]} />);
   const selected = role(container, 'ball-flight')!;
   const other = role(container, 'other-flight')!;
   expect(selected.getAttribute('stroke')).toBe(BALL);
@@ -84,7 +107,7 @@ test('the selected flight stands out: other shots are a neutral colour, the sele
 });
 
 test("slider 0 → 'Launch', 50 → 'Ball flight', 100 → 'Landing' and ball sits at projected landing", () => {
-  const { container } = render(<BallFlight3D selected={sel} others={[wedgeScene]} />);
+  const { container } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[wedgeScene]} others={[wedgeScene]} />);
   for (const [v, name] of [[0, 'Launch'], [50, 'Ball flight'], [100, 'Landing']] as const) {
     fireEvent.change(slider(), { target: { value: String(v) } });
     expect(container.querySelector('svg')!.textContent).toContain(name);
@@ -98,7 +121,7 @@ test("slider 0 → 'Launch', 50 → 'Ball flight', 100 → 'Landing' and ball si
 });
 
 test("selected flight null → note shown; others still drawn", () => {
-  const { container } = render(<BallFlight3D selected={nullScene} others={[wedgeScene]} />);
+  const { container } = render(<BallFlight3D selected={nullScene} club="Driver" sameClub={[wedgeScene]} others={[wedgeScene]} />);
   expect(container.textContent).toContain('Ball flight not measured for this shot');
   expect(role(container, 'ball-flight')).toBeNull();
   expect(all(container, 'other-flight')).toHaveLength(1);
@@ -107,7 +130,7 @@ test("selected flight null → note shown; others still drawn", () => {
 test('no svg attribute contains NaN and no seconds text (normal and null-flight scenes)', () => {
   const cases: [typeof sel, typeof sel[]][] = [[sel, [wedgeScene, nullScene]], [nullScene, [wedgeScene]], [nullScene, []]];
   for (const [s, o] of cases) {
-    const { container, unmount } = render(<BallFlight3D selected={s} others={o} />);
+    const { container, unmount } = render(<BallFlight3D selected={s} club="Driver" sameClub={o} others={o} />);
     for (const cam of ['DTL', 'Perspective', 'Side', 'Top']) {
       fireEvent.click(screen.getByRole('button', { name: cam }));
       for (const v of ['0', '3', '50', '97', '100']) {
@@ -123,7 +146,7 @@ test('no svg attribute contains NaN and no seconds text (normal and null-flight 
 });
 
 test('Play toggles to "Pause replay" and advances under fake rAF; frame cancelled on unmount', () => {
-  const { unmount } = render(<BallFlight3D selected={sel} others={[]} />);
+  const { unmount } = render(<BallFlight3D selected={sel} club="Driver" sameClub={[]} others={[]} />);
   fireEvent.click(screen.getByRole('button', { name: 'Play replay' }));
   expect(screen.getByRole('button', { name: 'Pause replay' })).toBeInTheDocument();
   tick(0); tick(400);

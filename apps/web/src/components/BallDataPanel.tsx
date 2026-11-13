@@ -38,12 +38,12 @@ function Readouts({ title, items, shot }: { title: string; items: { key: Measure
   );
 }
 
-export function BallDataPanel({ shot, scene, others }: { shot: Shot; scene: ReplayScene; others: ReplayScene[] }) {
+export function BallDataPanel({ shot, scene, sameClub, others }: { shot: Shot; scene: ReplayScene; sameClub: ReplayScene[]; others: ReplayScene[] }) {
   return (
     <section className="ball-data" aria-labelledby="ball-data-label">
       <div className="section-label section-label--ball" id="ball-data-label"><span className="section-label__dot" />Ball data</div>
       <div className="ball-data__grid">
-        <BallFlight3D selected={scene} others={others} />
+        <BallFlight3D selected={scene} club={shot.club} sameClub={sameClub} others={others} />
         <div className="panel"><SpinBallDiagram spin={shot.m.spin} spinAxis={shot.m.spinAxis} /></div>
       </div>
       <div className="ball-data__readouts">

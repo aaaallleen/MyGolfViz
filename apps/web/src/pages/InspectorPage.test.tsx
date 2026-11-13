@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test } from 'vitest';
-import { summarize } from '@fsa/analytics';
+import { buildReplayScene, summarize } from '@fsa/analytics';
 import { formatMeasurement } from '@fsa/domain';
 import { shotOptionLabel } from '../components/shotLabel';
 import { renderWithData } from '../test/renderWithData';
@@ -60,22 +60,42 @@ describe('InspectorPage', () => {
     }
   });
 
-  test("Ball data has camera buttons DTL, Perspective, Side, Top and a checked 'Show other shots'", () => {
-    open();
+  test("Ball data has camera buttons DTL, Perspective, Side, Top and 'Other shots' set to the shot's club", () => {
+    const v = open();
     const ball = screen.getByRole('region', { name: 'Ball data' });
     for (const n of ['DTL', 'Perspective', 'Side', 'Top']) expect(within(ball).getByRole('button', { name: n })).toBeInTheDocument();
-    expect(within(ball).getByRole('checkbox', { name: 'Show other shots' })).toBeChecked();
+    const others = within(ball).getByRole('group', { name: 'Other shots' });
+    expect(within(others).getAllByRole('button').map((b) => b.textContent)).toEqual(['None', v.store().visibleShots[0]!.club, 'All clubs']);
+    expect(within(others).getByRole('button', { name: v.store().visibleShots[0]!.club })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test("File 1 + Driver, Shot 1: 15 other-flight paths; unchecking 'Show other shots' leaves 0", async () => {
+  test("File 1 + Driver, Shot 1: 15 other-flight paths; 'None' leaves 0", async () => {
     const user = userEvent.setup();
     const v = open();
     act(() => v.store().setFile(v.store().workingSet!.files.find((f) => f.ordinal === 1)!.id));
     act(() => v.store().setClub('Driver'));
     pick(v, 1, 2);
     expect(document.querySelectorAll('[data-role="other-flight"]')).toHaveLength(15);
-    await user.click(screen.getByRole('checkbox', { name: 'Show other shots' }));
+    await user.click(screen.getByRole('button', { name: 'None' }));
     expect(document.querySelectorAll('[data-role="other-flight"]')).toHaveLength(0);
+  });
+
+  test('with every club in view, the default draws only same-club flights and All clubs draws the rest too', async () => {
+    const user = userEvent.setup();
+    const v = open();
+    const visible = v.store().visibleShots;
+    const shot = visible[0]!;
+    const flies = (s: (typeof visible)[number]) => buildReplayScene(s, 'right').ballFlight !== null;
+    const sameClub = visible.filter((s) => s.id !== shot.id && s.club === shot.club && flies(s)).length;
+    const everyClub = visible.filter((s) => s.id !== shot.id && flies(s)).length;
+    expect(everyClub).toBeGreaterThan(sameClub); // the fixtures mix clubs
+    const flights = () => document.querySelectorAll('[data-role="other-flight"]');
+    expect(flights()).toHaveLength(sameClub);
+    await user.click(screen.getByRole('button', { name: 'All clubs' }));
+    expect(flights()).toHaveLength(everyClub);
+    // The choice stays when stepping to another shot.
+    act(() => v.store().select(visible[1]!.id));
+    expect(screen.getByRole('button', { name: 'All clubs' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   test("File 1 Shot 1 Ball data: spin, derived spin components, launch and flight readouts", () => {
