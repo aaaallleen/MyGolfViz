@@ -49,7 +49,7 @@ export function boxCorners(b: { min: Vec3; max: Vec3 }): Vec3[] {
 
 /**
  * Points a measuring view must keep in frame: the arc, the ball, every wedge rim and, when given, the club head's
- * impact-pose box (which reaches down to a ground lowered for a tee).
+ * impact-pose box, so the whole head stays in frame for every shot, including a head that reaches below the ground.
  */
 export function framePoints(scene: ReplayScene, list: Annotation[], head?: { min: Vec3; max: Vec3 }): Vec3[] {
   const pts: Vec3[] = scene.clubArc ? [...scene.clubArc, [0, 0, 0]] : [...FALLBACK_FRAME];
