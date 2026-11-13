@@ -14,6 +14,20 @@ from .app import attach_log_handler, create_app
 from .config import AlreadyRunning, DataLock, Settings, default_data_dir
 
 
+def open_listening_socket(host: str, port: int) -> socket.socket:
+    """Bind and listen (port 0 picks a free one).
+
+    Listening before the port line is printed means a client that connects as
+    soon as it reads that line is queued until uvicorn starts accepting,
+    instead of being refused.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    sock.listen(128)
+    return sock
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mygolfviz-api")
     parser.add_argument("--data-dir", type=Path, default=None)
@@ -37,9 +51,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         host = "127.0.0.1"
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((host, args.port))
+        sock = open_listening_socket(host, args.port)
         port = sock.getsockname()[1]
         settings = Settings(
             data_dir=data_dir,

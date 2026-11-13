@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -7,6 +8,7 @@ import urllib.request
 
 import pytest
 
+from mygolfviz_api.__main__ import open_listening_socket
 from mygolfviz_api.app import create_app
 from mygolfviz_api.config import AlreadyRunning, DataLock
 
@@ -22,6 +24,18 @@ def test_creates_data_folders(settings, tmp_path, client):
         assert (tmp_path / sub).is_dir()
     client.get("/api/v1/health")
     assert (tmp_path / "logs" / "mygolfviz-api.log").exists()
+
+
+def test_listening_socket_accepts_connections_before_the_server_runs():
+    # The port line is printed before uvicorn starts; anything that connects
+    # as soon as it reads that line must be queued, not refused.
+    sock = open_listening_socket("127.0.0.1", 0)
+    try:
+        port = sock.getsockname()[1]
+        with socket.create_connection(("127.0.0.1", port), timeout=2):
+            pass
+    finally:
+        sock.close()
 
 
 def test_second_lock_refused(tmp_path):
