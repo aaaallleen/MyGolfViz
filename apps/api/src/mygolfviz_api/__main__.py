@@ -10,7 +10,7 @@ from pathlib import Path
 
 import uvicorn
 
-from .app import create_app
+from .app import attach_log_handler, create_app
 from .config import AlreadyRunning, DataLock, Settings, default_data_dir
 
 
@@ -53,9 +53,11 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps({"port": port, "url": f"http://{host}:{port}/?token={token}"}),
             flush=True,
         )
-        server = uvicorn.Server(
-            uvicorn.Config(app, host=host, port=port, log_level="info")
-        )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
+        # Config() runs dictConfig, which strips handlers from the uvicorn
+        # logger; re-attach the file handler afterwards.
+        attach_log_handler(settings)
+        server = uvicorn.Server(config)
         server.run(sockets=[sock])
     finally:
         lock.__exit__(None, None, None)

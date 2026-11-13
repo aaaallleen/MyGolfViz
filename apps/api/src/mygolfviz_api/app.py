@@ -9,7 +9,7 @@ from . import __version__
 from .config import Settings
 
 
-def _attach_log_handler(settings: Settings) -> None:
+def attach_log_handler(settings: Settings) -> None:
     path = (settings.data_dir / "logs" / "mygolfviz-api.log").resolve()
     for name in ("mygolfviz_api", "uvicorn"):
         logger = logging.getLogger(name)
@@ -32,7 +32,7 @@ def _attach_log_handler(settings: Settings) -> None:
 def create_app(settings: Settings) -> FastAPI:
     for sub in ("originals", "backups", "logs"):
         (settings.data_dir / sub).mkdir(parents=True, exist_ok=True)
-    _attach_log_handler(settings)
+    attach_log_handler(settings)
 
     app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None)
     app.state.settings = settings

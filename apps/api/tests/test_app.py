@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.request
 
 import pytest
@@ -46,6 +47,13 @@ def test_cli_prints_port_line(tmp_path):
             f"http://127.0.0.1:{info['port']}/api/v1/health", timeout=10
         ) as r:
             assert r.status == 200
+        log = tmp_path / "logs" / "mygolfviz-api.log"
+        deadline = time.time() + 5
+        while time.time() < deadline and "uvicorn" not in (
+            log.read_text() if log.exists() else ""
+        ):
+            time.sleep(0.1)
+        assert " uvicorn" in log.read_text()
     finally:
         p.terminate()
         p.wait(timeout=10)
