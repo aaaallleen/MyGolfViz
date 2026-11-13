@@ -26,6 +26,7 @@ export function ExcludedMenu() {
                   <button
                     type="button"
                     className="excluded-menu__pick fsa-touch"
+                    data-shot-id={s.id}
                     onClick={() => { ws.reveal(s.id); setOpen(false); }}
                   >
                     {s.club} · <FileBadge shot={s} files={files} /> {shotLabel(s)} · {s.m.carry === null ? MISSING_MARK : formatMeasurement('carry', s.m.carry)}
@@ -33,7 +34,7 @@ export function ExcludedMenu() {
                   <button
                     type="button"
                     className="fsa-btn fsa-btn--secondary fsa-touch"
-                    aria-label={`Include shot ${shotLabel(s)}, ${s.club}`}
+                    aria-label={`Include shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${files.find((f) => f.id === s.fileId)?.ordinal ?? '?'}`}
                     onClick={() => ws.setExcluded(s.id, false)}
                   >
                     Include

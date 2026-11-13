@@ -447,12 +447,12 @@ describe('OverviewPage', () => {
       act(() => r.store().setClub(otherClub));
       await user.click(screen.getByRole('button', { name: '2 excluded' }));
       const popup = screen.getByRole('dialog');
-      await user.click(within(popup).getAllByRole('button').find((b) => b.textContent?.startsWith('Driver'))!);
+      await user.click(popup.querySelector(`[data-shot-id="${driver}"]`) as HTMLElement);
       expect(chip('Driver')).toHaveAttribute('aria-pressed', 'true');
       expect(r.store().selectedId).toBe(driver);
       expect(within(document.querySelector('.selected-card') as HTMLElement).getByText('Excluded')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: '2 excluded' }));
-      await user.click(screen.getByRole('button', { name: new RegExp(`^Include shot .*, ${otherClub}$`) }));
+      await user.click(screen.getByRole('button', { name: new RegExp(`^Include shot .*, ${otherClub}, file \\d$`) }));
       expect(screen.getByRole('button', { name: '1 excluded' })).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Include all' }));
       expect(screen.queryByRole('button', { name: /\d+ excluded$/ })).toBeNull();
