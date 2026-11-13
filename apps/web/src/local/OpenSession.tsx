@@ -3,7 +3,8 @@ import type { ImportRow, SessionRow } from './api';
 
 /** The saved rows behind the open session. SessionRoute sets it from the same response it gives the store. */
 export type OpenSession = { session: SessionRow; imports: ImportRow[] };
-export type OpenSessionApi = { open: OpenSession | null; setOpen(o: OpenSession): void };
+/** `setOpen(null)` forgets the rows, so the session page fetches the session again when it is next shown. */
+export type OpenSessionApi = { open: OpenSession | null; setOpen(o: OpenSession | null): void };
 
 export const OpenSessionContext = createContext<OpenSessionApi | null>(null);
 

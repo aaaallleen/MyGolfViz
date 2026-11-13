@@ -3,11 +3,13 @@ import { webcrypto } from 'node:crypto';
 import { join } from 'node:path';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useEffect } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { Route, Routes, useLocation } from 'react-router';
 import { AppRoutes } from '../routes';
 import { WorkingSetProvider, useWorkingSet } from '../state/store';
+import type { SessionRow } from '../local/api';
 
 const DIR = join(__dirname, '../../../../fixtures/flightscope');
 const F1 = 'FlightScope Golf Session Sept 19 2022.csv';
@@ -232,7 +234,7 @@ describe('LoadPage in local mode', () => {
   });
 
   /** The lazy local pieces are chosen at module load, so build the page after stubbing the mode. */
-  async function setupLocal() {
+  async function setupLocal(openSessionId?: string) {
     vi.stubEnv('VITE_APP_MODE', 'local');
     vi.resetModules();
     vi.doMock('../local/api', () => ({
@@ -243,24 +245,37 @@ describe('LoadPage in local mode', () => {
     }));
     const { LoadPage } = await import('./LoadPage');
     const { WorkingSetProvider, useWorkingSet } = await import('../state/store');
+    const { OpenSessionProvider, useOpenSession } = await import('../local/OpenSession');
     let local: ReturnType<typeof useWorkingSet> | null = null;
+    let opened: ReturnType<typeof useOpenSession> | null = null;
     const Where = () => {
       local = useWorkingSet();
       return <div data-testid="where">{useLocation().pathname}</div>;
+    };
+    // Stands in for a session page that was open before the import page.
+    const Opened = () => {
+      opened = useOpenSession();
+      useEffect(() => {
+        if (openSessionId) opened!.setOpen({ session: { id: openSessionId } as SessionRow, imports: [] });
+      }, []);
+      return null;
     };
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/import']}>
         <WorkingSetProvider>
-          <Routes>
-            <Route path="/import" element={<LoadPage />} />
-            <Route path="*" element={<Where />} />
-          </Routes>
+          <OpenSessionProvider>
+            <Opened />
+            <Routes>
+              <Route path="/import" element={<LoadPage />} />
+              <Route path="*" element={<Where />} />
+            </Routes>
+          </OpenSessionProvider>
         </WorkingSetProvider>
       </MemoryRouter>,
     );
     const input = () => screen.getByLabelText('Load Session CSV', { selector: 'input' });
-    return { user, input, ws: () => local! };
+    return { user, input, ws: () => local!, open: () => opened!.open };
   }
 
   test('shows the destination block and local buttons, not the public extras', async () => {
@@ -306,6 +321,21 @@ describe('LoadPage in local mode', () => {
     expect(manifest.destination.newSession.name).toBe('Range day');
     expect(manifest.files[0]).toMatchObject({ field: 'file0', acceptCrossSessionDuplicate: false });
     expect(files[0].file).toBeInstanceOf(File);
+  });
+
+  test.each([
+    ['the open session, its saved rows are dropped so it is fetched again', 's9', null],
+    ['another session, the open session keeps its rows', 's1', 's1'],
+  ])('a commit into %s', async (_, openId, after) => {
+    commitImport.mockResolvedValue({ session: { id: 's9', name: 'Range day' }, results: [] });
+    const { user, input, open } = await setupLocal(openId);
+    await waitFor(() => expect(open()?.session.id).toBe(openId));
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    await user.type(await screen.findByLabelText(/^Session name/), 'Range day');
+    await user.click(screen.getByRole('button', { name: 'Import files' }));
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/import/result'));
+    expect(open()?.session.id ?? null).toBe(after);
   });
 
   test('Import files stays disabled while a commit runs and a failure is not retried', async () => {

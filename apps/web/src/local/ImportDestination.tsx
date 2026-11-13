@@ -11,6 +11,7 @@ import type { CheckResponse, SessionRow } from './api';
 import type { ImportTarget } from './importPayload';
 import { todayLocal, sortSessions } from './library';
 import { useImportCommit } from './useImportCommit';
+import { useOpenSession } from './OpenSession';
 
 export type ImportDestinationValue = ImportTarget & { accept: Record<string, boolean> };
 type NewSession = Extract<ImportTarget, { newSession: unknown }>['newSession'];
@@ -150,6 +151,7 @@ export function ImportActions({ dest, shotCount }: { dest: ImportDestinationValu
   const ws = useWorkingSet();
   const navigate = useNavigate();
   const { commit, busy } = useImportCommit();
+  const { open, setOpen } = useOpenSession();
   const blankName = !isExisting(dest) && dest.newSession.name.trim() === '';
   const noTarget = isExisting(dest) && dest.sessionId === '';
   const run = async () => {
@@ -157,6 +159,8 @@ export function ImportActions({ dest, shotCount }: { dest: ImportDestinationValu
       const { accept, ...target } = dest;
       const response = await commit(target as ImportTarget, ws.staged, accept);
       ws.clearStaged();
+      // Files were added to the session that is open: drop its saved rows so opening it fetches the new ones.
+      if (open?.session.id === response.session.id) setOpen(null);
       navigate('/import/result', { state: response });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'The import failed.');
