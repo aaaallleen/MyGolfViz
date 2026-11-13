@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import signal
 import sqlite3
@@ -40,6 +39,19 @@ def stop(p):
     for stream in (p.stdin, p.stdout, p.stderr):
         if stream is not None:
             stream.close()
+
+
+def wait_healthy(port):
+    # The port line is printed before uvicorn installs its signal handlers.
+    deadline = time.time() + 10
+    while True:
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/v1/health", timeout=2).close()
+            return
+        except OSError:
+            if time.time() > deadline:
+                raise
+            time.sleep(0.1)
 
 
 def assert_lock_free(tmp_path):
@@ -88,6 +100,27 @@ def test_sigterm_exits_cleanly_and_checkpoints(tmp_path):
         wal = tmp_path / "mygolfviz.sqlite3-wal"
         assert not wal.exists() or wal.stat().st_size == 0
         assert_lock_free(tmp_path)
+    finally:
+        stop(p)
+
+
+def test_single_sigint_exits_0(tmp_path):
+    p = spawn(tmp_path)
+    try:
+        wait_healthy(json.loads(p.stdout.readline())["port"])
+        p.send_signal(signal.SIGINT)
+        assert p.wait(timeout=5) == 0
+    finally:
+        stop(p)
+
+
+def test_double_sigint_exits(tmp_path):
+    p = spawn(tmp_path)
+    try:
+        wait_healthy(json.loads(p.stdout.readline())["port"])
+        p.send_signal(signal.SIGINT)
+        p.send_signal(signal.SIGINT)
+        p.wait(timeout=5)
     finally:
         stop(p)
 
@@ -152,7 +185,6 @@ def test_migration_backup_path_logged(tmp_path):
     con.commit()
     con.close()
     (tmp_path / "logs").mkdir(exist_ok=True)
-    logging.getLogger("mygolfviz_api").setLevel(logging.INFO)
     with TestClient(create_app(settings)):
         pass
     log = (tmp_path / "logs" / "mygolfviz-api.log").read_text()

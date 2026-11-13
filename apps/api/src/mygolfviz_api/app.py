@@ -84,9 +84,11 @@ def create_app(settings: Settings) -> FastAPI:
     async def lifespan(app: FastAPI):
         yield
         # Fold the WAL into the main file so a quit never leaves data only in -wal.
-        with app.state.engine.connect() as con:
-            con.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
-        app.state.engine.dispose()
+        try:
+            with app.state.engine.connect() as con:
+                con.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+        finally:
+            app.state.engine.dispose()
 
     app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.settings = settings

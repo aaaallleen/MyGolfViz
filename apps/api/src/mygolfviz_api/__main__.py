@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import secrets
+import signal
 import socket
 import sys
 import threading
@@ -91,8 +92,13 @@ class _Server(uvicorn.Server):
     turn a graceful stop into exit status -15. We want a clean 0 and a released
     lock, so shut down on the signal without recording it for re-raise."""
 
+    # (uvicorn 0.54 re-raises captured signals after shutdown.) Otherwise this
+    # mirrors upstream: a second SIGINT forces exit.
     def handle_exit(self, sig, frame) -> None:  # noqa: ANN001
-        self.should_exit = True
+        if self.should_exit and sig == signal.SIGINT:
+            self.force_exit = True
+        else:
+            self.should_exit = True
 
 
 def _exit_on_stdin_eof(server: uvicorn.Server) -> None:
