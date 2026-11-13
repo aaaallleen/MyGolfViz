@@ -34,14 +34,12 @@ describe('headPose', () => {
     const p = headPose(mOf({ ftt: 11.8, dynamicLoft: 40.9 }), sceneOf(REF_M), H);
     expect(p.faceNormal[2]).toBeCloseTo(Math.sin(rad(40.9)), 6);
     expect(Math.atan2(p.faceNormal[0], p.faceNormal[1])).toBeCloseTo(rad(11.8), 6);
-    expect(p.flat).toBe(false);
   });
 
-  test('missing loft uses the static loft and is flat; missing face angle is square', () => {
+  test('missing loft uses the static loft; missing face angle is square', () => {
     const p = headPose(mOf({}), sceneOf(mOf({})), H);
     expect(p.faceNormal[0]).toBeCloseTo(0, 9);
     expect(p.faceNormal[2]).toBeCloseTo(Math.sin(rad(33)), 6);
-    expect(p.flat).toBe(true);
   });
 
   test('no swing plane and no Swing V: the shaft stands at the head lie', () => {

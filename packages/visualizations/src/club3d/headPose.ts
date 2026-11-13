@@ -10,8 +10,6 @@ export interface HeadPose {
   toeDir: Vec3;
   /** Measured contact point in inches from the face centre (toe +, high +); null unless both were measured. */
   strike: { lateralIn: number; verticalIn: number } | null;
-  /** True when dynamic loft was not measured: the head is drawn at its static loft. */
-  flat: boolean;
 }
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -41,7 +39,7 @@ export function headPose(m: Measurements, scene: ReplayScene, head: { loftDeg: n
   const strike = m.impactLateral !== null && m.impactVertical !== null
     ? { lateralIn: m.impactLateral, verticalIn: m.impactVertical }
     : null;
-  return { faceNormal, shaftDir, toeDir: toe, strike, flat: m.dynamicLoft === null };
+  return { faceNormal, shaftDir, toeDir: toe, strike };
 }
 
 /** Centre of the circle through the arc (circumcentre of its first, middle and last points). */
