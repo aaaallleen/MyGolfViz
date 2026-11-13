@@ -340,6 +340,32 @@ describe('InspectorPage', () => {
       expect(screen.queryByText(/shots here are excluded/)).toBeNull();
     });
 
+    test('Exclude shot in the header excludes the open shot and moves on to the next included shot', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const [target, next] = [v.store().visibleShots[2]!, v.store().visibleShots[3]!];
+      act(() => v.store().select(target.id));
+      const used = v.store().visibleShots.length;
+      await user.click(screen.getByRole('button', { name: 'Exclude shot' }));
+      expect(v.store().excludedIds.has(target.id)).toBe(true);
+      expect(v.store().selectedId).toBe(next.id);
+      expect(v.store().visibleShots).toHaveLength(used - 1);
+      expect(screen.queryByText(BANNER)).toBeNull();
+      expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toContain(`excluded · ${used - 1} shots used`);
+    });
+
+    test('on an excluded open shot the header button reads Include shot and brings it back', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      expect(screen.queryByRole('button', { name: 'Exclude shot' })).toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Include shot' }));
+      expect(v.store().excludedIds.has(target.id)).toBe(false);
+      expect(v.store().selectedId).toBe(target.id);
+      expect(screen.queryByText(BANNER)).toBeNull();
+    });
+
     test('Include it again removes the banner', async () => {
       const user = userEvent.setup();
       const v = open();

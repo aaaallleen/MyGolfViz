@@ -11,7 +11,7 @@ async function shotCount(page: Page): Promise<number> {
 
 const points = (page: Page) => page.locator('.fsa-dispersion circle[data-shot-id]:not([aria-current])');
 
-test('exclude from the card and from Edit shots, then include from the Inspector', async ({ page }) => {
+test('exclude from the card, Edit shots and the Inspector; include from the Inspector', async ({ page }) => {
   await loadAndAnalyze(page, FIXTURES.slice(0, 2));
   const n = await shotCount(page);
 
@@ -47,4 +47,14 @@ test('exclude from the card and from Edit shots, then include from the Inspector
   await page.getByRole('link', { name: 'Overview', exact: true }).click();
   await expect(page.getByRole('heading', { level: 2, name: new RegExp(`^Averages.* ${n - 1} shots$`) })).toBeVisible();
   await expect.poll(() => points(page).count()).toBe(plotted - 1);
+
+  // Exclude the open shot from the Inspector header: it moves on to another shot, without the excluded banner.
+  await page.getByRole('link', { name: 'Shot Inspector', exact: true }).click();
+  const title = await page.getByRole('heading', { level: 1 }).textContent();
+  await page.getByRole('button', { name: 'Exclude shot' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText(title ?? '');
+  await expect(page.getByText('This shot is excluded.')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 2, name: new RegExp(`^Averages.* ${n - 2} shots$`) })).toBeVisible();
+  await expect(page.getByRole('button', { name: '2 excluded' })).toBeVisible();
 });

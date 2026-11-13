@@ -1,11 +1,12 @@
 import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
+import { Button } from '@fsa/ui';
 import { handednessLabel, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
 import { pickerShots, shotOptionLabel } from './shotLabel';
 
 const HANDEDNESS: Handedness[] = ['right', 'left'];
 
-export function ShotHeader({ shot, shots, ordered, excluded, files, details, onSelect, onStep, onHandedness }: {
+export function ShotHeader({ shot, shots, ordered, excluded, files, details, onSelect, onStep, onHandedness, onExclude, onInclude }: {
   shot: Shot;
   /** The included shots, in display order. */
   shots: readonly Shot[];
@@ -17,6 +18,9 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
   onSelect(id: string): void;
   onStep(delta: 1 | -1): void;
   onHandedness(h: Handedness): void;
+  /** Excludes the open shot; the caller moves on to the next included shot, as the Overview card does. */
+  onExclude(): void;
+  onInclude(): void;
 }) {
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
@@ -52,6 +56,9 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>
         {excluded && <span className="excluded-tag">Excluded</span>}
         {pos && <span className="panel__note">{`${pos.index} of ${pos.total}`}</span>}
+        {excluded
+          ? <Button onClick={onInclude}>Include shot</Button>
+          : <Button onClick={onExclude}>Exclude shot</Button>}
         <Link className="fsa-btn fsa-touch link-button" to="/overview">Back to overview</Link>
       </div>
     </section>

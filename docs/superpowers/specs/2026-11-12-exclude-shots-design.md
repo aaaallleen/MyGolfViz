@@ -43,7 +43,6 @@ excluded and which ones, and can bring any of them back.
   uses.
 - Selecting several shots at once with drag, shift-click or rules ("exclude all carries under
   X"). Edit mode toggles one row at a time.
-- Excluding shots from the Inspector itself, apart from "Include it again" on an excluded shot.
 - Excluding shots on the Load page before analysis. The existing per-file Include there is
   unchanged.
 
@@ -148,6 +147,11 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
 
 ### Shot Inspector
 
+- The Inspector header has the same **"Exclude shot"** button as the selected-shot card, next to
+  the ‹ shot picker ›. It is styled as a secondary button. Excluding moves on to the next included
+  shot, exactly as the card does, and announces "Shot N excluded · M shots used". On an excluded
+  open shot the button reads **"Include shot"**. *(Added after the first build, at the user's
+  request.)*
 - ‹ ›, the shot picker and the faint comparison shots (all shots / same-club shots behind the
   current one) use included shots only. They already read `visibleShots`, so they follow
   automatically.

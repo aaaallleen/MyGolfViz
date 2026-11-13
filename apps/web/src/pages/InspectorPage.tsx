@@ -84,19 +84,26 @@ export function InspectorPage() {
     );
   }
   const scene = scenes.get(shot.id)!;
+  // Same as the Overview card: excluding moves on to the next included shot; including stays on this one.
+  const exclude = () => {
+    ws.excludeAndAdvance(shot.id);
+    setAnnouncement(`${shotLabel(shot)} excluded · ${visibleShots.length - 1} shots used`);
+  };
+  const include = () => {
+    ws.setExcluded(shot.id, false);
+    setAnnouncement(`${shotLabel(shot)} included · ${visibleShots.length + 1} shots used`);
+  };
 
   return (
     <div className="inspector">
       <p role="status" className="visually-hidden">{announcement}</p>
       <ShotHeader shot={shot} shots={visibleShots} ordered={tableShots} excluded={excluded} files={workingSet.files} details={details}
-        onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })} />
+        onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })}
+        onExclude={exclude} onInclude={include} />
       {excluded && (
         <div className="excluded-banner" role="status">
           <p>This shot is excluded. It isn't in your averages or comparisons.</p>
-          <Button onClick={() => {
-            ws.setExcluded(shot.id, false);
-            setAnnouncement(`${shotLabel(shot)} included · ${visibleShots.length + 1} shots used`);
-          }}>Include it again</Button>
+          <Button onClick={include}>Include it again</Button>
         </div>
       )}
       <HeadTiles shot={shot} />
