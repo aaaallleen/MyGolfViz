@@ -90,10 +90,12 @@ textarea.field__input { padding: 10px 12px; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 12px; align-items: center; }
 .panel__note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
-.overview__panels { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.overview__panels { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
 .overview__panels > * { min-width: 0; }
 .overview__pattern { flex: 3 1 600px; }
 .overview__side { flex: 1 1 340px; display: flex; flex-direction: column; gap: 16px; }
+/* The last panel on the right (the shot card) grows so both columns end at the same height. */
+.overview__side > :last-child { flex: 1 1 auto; }
 .overview__side-view-head { margin-top: 8px; }
 .overview h3 { font-size: 16px; }
 .club-table__scroll { overflow-x: auto; }
@@ -169,7 +171,6 @@ textarea.field__input { padding: 10px 12px; }
 .shots-table tr[aria-current='true'] > :first-child { box-shadow: inset 3px 0 0 var(--text); }
 /* Toolbar above the table, sortable column headers, and collapsible club headings. */
 .shots-table-wrap { display: flex; flex-direction: column; gap: 8px; }
-.shots-table__tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .shots-table { overscroll-behavior: contain; }
 .shots-table thead th { background: var(--surface-sunken); }
 .shots-table thead tr + tr > th { padding: 0; }
@@ -314,7 +315,6 @@ textarea.field__input { padding: 10px 12px; }
 .shot-cell__tag { margin-top: 2px; }
 .excluded-tag { display: inline-block; max-width: 100%; box-sizing: border-box; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: 0; color: var(--text); vertical-align: middle; }
 .shots-table__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.shots-table__editing-label { font-weight: 600; }
 .shots-table-wrap.is-editing { padding: 8px; border: 2px solid var(--club); border-radius: var(--radius-control); }
 .shots-table__use-head { display: block; padding: 0 10px; }
 .use-switch { width: 22px; height: 22px; margin: 0; accent-color: var(--club); cursor: pointer; }

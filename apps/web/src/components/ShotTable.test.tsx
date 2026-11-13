@@ -19,11 +19,34 @@ function setup(opts: { files?: SourceFile[]; shots?: Shot[]; excluded?: string[]
     onSelect: vi.fn(), onSetExcluded: vi.fn(), onIncludeAll: vi.fn(),
   };
   const utils = render(
-    <ShotTable shots={shots} files={files} selectedId={opts.selectedId ?? null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
+    <ShotTable title="Shots" shots={shots} files={files} selectedId={opts.selectedId ?? null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
   );
   return { ...utils, ...props };
 }
 const row = (id: string) => document.querySelector<HTMLElement>(`tr[data-shot-id="${id}"]`)!;
+
+describe('ShotTable header', () => {
+  it('puts the title, Edit shots and Columns in one header row', () => {
+    render(
+      <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} />,
+    );
+    const head = screen.getByRole('heading', { level: 2, name: 'Shots' }).parentElement!;
+    expect(within(head).getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: /^Columns/ })).toBeInTheDocument();
+  });
+
+  it('while editing, the title reads Editing shots and Done sits in the same row', async () => {
+    const user = userEvent.setup();
+    render(
+      <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Edit shots' }));
+    const head = screen.getByRole('heading', { level: 2, name: 'Editing shots' }).parentElement!;
+    expect(within(head).getByRole('button', { name: 'Done' })).toBeInTheDocument();
+  });
+});
 
 describe('ShotTable exclusion', () => {
   it('outside edit mode there are no Use switches and a row click only selects', async () => {

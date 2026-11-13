@@ -120,7 +120,11 @@ const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
  * the Shot and Club columns stay in view. Sort by any column, hide columns from the Columns menu, and
  * (with all clubs showing) rows sit under one heading per club.
  */
-export function ShotTable({ shots, files, selectedId, onSelect, grouped, excludedIds, onSetExcluded, onIncludeAll }: {
+export function ShotTable({ title, note, shots, files, selectedId, onSelect, grouped, excludedIds, onSetExcluded, onIncludeAll }: {
+  /** The panel heading; it reads "Editing shots" while Edit shots is on. */
+  title: string;
+  /** Shown under the heading row, before the sort hint. */
+  note?: string;
   shots: readonly Shot[];
   files: readonly SourceFile[];
   selectedId: string | null;
@@ -190,12 +194,9 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
 
   return (
     <div className={clsx('shots-table-wrap', editing && 'is-editing')}>
-      <div className="shots-table__tools">
-        {editing ? (
-          <span className="shots-table__editing-label">Editing shots</span>
-        ) : (
-          <span className="panel__note">{sorting.length > 0 ? 'Sorted by a column · tap its header again to change or clear' : 'Tap a column header to sort'}</span>
-        )}
+      {/* Heading and actions share one row, actions at the top right of the panel. */}
+      <div className="panel__head shots-table__head">
+        <h2>{editing ? 'Editing shots' : title}</h2>
         <div className="shots-table__actions">
           {editing ? (
             <>
@@ -208,6 +209,10 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
           <ColumnMenu table={table} />
         </div>
       </div>
+      <p className="panel__note">
+        {note !== undefined && `${note} · `}
+        {sorting.length > 0 ? 'Sorted by a column · tap its header again to change or clear' : 'Tap a column header to sort'}
+      </p>
       <div className="shots-table" ref={boxRef} role="region" aria-label="All shot data" tabIndex={0}>
         <table>
           <thead>

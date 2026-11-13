@@ -75,6 +75,30 @@ describe('OverviewPage', () => {
     expect(tile('Carry')).toHaveTextContent(/n 34$/);
   });
 
+  test('picking a club in the Clubs table puts the averages on that club; picking it again goes back to all clubs', async () => {
+    const user = userEvent.setup();
+    renderWithData(ALL);
+    const clubs = screen.getByRole('region', { name: 'Clubs' });
+    await user.click(within(clubs).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · Driver · 34 shots' })).toBeInTheDocument();
+    const tile = (label: string) => screen.getByText(label, { selector: '.fsa-kpi__label' }).closest('.fsa-kpi') as HTMLElement;
+    expect(tile('Carry')).toHaveTextContent(/n 34$/);
+    await user.click(within(clubs).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+  });
+
+  test('picking a single shot leaves the averages on all clubs; a shot of another club drops a picked club', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    const ironRow = tableRows(r.container).find((x) => r.store().tableShots.find((s) => s.id === x.dataset.shotId)?.club === '7 Iron')!;
+    await user.click(ironRow);
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+    await user.click(within(screen.getByRole('region', { name: 'Clubs' })).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · Driver · 34 shots' })).toBeInTheDocument();
+    await user.click(ironRow);
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+  });
+
   test('eight KPI labels in order, with Mean lateral', () => {
     renderWithData(ALL);
     expect(Array.from(document.querySelectorAll('.fsa-kpi__label')).map((x) => x.textContent)).toEqual(

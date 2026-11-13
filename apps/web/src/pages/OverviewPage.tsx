@@ -25,15 +25,20 @@ export function OverviewPage() {
   // Club-level highlight. Picking a shot (plot, table, card, Next) highlights its club; tapping a club
   // in the Clubs table toggles it. The analysis opens with nothing highlighted.
   const [highlightClub, setHighlightClub] = useState<string | null>(null);
+  // The club tapped in the Clubs table: the averages follow it. Picking a shot of another club drops it.
+  const [pickedClub, setPickedClub] = useState<string | null>(null);
   const [seenSelection, setSeenSelection] = useState(selectedId);
   if (seenSelection !== selectedId) {
     setSeenSelection(selectedId);
-    setHighlightClub(tableShots.find((s) => s.id === selectedId)?.club ?? null);
+    const club = tableShots.find((s) => s.id === selectedId)?.club ?? null;
+    setHighlightClub(club);
+    if (club !== pickedClub) setPickedClub(null);
   }
 
-  // Tapping a club highlights it and jumps to its first shot; tapping it again clears both.
+  // Tapping a club highlights it, puts the averages on it and jumps to its first shot; tapping it again clears all three.
   const highlight = (club: string | null) => {
     setHighlightClub(club);
+    setPickedClub(club);
     ws.select(club === null ? null : shots.find((s) => s.club === club)?.id ?? null);
   };
 
@@ -57,9 +62,7 @@ export function OverviewPage() {
   );
   const shotsPanel = (
     <section className="panel">
-      <h2>Shots</h2>
-      <p className="panel__note">Ordered by club within each file · the selected row, plot point and shot card stay in step</p>
-      <ShotTable shots={tableShots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null}
+      <ShotTable title="Shots" note="Ordered by club within each file · the selected row, plot point and shot card stay in step" shots={tableShots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null}
         excludedIds={excludedIds} onSetExcluded={ws.setExcluded} onIncludeAll={() => includeAllWithUndo(ws.includeAll, 'filter')} />
       <p className="panel__note">{`${shots.length} used · ${excludedCount} excluded · “–” means the CSV held no value; it is never treated as zero`}</p>
     </section>
@@ -68,7 +71,11 @@ export function OverviewPage() {
 
   const modes = [...new Set(workingSet.shots.map((s) => s.mode).filter((m): m is string => m !== null))];
   const filterOrdinal = workingSet.files.find((f) => f.id === filters.fileId)?.ordinal;
-  const heading = `Averages · ${filters.club ?? 'All clubs'}${filterOrdinal !== undefined ? ` · File ${filterOrdinal}` : ''} · ${shots.length} shots`;
+  // The averages follow the club filter, or else the club picked in the Clubs table.
+  const highlighted = filters.club === null && pickedClub !== null ? shots.filter((s) => s.club === pickedClub) : [];
+  const avgShots = highlighted.length > 0 ? highlighted : shots;
+  const avgClub = filters.club ?? (highlighted.length > 0 ? pickedClub : null);
+  const heading = `Averages · ${avgClub ?? 'All clubs'}${filterOrdinal !== undefined ? ` · File ${filterOrdinal}` : ''} · ${avgShots.length} shots`;
 
   return (
     <div className="overview">
@@ -109,7 +116,7 @@ export function OverviewPage() {
           ) : (
             <section aria-label="Session averages" className="overview__averages">
               <h2>{heading}</h2>
-              <KpiGrid shots={shots} />
+              <KpiGrid shots={avgShots} />
             </section>
           )}
           {/* The card and the shots table sit at fixed positions, so the table keeps its edit mode, sort and
