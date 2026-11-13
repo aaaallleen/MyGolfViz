@@ -1,6 +1,10 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import * as THREE from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import type { Handedness, Measurements } from '@fsa/domain';
+import { decodeCsvBytes, parseFlightScopeCsv } from '@fsa/csv-parser';
+import { clubCategory, type Handedness, type Measurements } from '@fsa/domain';
+import { buildReplayScene } from '@fsa/analytics';
 import { annotations3D } from './annotations';
 import { buildClubScene, type ClubScene, type ClubSceneInput } from './buildScene';
 import type { ClubModelData } from './clubModel';
@@ -55,8 +59,9 @@ describe('buildClubScene', () => {
   };
   const ballR = (s: ClubScene) => ((named(s.root, 'ball') as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius;
   const groundZ = (s: ClubScene) => named(s.root, 'ground')!.position.z;
-  /** How deep a sole may brush into the turf, in scene yards (0.35 in, scaled with the head like the ball). */
-  const turf = (s: ClubScene) => (0.35 / 36) * (ballR(s) / BALL_RADIUS_YD);
+  /** How deep this club's sole may sit in the turf, in scene yards (its own turfIn, scaled with the head like the ball). */
+  const turf = (s: ClubScene) =>
+    ((named(s.root, 'club-head-model')!.userData as ClubModelData).turfIn / 36) * (ballR(s) / BALL_RADIUS_YD);
   /** Lowest vertex of the head (precise: the bounding box of a tilted head reaches below its real sole). */
   const headMinZ = (s: ClubScene) => new THREE.Box3().setFromObject(named(s.root, 'club-head')!, true).min.z;
   /** World point where the ball touches the face: ball centre minus radius along the face normal. */
@@ -104,12 +109,44 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test('7 Iron at 40.9° loft, no strike: the contact is clamped onto the face and the sole stays within the turf', () => {
+  test('7 Iron at 40.9° loft, no strike: the sole rests on the ground within the turf, no tee', () => {
     const s = build('7 Iron', REF_M);
     expect(groundZ(s)).toBe(0);
     expect(named(s.root, 'tee')).toBeUndefined();
     expectContactOnFace(s);
     s.dispose();
+  });
+
+  test('7 Iron with a measured strike 0.3 in high: the sole sits in the turf, no tee', () => {
+    const s = build('7 Iron', { ...REF_M, dynamicLoft: 22, impactLateral: 0, impactVertical: 0.3 });
+    expect(groundZ(s)).toBe(0);
+    expect(named(s.root, 'tee')).toBeUndefined();
+    expect(headMinZ(s)).toBeGreaterThanOrEqual(-turf(s));
+    s.dispose();
+  });
+
+  test('7 Iron with a measured strike 1.0 in high: deeper than the turf, so the ball is teed up', () => {
+    const s = build('7 Iron', { ...REF_M, dynamicLoft: 22, impactLateral: 0, impactVertical: 1.0 });
+    expect(groundZ(s)).toBeLessThan(0);
+    expect(named(s.root, 'tee')).toBeDefined();
+    expect(headMinZ(s)).toBeCloseTo(groundZ(s), 4);
+    s.dispose();
+  });
+
+  test('real iron shots with a measured strike are almost never drawn on a tee (fixtures)', () => {
+    const dir = join(__dirname, '../../../../fixtures/flightscope');
+    const shots = readdirSync(dir).filter((f) => f.endsWith('.csv')).flatMap((f) =>
+      parseFlightScopeCsv(decodeCsvBytes(new Uint8Array(readFileSync(join(dir, f)))).text, f).shots
+        .filter((sh) => clubCategory(sh.club) === 'iron' && sh.m.impactLateral !== null && sh.m.impactVertical !== null)
+        .map((sh) => ({ ...sh, fileId: f, id: `${f}:${sh.sourceRow}` })));
+    expect(shots.length).toBeGreaterThan(50);
+    let teed = 0;
+    for (const shot of shots) {
+      const s = buildClubScene(input({ scene: buildReplayScene(shot, 'right'), m: shot.m, club: shot.club, annotations: [] }));
+      if (named(s.root, 'tee')) teed++;
+      s.dispose();
+    }
+    expect(teed / shots.length).toBeLessThanOrEqual(0.05);
   });
 
   test('Driver at 35° loft, no strike: contact on the face, the head is teed up', () => {

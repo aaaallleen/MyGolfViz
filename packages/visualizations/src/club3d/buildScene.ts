@@ -46,8 +46,6 @@ const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
 const IN = 1 / 36; // yards per inch
-/** How deep a sole may brush into the turf (inches, scaled with the head) before the ball is teed up instead. */
-const TURF_IN = 0.35;
 /** An unmeasured contact stays at least this far inside the face's top and bottom (inches). */
 const FACE_MARGIN_IN = 0.1;
 
@@ -249,7 +247,8 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
     contact = new THREE.Vector3(0, 0, THREE.MathUtils.clamp(ideal, face.min.z + margin, face.max.z - margin));
   }
   const minZ = placeAt(contact);
-  if (minZ < -TURF_IN * IN * headScale) {
+  // How deep this head's sole may sit in the turf (inches, scaled with the head) before the ball is teed up instead.
+  if (minZ < -model.turfIn * IN * headScale) {
     // Deeper than a sole brushing the turf: tee the ball up instead. The ground and target line drop to the head's
     // lowest point, and the ball stays at the origin every angle line is drawn from.
     ground.position.z = minZ;
