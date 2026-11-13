@@ -32,13 +32,13 @@ describe('InspectorPage', () => {
     expect(screen.queryByText('No shots match these filters')).toBeNull();
   });
 
-  test("Club data tabs read 'Face impact', '3D reconstruction', '2D reconstruction' in order; '2D reconstruction' selected by default; each has a labelled tabpanel", async () => {
+  test("Club data tabs read 'Face impact', '3D', '2D reconstruction' in order; '2D reconstruction' selected by default; each has a labelled tabpanel", async () => {
     const user = userEvent.setup();
     open();
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Face impact', '3D reconstruction', '2D reconstruction']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Face impact', '3D', '2D reconstruction']);
     expect(tab('2D reconstruction')).toHaveAttribute('aria-selected', 'true');
-    for (const name of ['2D reconstruction', 'Face impact', '3D reconstruction']) {
+    for (const name of ['2D reconstruction', 'Face impact', '3D']) {
       await user.click(tab(name));
       const p = screen.getByRole('tabpanel');
       expect(p).toHaveAttribute('aria-labelledby', tab(name).id);
@@ -50,7 +50,7 @@ describe('InspectorPage', () => {
   test("'Ball data' section precedes the 'Club data' tablist and stays rendered on all three tabs", async () => {
     const user = userEvent.setup();
     open();
-    for (const name of ['Face impact', '3D reconstruction', '2D reconstruction']) {
+    for (const name of ['Face impact', '3D', '2D reconstruction']) {
       await user.click(tab(name));
       const ball = screen.getByRole('region', { name: 'Ball data' });
       expect(ball.querySelector('[data-role="ball-flight"]')).not.toBeNull();
@@ -107,7 +107,7 @@ describe('InspectorPage', () => {
   test('3D tab: a gallery of four views opens on Face-on with Top, Down the line and 3/4 overview as thumbnails; no ball flight', async () => {
     const user = userEvent.setup();
     open();
-    await user.click(tab('3D reconstruction'));
+    await user.click(tab('3D'));
     const gallery = within(panel()).getByRole('region', { name: '3D club views' });
     expect(within(gallery.querySelector('.view-gallery__large') as HTMLElement).getByText('Face-on')).toBeInTheDocument();
     expect(within(gallery).getAllByRole('button', { name: /^Show / }).map((b) => b.getAttribute('aria-label')))
@@ -120,7 +120,7 @@ describe('InspectorPage', () => {
   test('3D tab: clicking "Show Top view" makes Top large, and the choice survives Next shot', async () => {
     const user = userEvent.setup();
     const v = open();
-    await user.click(tab('3D reconstruction'));
+    await user.click(tab('3D'));
     await user.click(within(panel()).getByRole('button', { name: 'Show Top view' }));
     const largeName = () => (panel().querySelector('.view-gallery__large .view-gallery__name') as HTMLElement).textContent;
     expect(largeName()).toBe('Top');
@@ -132,7 +132,7 @@ describe('InspectorPage', () => {
   test('3D tab: switching to 3D reconstruction shows the draggable viewer, and the mode survives Next shot', async () => {
     const user = userEvent.setup();
     const v = open();
-    await user.click(tab('3D reconstruction'));
+    await user.click(tab('3D'));
     await user.click(within(panel()).getByRole('button', { name: '3D reconstruction' }));
     expect(v.store().clubMode3D).toBe('reconstruction');
     expect(within(panel()).getByRole('region', { name: '3D reconstruction' })).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('InspectorPage', () => {
     const user = userEvent.setup();
     const v = open();
     pick(v, 1, 15);
-    await user.click(tab('3D reconstruction'));
+    await user.click(tab('3D'));
     expect(within(panel()).getAllByText('Club delivery not measured for this shot').length).toBeGreaterThan(0);
   });
 
@@ -244,7 +244,7 @@ describe('InspectorPage', () => {
     act(() => v.store().setFile(v.store().workingSet!.files[0]!.id));
     pick(v, 1, 5);
     const before = JSON.stringify([v.store().selectedId, v.store().filters]);
-    for (const n of ['Face impact', '3D reconstruction', '2D reconstruction']) {
+    for (const n of ['Face impact', '3D', '2D reconstruction']) {
       await user.click(tab(n));
       expect(JSON.stringify([v.store().selectedId, v.store().filters])).toBe(before);
     }

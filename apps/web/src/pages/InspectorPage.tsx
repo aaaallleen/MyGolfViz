@@ -13,7 +13,7 @@ import { useWorkingSet, type InspectorTab } from '../state/store';
 
 const TABS: { id: InspectorTab; label: string; short: string }[] = [
   { id: 'impact', label: 'Face impact', short: 'Impact' },
-  { id: '3d', label: '3D reconstruction', short: '3D' },
+  { id: '3d', label: '3D', short: '3D' },
   { id: '2d', label: '2D reconstruction', short: '2D' },
 ];
 

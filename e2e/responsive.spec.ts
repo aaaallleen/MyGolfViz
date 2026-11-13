@@ -62,7 +62,7 @@ for (const [width, height, hasTouch] of [[390, 844, true], [820, 1180, false], [
   test.describe(`no overflow @${width}`, () => {
     test.use({ viewport: { width, height }, hasTouch });
 
-    test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Ball data plus Face impact, 3D reconstruction, 2D reconstruction)', async ({ page }) => {
+    test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Ball data plus Face impact, 3D, 2D reconstruction)', async ({ page }) => {
       await stageFiles(page);
       await noOverflow(page, 'load');
       await shot(page, 'load', width);
@@ -188,8 +188,8 @@ test.describe('tablet 820', () => {
     await expect(page.locator('.fsa-dispersion svg text', { hasText: 'Target' }).first()).toBeVisible();
     await shot(page, 'overview-tablet', 820);
     await goInspector(page);
-    for (const name of ['Face impact', '3D reconstruction', '2D reconstruction']) {
-      await expect(page.getByRole('tab', { name })).toBeVisible();
+    for (const name of ['Face impact', '3D', '2D reconstruction']) {
+      await expect(page.getByRole('tab', { name, exact: true })).toBeVisible();
     }
     const camera = page.getByRole('group', { name: 'Camera angle' });
     await expect(camera).toBeVisible();
@@ -286,7 +286,7 @@ test.describe('club views render @1280', () => {
     await loadAndAnalyze(page);
     await goInspector(page);
     await openTab(page, '3d');
-    const panel = page.getByRole('tabpanel', { name: '3D reconstruction' });
+    const panel = page.getByRole('tabpanel', { name: '3D', exact: true });
     const name = panel.locator('.view-gallery__large .view-gallery__name');
     await expect(name).toHaveText('Face-on');
     const canvas = panel.locator('.view-gallery__large canvas');

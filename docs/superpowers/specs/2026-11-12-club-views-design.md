@@ -98,7 +98,8 @@ demo data, a camera on the target line would misdraw V-plane (it would show 51.9
 Wedges are drawn only in the orthographic measuring views.
 
 - *My call:* the 3D tab opens on **Face-on** as the large view, with the other three as thumbnails.
-- **Modes (user's decision, revised after review):** a switch at the top of the tab picks between
+- **Modes (user's decision, revised after review):** the tab is renamed **3D** so it doesn't clash with the
+  mode name. A switch at the top of the tab picks between
   two modes:
   - **Views:** the four fixed cameras, with no dragging.
   - **3D reconstruction:** one large draggable viewer. It starts at the 3/4 overview camera:
