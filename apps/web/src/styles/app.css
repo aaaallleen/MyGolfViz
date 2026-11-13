@@ -238,8 +238,8 @@ textarea.field__input { padding: 10px 12px; }
 .club-data__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .ball-data__grid, .club-2d__angles, .impact-tab { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
 .ball-data__grid > *, .club-2d__angles > *, .impact-tab > * { min-width: 0; }
-/* The two 2D angle panels end at the same height. */
-.club-2d__angles { align-items: stretch; }
+/* Side-by-side panels end at the same height: the 2D angle panels, and Ball flight beside the spin ball. */
+.club-2d__angles, .ball-data__grid { align-items: stretch; }
 .ball-data__readouts { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .readouts { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
 .readouts dl, .all-measurements dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
@@ -280,6 +280,13 @@ textarea.field__input { padding: 10px 12px; }
 .view-badges__swatch { width: 12px; height: 4px; border-radius: 2px; }
 .view-badges__value { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
 .view-badges__note { font-size: 12px; color: var(--muted); }
+/* Side by side, the large view is as tall as the three thumbnails together; its picture takes the extra
+   height (the renderer re-frames to whatever size the stage has). Stacked on phones it keeps 16:10. */
+@media (min-width: 640px) {
+  .view-gallery__grid { align-items: stretch; }
+  .view-gallery__large > .view-gallery__stage { flex: 1 1 auto; aspect-ratio: auto; min-height: 240px; }
+  .view-gallery__thumbs { justify-content: space-between; }
+}
 @media (max-width: 639px) {
   .view-gallery__grid { grid-template-columns: 1fr; }
   .view-gallery__thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
