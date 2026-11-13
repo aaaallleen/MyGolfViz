@@ -14,6 +14,7 @@ from .routers import imports as imports_router
 from .routers import sessions as sessions_router
 from .routers import shots as shots_router
 from .security import SecurityMiddleware
+from .static import install_static
 from .storage import OriginalStore
 
 
@@ -80,5 +81,7 @@ def create_app(settings: Settings) -> FastAPI:
     @app.get("/api/v1/health")
     def health() -> dict:
         return {"status": "ok", "appVersion": __version__, "schemaVersion": app.state.schema_version}
+
+    install_static(app, settings.static_dir)
 
     return app
