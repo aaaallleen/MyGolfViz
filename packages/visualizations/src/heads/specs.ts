@@ -58,7 +58,7 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headDepthIn: 4.6, // 4.5 in the design table
     headHeightIn: 2.5,
     exponent: 2.2, // rounder than the 2.5 default: a rounded-triangle planform rather than a squared cup
-    planform: { widestAt: 0.38, gain: 1.08, tail: 0.92 }, // broad and deep, widest about 40 % back
+    planform: { widestAt: 0.38, gain: 1.06, tail: 0.92 }, // broad and deep, widest about 40 % back; gain keeps the width within 10 % of 4.8
     crown: { holdTo: 0.15, drop: 0.4 }, // peaks just behind the face, low trailing edge
     hosel: { base: [-2.0, -0.4, 0.5], lengthIn: 1.5, radiusIn: 0.25 },
     scoreLines: { count: 9, spacingIn: 0.18, clearCentreIn: 1.4 },

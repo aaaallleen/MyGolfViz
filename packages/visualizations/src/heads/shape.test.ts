@@ -129,6 +129,17 @@ test.each(cats)('%s body: flat face at y = 0, nothing in front of it, real size'
   expect(P.every((p) => p.every(Number.isFinite))).toBe(true);
 });
 
+/** Design-table size of each wood kind, width × depth × height in inches. */
+const DESIGN_SIZE = { driver: [4.8, 4.5, 2.5], wood: [4.2, 3.4, 1.6], hybrid: [3.9, 2.3, 1.55] } as const;
+
+test.each(['driver', 'wood', 'hybrid'] as const)('%s built body, soled level, is within 10 %% of the design table', (c) => {
+  const s = HEAD_SPECS[c], { positions } = bodySurface(s, 48, 32);
+  const L = toPoints(positions).map((p) => rotX(p, s.loftDeg));
+  DESIGN_SIZE[c].forEach((want, i) => {
+    expect(Math.abs(span(L, i) / want - 1), `${['width', 'depth', 'height'][i]} ${span(L, i).toFixed(3)} in`).toBeLessThanOrEqual(0.1);
+  });
+});
+
 test.each(cats)('%s body is a closed, outward-wound mesh holding the hosel base', (c) => {
   const s = HEAD_SPECS[c], { positions, indices } = bodySurface(s, 48, 32);
   const P = toPoints(positions);
