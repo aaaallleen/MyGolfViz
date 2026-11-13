@@ -9,12 +9,22 @@ const live: BackendProcess[] = [];
 const pids: number[] = [];
 let tmp: string | undefined;
 
-function make(mode: string, extra: { startupTimeoutMs?: number; env?: NodeJS.ProcessEnv } = {}) {
+function make(
+  mode: string,
+  extra: {
+    startupTimeoutMs?: number;
+    migrationTimeoutMs?: number;
+    env?: NodeJS.ProcessEnv;
+    onStatus?: (status: 'migrating') => void;
+  } = {},
+) {
   const bp = new BackendProcess({
     command: process.execPath,
     args: [fake, mode],
     env: { ...process.env, ...extra.env },
     startupTimeoutMs: extra.startupTimeoutMs,
+    migrationTimeoutMs: extra.migrationTimeoutMs,
+    onStatus: extra.onStatus,
   });
   live.push(bp);
   return bp;
@@ -129,6 +139,30 @@ describe('BackendProcess', () => {
     expect(err).toBeInstanceOf(BackendStartError);
     expect(err.kind).toBe('timeout');
     expect(await until(() => bp.exited, 2000)).toBe(true);
+  });
+
+  it('waits past the startup limit while the backend upgrades the database', async () => {
+    const seen: string[] = [];
+    const bp = make('migrating', {
+      startupTimeoutMs: 300,
+      env: { FAKE_MIGRATE_MS: '900' },
+      onStatus: (s) => seen.push(s),
+    });
+    const t0 = Date.now();
+    const { url } = await startedPid(bp);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(800);
+    expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\//);
+    expect(seen).toEqual(['migrating']);
+  });
+
+  it('gives up on an upgrade that outlasts the upgrade limit and kills the child', async () => {
+    const bp = make('migrating', { startupTimeoutMs: 5000, migrationTimeoutMs: 300, env: { FAKE_MIGRATE_MS: '60000' } });
+    const t0 = Date.now();
+    const err = (await bp.start().catch((e: unknown) => e)) as BackendStartError;
+    expect(err).toBeInstanceOf(BackendStartError);
+    expect(err.kind).toBe('update-timeout');
+    expect(Date.now() - t0).toBeLessThan(3000);
+    expect(bp.exited || (await until(() => bp.exited, 2000))).toBe(true);
   });
 
   it('fires onUnexpectedExit once when the child is killed', async () => {

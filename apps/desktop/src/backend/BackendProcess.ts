@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { parsePortLine } from './portLine';
+import { parsePortLine, parseStatusLine } from './portLine';
 
 const STDERR_TAIL_LINES = 50;
 const MAX_PARTIAL_LINE = 64 * 1024;
@@ -8,7 +8,7 @@ const CLOSE_GRACE_MS = 200;
 
 export class BackendStartError extends Error {
   constructor(
-    public kind: 'already-running' | 'failed' | 'timeout',
+    public kind: 'already-running' | 'failed' | 'timeout' | 'update-timeout',
     public exitCode: number | null,
     message: string,
   ) {
@@ -21,7 +21,11 @@ export interface BackendProcessOptions {
   command: string;
   args: string[];
   env: NodeJS.ProcessEnv;
+  /** Limit for reaching the port line and a healthy backend; restarts once an upgrade is over. */
   startupTimeoutMs?: number;
+  /** Limit for a database upgrade, which the backend announces before its port line. */
+  migrationTimeoutMs?: number;
+  onStatus?: (status: 'migrating') => void;
   fetchImpl?: typeof fetch;
   spawnImpl?: typeof spawn;
   onLog?: (line: string) => void;
@@ -72,10 +76,24 @@ export class BackendProcess {
   async start(): Promise<{ url: string; pid: number }> {
     const { command, args, env, onLog } = this.opts;
     const timeoutMs = this.opts.startupTimeoutMs ?? 30_000;
+    const migrationTimeoutMs = this.opts.migrationTimeoutMs ?? 600_000;
     const fetchImpl = this.opts.fetchImpl ?? fetch;
     const spawnImpl = this.opts.spawnImpl ?? spawn;
     if (this.child) throw new Error('BackendProcess is single-use: start() was already called');
-    const deadline = Date.now() + timeoutMs;
+    // The deadline moves: an upgrade announcement extends it, and the port line after an upgrade restarts it.
+    let deadline = Date.now() + timeoutMs;
+    let migrating = false;
+    let timer: NodeJS.Timeout | undefined;
+    let onTimeout: () => void = () => {};
+    const timedOut = new Promise<void>((resolve) => (onTimeout = resolve));
+    let settled = false;
+    const armDeadline = (ms: number) => {
+      if (settled) return; // start() is over: never leave a timer behind
+      deadline = Date.now() + ms;
+      clearTimeout(timer);
+      timer = setTimeout(onTimeout, ms);
+    };
+    armDeadline(timeoutMs);
 
     const child = spawnImpl(command, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
     this.child = child;
@@ -92,7 +110,16 @@ export class BackendProcess {
       const parsed = parsePortLine(line);
       if (parsed) {
         gotPort = true;
+        if (migrating) {
+          migrating = false;
+          armDeadline(timeoutMs);
+        }
         onPort(parsed);
+      } else if (parseStatusLine(line) === 'migrating') {
+        migrating = true;
+        armDeadline(migrationTimeoutMs);
+        onLog?.('backend is upgrading the database');
+        this.opts.onStatus?.('migrating');
       } else {
         onLog?.(line);
       }
@@ -125,15 +152,11 @@ export class BackendProcess {
       settleExit();
     });
 
-    let timer: NodeJS.Timeout | undefined;
-    const timedOut = new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, Math.max(0, deadline - Date.now()));
-    });
-
     // The wait ended without success: a child that already exited is a failure, not a timeout.
     const failure = (msg: string): never => {
       if (this.exitInfo) return this.exitFailure(this.exitInfo.code);
       this.forceKill();
+      if (migrating) throw new BackendStartError('update-timeout', null, 'Database upgrade did not finish in time');
       throw new BackendStartError('timeout', null, msg);
     };
 
@@ -146,7 +169,7 @@ export class BackendProcess {
       if (!first) return failure('Backend did not print a port line in time');
 
       const origin = `http://127.0.0.1:${first.p.port}`;
-      const healthy = this.pollHealth(origin, fetchImpl, deadline);
+      const healthy = this.pollHealth(origin, fetchImpl, () => deadline);
       const ok = await Promise.race([
         healthy,
         exitSettled.then(() => false),
@@ -156,15 +179,16 @@ export class BackendProcess {
       this.started = true;
       return { url: first.p.url, pid: pid! };
     } finally {
+      settled = true;
       clearTimeout(timer);
     }
   }
 
   /** Resolves true once health returns 200, false at the deadline. Stops early if the child exits. */
-  private async pollHealth(origin: string, fetchImpl: typeof fetch, deadline: number): Promise<boolean> {
-    while (Date.now() < deadline && !this.exitInfo) {
+  private async pollHealth(origin: string, fetchImpl: typeof fetch, deadline: () => number): Promise<boolean> {
+    while (Date.now() < deadline() && !this.exitInfo) {
       try {
-        const remaining = Math.max(1, deadline - Date.now());
+        const remaining = Math.max(1, deadline() - Date.now());
         const res = await fetchImpl(`${origin}/api/v1/health`, { signal: AbortSignal.timeout(Math.min(1000, remaining)) });
         if (res.status === 200) return true;
         void res.body?.cancel().catch(() => {});

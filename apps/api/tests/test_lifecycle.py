@@ -192,3 +192,124 @@ def test_migration_backup_path_logged(tmp_path):
     assert marker in log
     path = Path(log.split(marker, 1)[1].splitlines()[0].strip())
     assert path.exists()
+
+
+def make_stale_db(tmp_path):
+    """A database whose schema is older than the app's, so startup has to upgrade it."""
+    settings = Settings(data_dir=tmp_path, token="t")
+    command.stamp(migrate.make_config(settings), "base")
+
+
+def spawn_slow_upgrade(tmp_path, delay_ms, *extra, stdin=None):
+    make_stale_db(tmp_path)
+    return subprocess.Popen(
+        [sys.executable, "-m", "mygolfviz_api", "--data-dir", str(tmp_path), "--port", "0", *extra],
+        stdin=stdin,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env={**os.environ, "MYGOLFVIZ_TOKEN": TOKEN, "MYGOLFVIZ_TEST_MIGRATION_DELAY_MS": str(delay_ms)},
+    )
+
+
+def test_announces_an_upgrade_before_the_port_line(tmp_path):
+    p = spawn_slow_upgrade(tmp_path, 0)
+    try:
+        assert json.loads(p.stdout.readline()) == {"status": "migrating"}
+        port = json.loads(p.stdout.readline())["port"]
+        wait_healthy(port)
+    finally:
+        stop(p)
+
+
+def test_no_announcement_for_a_new_database(tmp_path):
+    p = spawn(tmp_path)
+    try:
+        assert "port" in json.loads(p.stdout.readline())
+    finally:
+        stop(p)
+
+
+def test_sigterm_during_an_upgrade_finishes_it_then_exits_cleanly(tmp_path):
+    p = spawn_slow_upgrade(tmp_path, 1500)
+    try:
+        assert json.loads(p.stdout.readline()) == {"status": "migrating"}
+        p.send_signal(signal.SIGTERM)
+        assert p.wait(timeout=10) == 0
+        assert p.stdout.read() == ""  # never started serving
+        assert migrate.current_revision(Settings(data_dir=tmp_path, token="t")) == "0001"
+        assert_lock_free(tmp_path)
+    finally:
+        stop(p)
+
+
+def test_stdin_closing_during_an_upgrade_exits_cleanly(tmp_path):
+    p = spawn_slow_upgrade(tmp_path, 1500, "--exit-with-stdin", stdin=subprocess.PIPE)
+    try:
+        assert json.loads(p.stdout.readline()) == {"status": "migrating"}
+        p.stdin.close()
+        assert p.wait(timeout=10) == 0
+        assert_lock_free(tmp_path)
+    finally:
+        stop(p)
+
+
+def test_sigterm_right_after_the_port_line_exits_cleanly(tmp_path):
+    # Before uvicorn installs its handlers; this used to kill the process outright.
+    for _ in range(3):
+        p = spawn(tmp_path)
+        try:
+            json.loads(p.stdout.readline())
+            p.send_signal(signal.SIGTERM)
+            assert p.wait(timeout=10) == 0
+            assert_lock_free(tmp_path)
+        finally:
+            stop(p)
+
+
+def test_early_exits_with_stdin_open_keep_their_exit_code(tmp_path):
+    # The Mac app keeps stdin open. Exiting while the stdin watcher is blocked
+    # in a read must not crash the interpreter on its way out.
+    with DataLock(tmp_path):
+        p = spawn(tmp_path, "--exit-with-stdin", stdin=subprocess.PIPE)
+        try:
+            p.wait(timeout=10)
+            err = p.stderr.read()
+        finally:
+            stop(p)
+    assert p.returncode == 3
+    assert "Fatal Python error" not in err
+
+    (tmp_path / "mygolfviz.sqlite3").write_text("not a database")
+    p = spawn(tmp_path, "--exit-with-stdin", stdin=subprocess.PIPE)
+    try:
+        p.wait(timeout=20)
+        err = p.stderr.read()
+    finally:
+        stop(p)
+    assert p.returncode == 4
+    assert "Fatal Python error" not in err
+
+
+def test_sigterm_with_stdin_open_exits_cleanly(tmp_path):
+    p = spawn(tmp_path, "--exit-with-stdin", stdin=subprocess.PIPE)
+    try:
+        wait_healthy(json.loads(p.stdout.readline())["port"])
+        p.send_signal(signal.SIGTERM)
+        assert p.wait(timeout=10) == 0
+        assert "Fatal Python error" not in p.stderr.read()
+    finally:
+        stop(p)
+
+
+def test_second_sigint_during_an_upgrade_aborts_at_once(tmp_path):
+    p = spawn_slow_upgrade(tmp_path, 20000)
+    try:
+        assert json.loads(p.stdout.readline()) == {"status": "migrating"}
+        p.send_signal(signal.SIGINT)
+        time.sleep(0.2)
+        p.send_signal(signal.SIGINT)
+        p.wait(timeout=5)  # well before the 20 s upgrade would finish
+        assert_lock_free(tmp_path)
+    finally:
+        stop(p)

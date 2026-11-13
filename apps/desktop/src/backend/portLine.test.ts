@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePortLine } from './portLine';
+import { parsePortLine, parseStatusLine } from './portLine';
 
 describe('parsePortLine', () => {
   it('parses a valid port line', () => {
@@ -19,5 +19,20 @@ describe('parsePortLine', () => {
     ['non-integer port', '{"port": 50.5, "url": "http://127.0.0.1:50.5/"}'],
   ])('returns null for %s', (_name, line) => {
     expect(parsePortLine(line)).toBeNull();
+  });
+});
+
+describe('parseStatusLine', () => {
+  it('recognises the migrating announcement', () => {
+    expect(parseStatusLine('{"status": "migrating"}')).toBe('migrating');
+  });
+
+  it.each([
+    ['a port line', '{"port": 5000, "url": "http://127.0.0.1:5000/"}'],
+    ['an unknown status', '{"status": "dancing"}'],
+    ['non-JSON', 'migrating'],
+    ['JSON null', 'null'],
+  ])('returns null for %s', (_name, line) => {
+    expect(parseStatusLine(line)).toBeNull();
   });
 });

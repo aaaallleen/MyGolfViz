@@ -1,5 +1,6 @@
 // Fake backend for BackendProcess tests. Usage: node fake-backend.mjs <mode>
 // Env: FAKE_MARKER = file written once the chatty output has fully flushed.
+//      FAKE_MIGRATE_MS = how long the 'migrating' mode spends upgrading before it serves.
 import http from 'node:http';
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -15,9 +16,16 @@ if (mode === 'exit3') {
   const gc = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'inherit' });
   fs.writeFileSync(process.env.FAKE_MARKER, String(gc.pid));
   process.stderr.write("MyGolfViz couldn't start: grandchild\n", () => process.exit(4));
+} else if (mode === 'migrating') {
+  process.stdout.write(JSON.stringify({ status: 'migrating' }) + '\n');
+  setTimeout(serve, Number(process.env.FAKE_MIGRATE_MS ?? 500));
 } else if (mode === 'silent') {
   setInterval(() => {}, 1000);
 } else {
+  serve();
+}
+
+function serve() {
   const server = http.createServer((req, res) => {
     res.statusCode = req.url === '/api/v1/health' ? (mode === 'die-unhealthy' ? 503 : 200) : 404;
     res.end('{}');
