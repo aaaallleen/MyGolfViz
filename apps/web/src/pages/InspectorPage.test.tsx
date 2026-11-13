@@ -218,6 +218,8 @@ describe('InspectorPage', () => {
     const crumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(crumb).toHaveTextContent('Untitled session / Shot 15');
     expect(within(crumb).getByRole('link', { name: 'Untitled session' })).toHaveAttribute('href', '/overview');
+    // The breadcrumb is the way back; the header has no separate Back to overview button.
+    expect(screen.queryByRole('link', { name: 'Back to overview' })).toBeNull();
     v.unmount();
     const w = open(ALL, { details: { name: 'Range day' } });
     pick(w, 1, 16);
@@ -354,13 +356,27 @@ describe('InspectorPage', () => {
       expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toContain(`excluded · ${used - 1} shots used`);
     });
 
-    test('on an excluded open shot the header button reads Include shot and brings it back', async () => {
+    test('the Exclude shot button sits on the title row, not with the ‹ › buttons', () => {
+      const v = open();
+      act(() => v.store().select(v.store().visibleShots[2]!.id));
+      const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!;
+      expect(within(titleRow).getByRole('button', { name: 'Exclude shot' })).toBeInTheDocument();
+      const nav = screen.getByRole('button', { name: 'Next shot' }).parentElement!;
+      expect(within(nav).queryByRole('button', { name: 'Exclude shot' })).toBeNull();
+    });
+
+    test('on an excluded open shot the Excluded tag sits on the title and the banner holds the only include button', async () => {
       const user = userEvent.setup();
       const v = open();
       const target = v.store().visibleShots[2]!;
       act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!;
+      expect(within(titleRow).getByText('Excluded')).toBeInTheDocument();
+      const nav = screen.getByRole('button', { name: 'Next shot' }).parentElement!;
+      expect(within(nav).queryByText('Excluded')).toBeNull();
       expect(screen.queryByRole('button', { name: 'Exclude shot' })).toBeNull();
-      await user.click(screen.getByRole('button', { name: 'Include shot' }));
+      expect(screen.getAllByRole('button', { name: /^Include/ }).map((b) => b.textContent)).toEqual(['Include it again']);
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
       expect(v.store().excludedIds.has(target.id)).toBe(false);
       expect(v.store().selectedId).toBe(target.id);
       expect(screen.queryByText(BANNER)).toBeNull();

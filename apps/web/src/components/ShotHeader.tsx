@@ -6,7 +6,7 @@ import { pickerShots, shotOptionLabel } from './shotLabel';
 
 const HANDEDNESS: Handedness[] = ['right', 'left'];
 
-export function ShotHeader({ shot, shots, ordered, excluded, files, details, onSelect, onStep, onHandedness, onExclude, onInclude }: {
+export function ShotHeader({ shot, shots, ordered, excluded, files, details, onSelect, onStep, onHandedness, onExclude }: {
   shot: Shot;
   /** The included shots, in display order. */
   shots: readonly Shot[];
@@ -20,7 +20,6 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
   onHandedness(h: Handedness): void;
   /** Excludes the open shot; the caller moves on to the next included shot, as the Overview card does. */
   onExclude(): void;
-  onInclude(): void;
 }) {
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
@@ -29,10 +28,15 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
   return (
     <section className="inspector-head">
       <div className="inspector-head__title">
+        {/* The breadcrumb's session link is the way back to the Overview. */}
         <nav aria-label="Breadcrumb" className="inspector-head__crumb">
-          <Link to="/overview">{sessionTitle(details)}</Link>{' / '}Shot {label}
+          <Link to="/overview"><span className="inspector-head__back" aria-hidden="true">←</span>{sessionTitle(details)}</Link>{' / '}Shot {label}
         </nav>
-        <h1>{`Shot ${label} · ${shot.club}`}</h1>
+        {/* An excluded shot shows its tag here; the banner below holds the one Include action. */}
+        <div className="inspector-head__title-row">
+          <h1>{`Shot ${label} · ${shot.club}`}</h1>
+          {excluded ? <span className="excluded-tag">Excluded</span> : <Button onClick={onExclude}>Exclude shot</Button>}
+        </div>
         <ul className="inspector-head__chips" aria-label="Shot details">
           <li>{`File ${file?.ordinal ?? '?'} · ${file?.name ?? ''}`}</li>
           <li>{`CSV row ${shot.sourceRow}`}</li>
@@ -54,12 +58,7 @@ export function ShotHeader({ shot, shots, ordered, excluded, files, details, onS
           ))}
         </select>
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>
-        {excluded && <span className="excluded-tag">Excluded</span>}
         {pos && <span className="panel__note">{`${pos.index} of ${pos.total}`}</span>}
-        {excluded
-          ? <Button onClick={onInclude}>Include shot</Button>
-          : <Button onClick={onExclude}>Exclude shot</Button>}
-        <Link className="fsa-btn fsa-touch link-button" to="/overview">Back to overview</Link>
       </div>
     </section>
   );

@@ -222,7 +222,9 @@ textarea.field__input { padding: 10px 12px; }
 .inspector-head { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; justify-content: space-between; }
 .inspector-head__title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .inspector-head__crumb { font-size: 13px; color: var(--muted); }
+.inspector-head__title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .inspector-head__crumb a { color: var(--club); text-decoration: none; }
+.inspector-head__back { margin-inline-end: 4px; }
 @media (max-width: 639px) { .inspector-head__crumb a { display: inline-flex; align-items: center; min-height: 44px; } }
 .inspector-head__chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); align-items: center; overflow-wrap: anywhere; }
 .inspector-head__chip-select { border-radius: var(--radius-pill); padding: 0 10px 0 14px; }
@@ -236,6 +238,8 @@ textarea.field__input { padding: 10px 12px; }
 .club-data__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .ball-data__grid, .club-2d__angles, .impact-tab { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
 .ball-data__grid > *, .club-2d__angles > *, .impact-tab > * { min-width: 0; }
+/* The two 2D angle panels end at the same height. */
+.club-2d__angles { align-items: stretch; }
 .ball-data__readouts { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .readouts { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
 .readouts dl, .all-measurements dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
@@ -329,5 +333,6 @@ textarea.field__input { padding: 10px 12px; }
 .excluded-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .excluded-menu__pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: transparent; border: 0; border-radius: var(--radius-card); color: var(--text-2); font: inherit; font-size: 13px; text-align: start; cursor: pointer; }
 .excluded-menu__pick:hover { background: var(--surface); color: var(--text); }
-.excluded-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-sunken); color: var(--text-2); font-size: 14px; }
+/* Same danger tint as the Excluded tag, so the banner reads as part of the excluded state. */
+.excluded-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border: 1px solid rgba(255, 154, 138, 0.45); border-radius: var(--radius-card); background: rgba(255, 154, 138, 0.1); color: var(--danger); font-size: 14px; font-weight: 500; }
 .excluded-banner p { margin: 0; }
