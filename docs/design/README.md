@@ -61,7 +61,7 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    product owner). Vertical impact: + high. Face drawn face-on as in frames 05/08: for a right-hander the toe is
    on the left; a left-hander is mirrored.
 3. **Inspector structure (product owner, 2026-11-11).**
-   - **Ball data** comes first: a 3D ball-flight viewer with frame 06's camera buttons (DTL, Perspective, Side, Top), the selected shot bold, other visible shots faint behind a "Show other shots" toggle, and a flight replay (Launch · Ball flight · Landing). Beside it are the spinning ball and the launch/flight readouts.
+   - **Ball data** comes first: a 3D ball-flight viewer with frame 06's camera buttons (DTL, Perspective, Side, Top), the selected shot bold, other visible shots faint behind an "Other shots" switch (None · the shot's club · All clubs; the shot's club by default), and a flight replay (Launch · Ball flight · Landing). Beside it are the spinning ball and the launch/flight readouts.
    - **Club data** has the tabs "Face impact", "3D reconstruction" and "2D reconstruction".
    - The 3D tab is a club-only scene with frame 06's downswing replay (Downswing · Impact · Follow-through) and "Show" toggles Top view, AoA, V-plane, Side view. Top view and Side view toggle the two angle diagrams under the scene.
    - The 2D tab has "Show" toggles Face to target, Face to path, Dynamic loft, Spin axis. These show or hide those layers and the flat spin-axis panel.

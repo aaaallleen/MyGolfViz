@@ -4,9 +4,19 @@ import { SegmentedControl } from '@fsa/ui';
 import { flightCamera, type CameraPreset } from './camera';
 import { ReplayControls, useReplayClock } from './ReplayControls';
 import { Banner, H, Panel, W, f1, groundGrid, makeProjector, noteStyle } from './SceneChrome';
-import { BALL, BALL_EDGE, DISPLAY_FONT, FONT, INK, MUTED, SOFT, SURFACE } from './theme';
+import { BALL, BALL_EDGE, DISPLAY_FONT, FONT, MUTED, SOFT, SURFACE } from './theme';
 
-export interface BallFlight3DProps { selected: ReplayScene; others: ReplayScene[] }
+export interface BallFlight3DProps {
+  selected: ReplayScene;
+  /** The selected shot's club, which names the same-club option. */
+  club: string;
+  /** Other shots of the same club. */
+  sameClub: ReplayScene[];
+  /** Other shots of every club. */
+  others: ReplayScene[];
+}
+
+type OthersShown = 'none' | 'club' | 'all';
 
 const CAMERAS: { value: CameraPreset; label: string }[] = [
   { value: 'dtl', label: 'DTL' }, { value: 'perspective', label: 'Perspective' },
@@ -14,16 +24,17 @@ const CAMERAS: { value: CameraPreset; label: string }[] = [
 ];
 const PHASES = ['Launch', 'Ball flight', 'Landing'];
 
-export function BallFlight3D({ selected, others }: BallFlight3DProps) {
+export function BallFlight3D({ selected, club, sameClub, others }: BallFlight3DProps) {
   const [preset, setPreset] = useState<CameraPreset>('perspective');
-  const [showOthers, setShowOthers] = useState(true);
+  // Same club by default: the comparison that means most for one shot, as in the club views below.
+  const [shown, setShown] = useState<OthersShown>('club');
   const clock = useReplayClock({ initial: 0 });
   const phase = flightPhase(clock.progress);
 
   // Everything in `geom` depends only on camera/selection inputs, never on replay progress,
   // so the per-frame clock re-render reuses it and recomputes just the ball position.
   const geom = useMemo(() => {
-    const otherScenes = showOthers ? others.filter((s) => s.ballFlight) : [];
+    const otherScenes = (shown === 'all' ? others : shown === 'club' ? sameClub : []).filter((s) => s.ballFlight);
     const flights = [...otherScenes.map((s) => s.ballFlight!), ...(selected.ballFlight ? [selected.ballFlight] : [])];
     const cam = flightCamera(preset, flights, selected.handedness, W);
     const { proj, pathOf, lineEl } = makeProjector(cam);
@@ -58,7 +69,7 @@ export function BallFlight3D({ selected, others }: BallFlight3DProps) {
       </>
     );
     return { proj, scene, label, text };
-  }, [preset, showOthers, selected, others]);
+  }, [preset, shown, selected, sameClub, others]);
   const { proj, scene, label, text } = geom;
   const ball = selected.ballFlight ? proj(flightFrame(selected, clock.progress)) : null;
 
@@ -79,9 +90,16 @@ export function BallFlight3D({ selected, others }: BallFlight3DProps) {
       </svg>
       {!selected.ballFlight && <p style={noteStyle}>Ball flight not measured for this shot</p>}
       <ReplayControls clock={clock} phases={PHASES} active={phase} />
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, color: SOFT }}>
-        <input type="checkbox" checked={showOthers} onChange={() => setShowOthers((v) => !v)} style={{ width: 16, height: 16, accentColor: INK }} />Show other shots
-      </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', minHeight: 44, color: SOFT }}>
+        {/* The group is named "Other shots" by its aria-label; this is the same words for sighted users. */}
+        <span aria-hidden="true">Other shots</span>
+        <SegmentedControl<OthersShown>
+          label="Other shots"
+          value={shown}
+          onChange={setShown}
+          options={[{ value: 'none', label: 'None' }, { value: 'club', label: club }, { value: 'all', label: 'All clubs' }]}
+        />
+      </div>
     </Panel>
   );
 }
