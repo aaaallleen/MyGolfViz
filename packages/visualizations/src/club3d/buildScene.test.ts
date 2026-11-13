@@ -8,6 +8,7 @@ import { buildReplayScene } from '@fsa/analytics';
 import { annotations3D } from './annotations';
 import { buildClubScene, type ClubScene, type ClubSceneInput } from './buildScene';
 import type { ClubModelData } from './clubModel';
+import { HEAD_SPECS } from '../heads/specs';
 import { REF_M, mOf, sceneOf } from './testFixtures';
 import { BALL_RADIUS_YD } from './types';
 
@@ -183,12 +184,47 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test.each(['right', 'left'] as const)('%s-handed: a measured strike puts the ball on that point of the face', (hand) => {
-    const s = build('Driver', { ...REF_M, impactLateral: 0.65, impactVertical: -0.3 }, hand);
+  const clubsByHand = clubs.flatMap((club) => (['right', 'left'] as const).map((hand) => [club, hand] as const));
+
+  test.each(clubsByHand)('%s, %s-handed: a measured strike puts the ball on that point of the face', (club, hand) => {
+    const s = build(club, { ...REF_M, impactLateral: 0.65, impactVertical: -0.3 }, hand);
     const p = touchInFace(s); // model-local yards; the mirror is inside the model, so toe is +x for both hands
     expect(p.x * 36).toBeCloseTo(0.65, 2);
     expect(p.z * 36).toBeCloseTo(-0.3, 2);
     expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    s.dispose();
+  });
+
+  /** The scene at impact as built (the pivot is identity there), without moving along the arc. */
+  const atImpact = (club: string, m: Measurements, hand: Handedness) => {
+    const s = buildClubScene(input({ club, m, scene: sceneOf(m, hand), annotations: [] }));
+    s.root.updateMatrixWorld(true);
+    return s;
+  };
+  /** World direction of the face normal: club-face-centre's world rotation applied to +y. */
+  const faceNormalWorld = (s: ClubScene) =>
+    new THREE.Vector3(0, 1, 0).applyQuaternion(named(s.root, 'club-face-centre')!.getWorldQuaternion(new THREE.Quaternion()));
+  /** World direction of the model's toe axis (model +x, through the left-handed mirror). */
+  const toeWorld = (s: ClubScene) => new THREE.Vector3(1, 0, 0).transformDirection(named(s.root, 'club-head-model')!.matrixWorld);
+  const expectOrientation = (s: ClubScene, fttDeg: number, loftDeg: number, hand: Handedness) => {
+    const f = (fttDeg * Math.PI) / 180, l = (loftDeg * Math.PI) / 180;
+    const want = [Math.sin(f) * Math.cos(l), Math.cos(f) * Math.cos(l), Math.sin(l)];
+    const n = faceNormalWorld(s);
+    for (let i = 0; i < 3; i++) expect(Math.abs(n.getComponent(i) - want[i]!), `normal[${i}]`).toBeLessThan(1e-6);
+    const toe = toeWorld(s);
+    expect(Math.abs(toe.z), 'level leading edge').toBeLessThan(1e-6);
+    expect(Math.sign(toe.x), 'toe away from the golfer').toBe(hand === 'right' ? 1 : -1);
+  };
+
+  test.each(clubsByHand)('%s, %s-handed: the face points along the measured face angle and loft; the toe is level and away from the golfer', (club, hand) => {
+    const s = atImpact(club, { ...REF_M, ftt: 11.8, dynamicLoft: 40.9 }, hand);
+    expectOrientation(s, 11.8, 40.9, hand);
+    s.dispose();
+  });
+
+  test.each(clubsByHand)('%s, %s-handed: with no face angle or loft measured the face is square at its static loft', (club, hand) => {
+    const s = atImpact(club, { ...REF_M, ftt: null, dynamicLoft: null }, hand);
+    expectOrientation(s, 0, HEAD_SPECS[clubCategory(club)].loftDeg, hand);
     s.dispose();
   });
 
