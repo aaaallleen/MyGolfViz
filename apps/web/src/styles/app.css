@@ -380,6 +380,17 @@ textarea.field__input { padding: 10px 12px; }
 .lib-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }
 .lib-table th { padding: 12px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
 .lib-table th:first-child, .lib-table td:first-child { padding-left: 0; }
+/* Sortable column headers: the arrow shows on the sorted column, and faintly on hover elsewhere. */
+.lib-sort { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; border-radius: 4px; }
+.lib-sort:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }
+.lib-sort.is-sorted { color: var(--text); }
+.lib-sort__arrow { opacity: 0; }
+.lib-sort.is-sorted .lib-sort__arrow { opacity: 1; }
+.lib-sort--asc .lib-sort__arrow { transform: rotate(180deg); }
+@media (hover: hover) and (pointer: fine) {
+  .lib-sort:hover { color: var(--text); }
+  .lib-sort:not(.is-sorted):hover .lib-sort__arrow { opacity: 0.45; }
+}
 .lib-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .lib-table tr:last-child td { border-bottom: 0; }
 .lib-name { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--text); text-decoration: none; }

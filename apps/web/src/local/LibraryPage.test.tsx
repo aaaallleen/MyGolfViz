@@ -22,12 +22,13 @@ const old = row({ id: 'old', name: 'Iron work', date: '2026-10-28', shotCount: 7
 const recent = row({ id: 'new', name: 'Driver range', date: todayLocal(), shotCount: 48, fileCount: 2, clubs: [{ club: 'Driver', count: 34 }, { club: '3 Wood', count: 14 }] });
 
 const Where = () => <div data-testid="where">{useLocation().pathname}</div>;
+const Search = () => <div data-testid="search">{useLocation().search}</div>;
 function renderPage(path = '/sessions') {
   return render(
     <WorkingSetProvider>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/sessions" element={<LibraryPage />} />
+          <Route path="/sessions" element={<><LibraryPage /><Search /></>} />
           <Route path="*" element={<Where />} />
         </Routes>
       </MemoryRouter>
@@ -94,6 +95,53 @@ describe('list', () => {
   });
 });
 
+describe('sorting by column', () => {
+  const names = () => screen.getAllByRole('link', { name: /Driver range|Iron work|Wedges/ }).map((l) => l.textContent);
+  const header = (name: string) => screen.getByRole('columnheader', { name: new RegExp(`^${name}`) });
+
+  test('there is no Sort by dropdown; Date is sorted newest first to start with', async () => {
+    renderPage();
+    await screen.findByText('Iron work');
+    expect(screen.queryByRole('combobox', { name: 'Sort by' })).toBeNull();
+    expect(header('Date')).toHaveAttribute('aria-sort', 'descending');
+    for (const other of ['Session', 'Shots', 'Files']) expect(header(other)).not.toHaveAttribute('aria-sort');
+    expect(screen.getByRole('columnheader', { name: 'Clubs' })).not.toHaveAttribute('aria-sort');
+    expect(within(screen.getByRole('columnheader', { name: 'Clubs' })).queryByRole('button')).toBeNull();
+  });
+
+  test('clicking a header sorts by it, clicking again flips the direction, and the URL keeps it', async () => {
+    const wedges = row({ id: 'w', name: 'Wedges', date: '2026-09-01', shotCount: 30, fileCount: 9 });
+    vi.mocked(api.listSessions).mockResolvedValue([old, recent, wedges]);
+    renderPage();
+    await screen.findByText('Iron work');
+    expect(names()).toEqual(['Driver range', 'Iron work', 'Wedges']);
+
+    await userEvent.click(within(header('Shots')).getByRole('button', { name: 'Shots' }));
+    expect(names()).toEqual(['Iron work', 'Driver range', 'Wedges']);
+    expect(header('Shots')).toHaveAttribute('aria-sort', 'descending');
+    expect(header('Date')).not.toHaveAttribute('aria-sort');
+
+    await userEvent.click(within(header('Shots')).getByRole('button', { name: 'Shots' }));
+    expect(names()).toEqual(['Wedges', 'Driver range', 'Iron work']);
+    expect(header('Shots')).toHaveAttribute('aria-sort', 'ascending');
+
+    await userEvent.click(within(header('Session')).getByRole('button', { name: 'Session' }));
+    expect(names()).toEqual(['Driver range', 'Iron work', 'Wedges']);
+    expect(header('Session')).toHaveAttribute('aria-sort', 'ascending');
+
+    await userEvent.click(within(header('Files')).getByRole('button', { name: 'Files' }));
+    expect(names()).toEqual(['Wedges', 'Iron work', 'Driver range']);
+    expect(screen.getByTestId('search')).toHaveTextContent('sort=files-desc');
+  });
+
+  test('a sort in the URL is used when the page opens', async () => {
+    renderPage('/sessions?sort=name-desc');
+    await screen.findByText('Iron work');
+    expect(names()).toEqual(['Iron work', 'Driver range']);
+    expect(header('Session')).toHaveAttribute('aria-sort', 'descending');
+  });
+});
+
 describe('calendar', () => {
   test('shows today\'s session on its day and in the side panel', async () => {
     renderPage('/sessions?view=calendar');
@@ -121,7 +169,7 @@ test('with no sessions it shows the empty state and a way to import', async () =
   expect(screen.getByTestId('where')).toHaveTextContent('/import');
 });
 
-test('the List / Calendar toggle is the last thing in the header, outside the search and sort group', async () => {
+test('the List / Calendar toggle is the last thing in the header, outside the search group', async () => {
   const { container } = renderPage();
   await screen.findByRole('heading', { name: 'Sessions' });
   const head = container.querySelector('.library__head')!;
