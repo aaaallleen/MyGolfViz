@@ -11,3 +11,15 @@ export function parsePortLine(line: string): { port: number; url: string } | nul
   if (typeof url !== 'string' || !url.startsWith(`http://127.0.0.1:${port}/`)) return null;
   return { port, url };
 }
+
+/** A status announcement the backend prints before its port line, e.g. while it upgrades the database. */
+export function parseStatusLine(line: string): 'migrating' | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (typeof data !== 'object' || data === null) return null;
+  return (data as { status?: unknown }).status === 'migrating' ? 'migrating' : null;
+}

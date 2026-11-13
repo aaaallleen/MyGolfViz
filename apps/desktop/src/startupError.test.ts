@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { startupErrorCopy } from './startupError';
+import { SPLASH_UPDATING, startupErrorCopy } from './startupError';
 
 describe('startupErrorCopy', () => {
   it('already-running', () => {
@@ -22,5 +22,17 @@ describe('startupErrorCopy', () => {
       title: 'MyGolfViz stopped unexpectedly',
       body: 'Your saved sessions are safe. Restart the backend to continue.',
     });
+  });
+  it('update-timeout', () => {
+    expect(startupErrorCopy('update-timeout')).toEqual({
+      title: 'Updating your data took too long',
+      body: 'MyGolfViz stopped the update after 10 minutes. Your data is as it was before the update. Restart the backend to try again; details are in the logs.',
+    });
+  });
+});
+
+describe('SPLASH_UPDATING', () => {
+  it('tells the owner an upgrade is running', () => {
+    expect(SPLASH_UPDATING).toBe('Updating your data… This can take a few minutes.');
   });
 });

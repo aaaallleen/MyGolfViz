@@ -8,7 +8,7 @@ import { resolveDataDir } from './dataDir';
 import { openDesktopLog, type DesktopLog } from './desktopLog';
 import { buildMenuTemplate } from './menu';
 import { allowedChannels, classifyNavigation } from './navigation';
-import { startupErrorCopy, type StartupErrorKind } from './startupError';
+import { SPLASH_UPDATING, startupErrorCopy, type StartupErrorKind } from './startupError';
 import { clampToDisplays, loadWindowState, saveWindowState } from './windowState';
 
 declare global {
@@ -29,7 +29,10 @@ const errorFile = path.join(staticDir, 'error.html');
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
 /** What the window shows, or would show if it were open. */
-type Page = { kind: 'splash' } | { kind: 'app'; url: string } | { kind: 'error'; query: Record<string, string> };
+type Page =
+  | { kind: 'splash'; message?: string }
+  | { kind: 'app'; url: string }
+  | { kind: 'error'; query: Record<string, string> };
 
 let win: BrowserWindow | null = null;
 let page: Page = { kind: 'splash' };
@@ -106,7 +109,7 @@ function run(log: DesktopLog): void {
     if (!w || w.isDestroyed()) return;
     const load =
       next.kind === 'splash'
-        ? w.loadFile(splashFile)
+        ? w.loadFile(splashFile, next.message ? { query: { message: next.message } } : undefined)
         : next.kind === 'error'
           ? w.loadFile(errorFile, { query: next.query })
           : w.loadURL(next.url);
@@ -135,7 +138,13 @@ function run(log: DesktopLog): void {
       dataDir,
       env: process.env,
     });
-    const proc = new BackendProcess({ ...cmd, onLog: (line) => log.write(line) });
+    const proc = new BackendProcess({
+      ...cmd,
+      onLog: (line) => log.write(line),
+      onStatus: () => {
+        if (gen === generation) show({ kind: 'splash', message: SPLASH_UPDATING });
+      },
+    });
     backend = proc;
     proc.onUnexpectedExit((code, signal) => {
       if (backend !== proc || quitState !== 'running') return;

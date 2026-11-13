@@ -1,6 +1,6 @@
 // The Mac app end to end: the real Electron shell, its real backend and a fresh data folder per test.
 import type { ChildProcess } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -20,8 +20,8 @@ let launched: { app: ElectronApplication; page: Page }[];
 let localBackend: ChildProcess | null;
 
 /** Launches the app on this test's data folder; afterEach closes it and checks its window's CSP violations. */
-async function launch(): Promise<{ app: ElectronApplication; page: Page }> {
-  const opened = await launchApp(dataDir);
+async function launch(extraEnv: Record<string, string> = {}): Promise<{ app: ElectronApplication; page: Page }> {
+  const opened = await launchApp(dataDir, extraEnv);
   launched.push(opened);
   return opened;
 }
@@ -168,4 +168,14 @@ test('a crashed renderer is reloaded', async () => {
       return state?.origin === origin && /Sessions|No sessions yet/.test(state.text);
     }, { timeout: 15000 })
     .toBe(true);
+});
+
+test('a database upgrade shows "Updating your data" on the splash, backs up, then opens the library', async () => {
+  // An empty database file has no schema version, so the backend must upgrade it; the test hook stretches the upgrade.
+  await writeFile(join(dataDir, 'mygolfviz.sqlite3'), '');
+  const { page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '4000' });
+  await expect(page.getByRole('status')).toHaveText('Updating your data… This can take a few minutes.');
+  await expectLibrary(page);
+  const backups = await readdir(join(dataDir, 'backups'));
+  expect(backups.filter((n) => /^mygolfviz-.*-none\.sqlite3$/.test(n))).toHaveLength(1);
 });

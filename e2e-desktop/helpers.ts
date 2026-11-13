@@ -11,7 +11,7 @@ declare global {
 }
 
 const repoRoot = resolve(import.meta.dirname, '..');
-const splashPage = /\/static\/splash\.html$/;
+const splashPage = /\/static\/splash\.html(\?.*)?$/;
 
 /**
  * Launches the app on `dataDir`: the development app (`electron apps/desktop`), or the executable named by
@@ -19,13 +19,17 @@ const splashPage = /\/static\/splash\.html$/;
  * Content-Security-Policy violations of the window are recorded from the first page after the splash; the splash
  * itself is not tracked.
  */
-export async function launchApp(dataDir: string): Promise<{ app: ElectronApplication; page: Page }> {
+export async function launchApp(
+  dataDir: string,
+  extraEnv: Record<string, string> = {},
+): Promise<{ app: ElectronApplication; page: Page }> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (value !== undefined && key !== 'MYGOLFVIZ_TOKEN') env[key] = value;
   }
   env.MYGOLFVIZ_DATA_DIR = dataDir;
   env.MYGOLFVIZ_E2E = '1';
+  Object.assign(env, extraEnv);
 
   const executable = process.env.MYGOLFVIZ_DESKTOP_EXECUTABLE;
   const app = await electron.launch(
