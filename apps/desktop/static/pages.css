@@ -9,6 +9,7 @@
   --club: #62b6f7;
   --radius-control: 8px;
   --radius-card: 12px;
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   color-scheme: dark;
 }
 
@@ -28,7 +29,27 @@ body {
 }
 
 .splash { display: grid; justify-items: center; gap: 20px; }
-.splash img { width: 112px; height: 112px; }
+.splash .logo { position: relative; width: 112px; height: 112px; }
+.splash .logo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Loading: the eye and golf ball stay still while the ball flight circles them. The pivot is the golf
+   ball's centre, (311, 333) on the logo's 650 × 650 canvas. Constant motion, so linear. */
+.splash .flight {
+  transform-origin: 47.846% 51.231%;
+  animation: flight-orbit 1.6s linear infinite;
+}
+@keyframes flight-orbit {
+  to { transform: rotate(360deg); }
+}
+
+/* Reduced motion: no spinning; the flight gently brightens and dims so the page still reads as busy. */
+@media (prefers-reduced-motion: reduce) {
+  .splash .flight { animation: flight-pulse 1.6s var(--ease-in-out) infinite alternate; }
+}
+@keyframes flight-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
 .splash p { margin: 0; font-size: 15px; color: var(--muted); }
 
 .error {

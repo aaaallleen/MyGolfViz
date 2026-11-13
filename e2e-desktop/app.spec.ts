@@ -179,3 +179,26 @@ test('a database upgrade shows "Updating your data" on the splash, backs up, the
   const backups = await readdir(join(dataDir, 'backups'));
   expect(backups.filter((n) => /^mygolfviz-.*-none\.sqlite3$/.test(n))).toHaveLength(1);
 });
+
+test('the splash spins the ball flight around a still eye and ball, and only pulses it with reduced motion', async () => {
+  // Hold the splash on screen with a stretched database upgrade.
+  await writeFile(join(dataDir, 'mygolfviz.sqlite3'), '');
+  const { page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '6000' });
+  await expect(page.getByRole('status')).toHaveText('Updating your data… This can take a few minutes.');
+
+  const animationOf = (selector: string) =>
+    page.locator(selector).evaluate((el) =>
+      el.getAnimations().map((a) => ({ name: (a as CSSAnimation).animationName, state: a.playState })),
+    );
+  const loaded = (selector: string) => page.locator(selector).evaluate((img: HTMLImageElement) => img.naturalWidth > 0);
+
+  expect(await loaded('.logo img:not(.flight)')).toBe(true);
+  expect(await loaded('.logo img.flight')).toBe(true);
+  expect(await animationOf('.logo img:not(.flight)')).toEqual([]);
+  expect(await animationOf('.logo img.flight')).toEqual([{ name: 'flight-orbit', state: 'running' }]);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await animationOf('.logo img.flight')).toEqual([{ name: 'flight-pulse', state: 'running' }]);
+
+  await expectLibrary(page);
+});
