@@ -5,7 +5,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { clubCategory, type Measurements, type Vec3 } from '@fsa/domain';
 import { clubFrame, type ReplayScene } from '@fsa/analytics';
 import type { Annotation } from './annotations';
-import { buildClubModel } from './clubModel';
+import { buildClubModel, type ClubModelData } from './clubModel';
 import { arcCenter, headPose } from './headPose';
 import { CLUB, MUTED, PLANE } from './palette';
 import { GRID } from '../theme';
@@ -34,12 +34,20 @@ export interface ClubScene {
   setClubOpacity(alpha: number): void;
   /** Shows these annotations. With a `key`, the layer is built on first use and reused after. */
   setAnnotations(a: Annotation[], key?: string): void;
+  /**
+   * Box around the club head at the impact pose, in scene yards. Measuring views keep it in frame so a head that
+   * reaches below the ground or is deeply tipped is never cut off.
+   */
+  headBounds: { min: Vec3; max: Vec3 };
   dispose(): void;
 }
 
 const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
+const IN = 1 / 36; // yards per inch
+/** An unmeasured contact stays at least this far inside the face's top and bottom (inches). */
+const FACE_MARGIN_IN = 0.1;
 
 const v3 = (p: Vec3) => new THREE.Vector3(p[0], p[1], p[2]);
 
@@ -94,10 +102,32 @@ function annotationObject(a: Annotation, dash: number): THREE.Object3D | null {
   return o;
 }
 
+/** Lowest z of the mesh's vertices in the frame `top` sits in (`top` is the mesh or one of its ancestors). */
+function lowestZ(mesh: THREE.Mesh, top: THREE.Object3D): number {
+  const toFrame = new THREE.Matrix4();
+  for (let o: THREE.Object3D | null = mesh; o; o = o === top ? null : o.parent) {
+    o.updateMatrix();
+    toFrame.premultiply(o.matrix);
+  }
+  const pos = mesh.geometry.getAttribute('position');
+  const v = new THREE.Vector3();
+  let min = Infinity;
+  for (let i = 0; i < pos.count; i++) min = Math.min(min, v.fromBufferAttribute(pos, i).applyMatrix4(toFrame).z);
+  return min;
+}
+
+/** A mesh the club model contract (clubModel.ts) guarantees; a model without it is a bug, so fail loudly. */
+function modelMesh(model: THREE.Object3D, name: 'club-head' | 'club-face'): THREE.Mesh {
+  const mesh = model.getObjectByName(name);
+  if (!(mesh instanceof THREE.Mesh)) throw new Error(`Club model has no mesh named ${name}`);
+  return mesh;
+}
+
+/** Disposes the GPU resources under `o`, except geometry shared between scenes (club heads). */
 function disposeTree(o: THREE.Object3D) {
   o.traverse((c) => {
     const mesh = c as THREE.Mesh;
-    mesh.geometry?.dispose();
+    if (!mesh.geometry?.userData.shared) mesh.geometry?.dispose();
     const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
     if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
     else mat?.dispose();
@@ -117,6 +147,10 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   const fill = new THREE.DirectionalLight(0xffffff, 0.8);
   fill.position.set(-3, 4, 2);
   root.add(fill);
+  // Rim light from the target side, opposite the fill: outlines the dark heads seen from behind (down the line, 3/4).
+  const rim = new THREE.DirectionalLight(0xffffff, 1.0);
+  rim.position.set(3, 4, 2.5);
+  root.add(rim);
 
   const ground = new THREE.GridHelper(6, 12, GRID, GRID);
   ground.rotation.x = Math.PI / 2; // GridHelper lies in XZ; the ground is XY
@@ -157,7 +191,9 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   root.add(plane);
 
   // Club: pivot at the arc centre so the club swings around it; at impact the pivot is identity.
-  const pose = headPose(m, scene);
+  const head = buildClubModel(clubCategory(input.club), scene.handedness);
+  const model = head.userData as ClubModelData;
+  const pose = headPose(m, scene, model);
   const g = scene.handedness === 'right' ? 1 : -1;
   const centre = scene.clubArc ? v3(arcCenter(scene.clubArc)) : new THREE.Vector3();
   const pivot = new THREE.Group();
@@ -169,36 +205,62 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   pivot.add(club);
 
   const ballR = BALL_RADIUS_YD * headScale;
-  const head = buildClubModel(clubCategory(input.club), scene.handedness);
   const holder = new THREE.Group();
   const xAxis = v3(pose.toeDir).multiplyScalar(g);
   const yAxis = v3(pose.faceNormal);
   const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize();
   holder.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis));
   holder.scale.setScalar(headScale);
-  holder.position.copy(yAxis).multiplyScalar(-ballR); // face touches the back of the ball
   holder.add(head);
   club.add(holder);
-  // Sit the sole on the ground: lift the head so its lowest point is at z = 0.
-  holder.updateMatrixWorld(true);
-  const bottom = new THREE.Box3().setFromObject(head.getObjectByName('club-head')!).min.z;
-  holder.position.z -= bottom;
+  // The ball touches the face at contact point P (model-local yards), at the ball's point nearest the face.
+  // P is in the model's own frame, so the handedness mirror and headScale reach it through the model and holder.
+  const headMesh = modelMesh(head, 'club-head');
+  const touch = new THREE.Vector3(0, 0, ballR).addScaledVector(yAxis, -ballR);
+  head.updateMatrix();
+  /** Places the head so the ball touches the face at `p` and returns the head's lowest z. */
+  const placeAt = (p: THREE.Vector3) => {
+    const offset = p.clone().applyMatrix4(head.matrix).multiplyScalar(headScale).applyQuaternion(holder.quaternion);
+    holder.position.copy(touch).sub(offset);
+    // The club's pivot is identity at impact, so the holder's parent frame is the world there.
+    return lowestZ(headMesh, holder);
+  };
+  let contact: THREE.Vector3;
+  if (pose.strike) {
+    contact = new THREE.Vector3(pose.strike.lateralIn * IN, 0, pose.strike.verticalIn * IN); // never altered
+  } else {
+    // Unmeasured: centred heel to toe, at the height on the face that would rest the sole on the ground (sliding the
+    // head up its face by s lowers the contact by s), kept on the face.
+    const minZ0 = placeAt(new THREE.Vector3());
+    const ideal = zAxis.z > 1e-6 ? minZ0 / zAxis.z / headScale : 0;
+    const face = new THREE.Box3().setFromBufferAttribute(modelMesh(head, 'club-face').geometry.getAttribute('position') as THREE.BufferAttribute);
+    const margin = FACE_MARGIN_IN * IN;
+    contact = new THREE.Vector3(0, 0, THREE.MathUtils.clamp(ideal, face.min.z + margin, face.max.z - margin));
+  }
+  // Nothing adjusts for the ground: a sole below z = 0 is a normal strike into the ground and is drawn that way.
+  placeAt(contact);
 
   holder.updateMatrix();
-  head.updateMatrix();
-  const hoselTop = (head.userData.hoselTop as THREE.Vector3).clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
+  const hoselBase = model.hoselBase.clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
   const shaftDir = v3(pose.shaftDir);
   const shaftR = 0.0045 * Math.max(1, headScale * 0.6);
+  /** Adds a cylinder from `from` along the shaft direction and returns where it ends. */
   const segment = (from: THREE.Vector3, length: number, radius: number, color: string, name: string) => {
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 16), new THREE.MeshStandardMaterial({ color, metalness: 0.5, roughness: 0.35 }));
     mesh.name = name;
     mesh.position.copy(from).addScaledVector(shaftDir, length / 2);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), shaftDir);
     club.add(mesh);
+    return from.clone().addScaledVector(shaftDir, length);
   };
-  segment(hoselTop, SHAFT_YD - GRIP_YD, shaftR, '#AEB7BF', 'club-shaft');
-  segment(hoselTop.clone().addScaledVector(shaftDir, SHAFT_YD - GRIP_YD), GRIP_YD, shaftR * 1.6, '#15191C', 'club-grip');
+  const hoselTop = segment(hoselBase, model.hoselLengthYd * headScale, model.hoselRadiusYd * headScale, model.hoselColor, 'club-hosel');
+  const shaftTop = segment(hoselTop, SHAFT_YD - GRIP_YD, shaftR, '#AEB7BF', 'club-shaft');
+  segment(shaftTop, GRIP_YD, shaftR * 1.6, '#15191C', 'club-grip');
   root.add(pivot);
+  // The pivot is still identity here, so this is the impact pose; `precise` follows the vertices, not the tilted box.
+  pivot.updateMatrixWorld(true);
+  const headBox = new THREE.Box3().setFromObject(headMesh, true);
+  const headBounds = { min: headBox.min.toArray() as Vec3, max: headBox.max.toArray() as Vec3 };
 
   const ball = new THREE.Mesh(new THREE.SphereGeometry(ballR, 32, 20), new THREE.MeshStandardMaterial({ color: '#F4F6F5', roughness: 0.55 }));
   ball.name = 'ball';
@@ -251,6 +313,7 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
       });
     },
     setAnnotations,
+    headBounds,
     dispose() { disposeTree(root); },
   };
 }
