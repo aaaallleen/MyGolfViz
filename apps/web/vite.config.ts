@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
             proxy: {
               '/api': {
                 target: `http://127.0.0.1:${process.env.MYGOLFVIZ_PORT ?? 8765}`,
-                changeOrigin: false,
+                changeOrigin: true,
                 ...(token ? { headers: { 'X-MyGolfViz-Token': token } } : {}),
               },
             },
