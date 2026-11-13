@@ -153,6 +153,10 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   const fill = new THREE.DirectionalLight(0xffffff, 0.8);
   fill.position.set(-3, 4, 2);
   root.add(fill);
+  // Rim light from the target side, opposite the fill: outlines the dark heads seen from behind (down the line, 3/4).
+  const rim = new THREE.DirectionalLight(0xffffff, 1.0);
+  rim.position.set(3, 4, 2.5);
+  root.add(rim);
 
   const ground = new THREE.GridHelper(6, 12, GRID, GRID);
   ground.rotation.x = Math.PI / 2; // GridHelper lies in XZ; the ground is XY

@@ -29,10 +29,11 @@ export interface HeadSpec {
 }
 
 const BLACK_FINISH: HeadSpec['finish'] = {
-  body: '#1B1F23',
+  // lightened from #1B1F23 / #15191C so the body and hosel stand off the #101714 surface (3D and Face impact)
+  body: '#262B31',
   face: '#AEB7BF',
   lines: '#2B3036',
-  hosel: '#15191C',
+  hosel: '#22272C',
   metalness: 0.3,
   roughness: 0.18,
 };
@@ -44,9 +45,10 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     lieDeg: 58,
     faceWidthIn: 4.3,
     faceHeightIn: 2.2,
-    headWidthIn: 4.8,
-    headDepthIn: 4.5,
+    headWidthIn: 5.0, // 4.8 in the design table; widened with the rounder body below so the crown flares past the face from above
+    headDepthIn: 4.6, // 4.5 in the design table
     headHeightIn: 2.5,
+    exponent: 2.2, // rounder than the 2.5 default: a rounded-triangle planform rather than a squared cup
     hosel: { base: [-2.0, -0.4, 0.5], lengthIn: 1.5, radiusIn: 0.25 },
     scoreLines: { count: 9, spacingIn: 0.18, clearCentreIn: 1.4 },
     finish: BLACK_FINISH,
@@ -57,9 +59,10 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     lieDeg: 58,
     faceWidthIn: 3.7,
     faceHeightIn: 1.4,
-    headWidthIn: 4.2,
+    headWidthIn: 4.4, // 4.2 in the design table; see the driver
     headDepthIn: 3.4,
     headHeightIn: 1.6,
+    exponent: 2.2,
     flatTop: true,
     hosel: { base: [-1.7, -0.3, 0.3], lengthIn: 1.5, radiusIn: 0.24 },
     scoreLines: { count: 7, spacingIn: 0.15, clearCentreIn: 0 },
@@ -95,6 +98,6 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     hosel: { base: [-1.3, -0.15, 0.2], lengthIn: 2.3, radiusIn: 0.27 },
     // spacing 0.14 in the design table; 0.13 keeps all ten lines full width under the low heel
     scoreLines: { count: 10, spacingIn: 0.13, clearCentreIn: 0 },
-    finish: { body: '#8B949C', face: '#B4BCC3', lines: '#2B3036', hosel: '#6F7880', metalness: 0.6, roughness: 0.45 },
+    finish: { body: '#8B949C', face: '#B4BCC3', lines: '#2B3036', hosel: '#6F7880', metalness: 0.45, roughness: 0.45 },
   },
 };
