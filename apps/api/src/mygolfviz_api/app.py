@@ -8,9 +8,11 @@ from fastapi import FastAPI
 
 from . import __version__
 from .config import Settings
-from .db import make_engine
+from .db import make_engine, session_scope
 from .migrate import db_path, upgrade
+from .routers import imports as imports_router
 from .security import SecurityMiddleware
+from .storage import OriginalStore
 
 
 _TOKEN_RE = re.compile(r"(token=)[^&\s\"]+")
@@ -59,12 +61,17 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.settings = settings
     app.state.schema_version = upgrade(settings)
     app.state.engine = make_engine(db_path(settings))
+    app.state.originals = OriginalStore(settings.data_dir)
+    with session_scope(app.state.engine) as db:
+        app.state.originals.sweep(db)
 
     app.add_middleware(
         SecurityMiddleware,
         token=settings.token,
         allowed_hosts=settings.resolved_allowed_hosts(),
     )
+
+    app.include_router(imports_router.router)
 
     @app.get("/api/v1/health")
     def health() -> dict:
