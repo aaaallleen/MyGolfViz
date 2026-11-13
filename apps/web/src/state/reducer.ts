@@ -132,8 +132,12 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return withFilters(state, { ...state.filters, fileId: action.fileId });
     case 'select':
       return { ...state, selectedId: action.id };
-    case 'step':
-      return { ...state, selectedId: stepAround(state.selectedId, tableOf(state), excludedIdsOf(state), action.delta) };
+    case 'step': {
+      const table = tableOf(state);
+      // With nothing included to step to, stay on the shot that is open (it may be excluded on purpose).
+      const stay = table.some((s) => s.id === state.selectedId) ? state.selectedId : null;
+      return { ...state, selectedId: stepAround(state.selectedId, table, excludedIdsOf(state), action.delta) ?? stay };
+    }
     case 'setExcluded':
       return { ...state, excluded: withExcluded(state, action.id, action.excluded) };
     case 'excludeAndAdvance': {

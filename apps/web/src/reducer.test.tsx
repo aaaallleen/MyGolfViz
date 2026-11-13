@@ -140,6 +140,16 @@ describe('reducer: excluding shots', () => {
     expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(o[1]!.id);
   });
 
+  test('step with every shot in the filter excluded keeps the open excluded shot', async () => {
+    let s = await analyzed();
+    s = reducer(s, { type: 'setClub', club: 'Driver' });
+    const ids = tableOf(s).map((v) => v.id);
+    for (const id of ids) s = reducer(s, { type: 'setExcluded', id, excluded: true });
+    s = reducer(s, { type: 'select', id: ids[1]! });
+    expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(ids[1]);
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[1]);
+  });
+
   test('a filter change keeps an excluded selection while it is still in the table', async () => {
     let s = await analyzed();
     const driver = s.workingSet!.shots.find((v) => v.club === 'Driver')!;

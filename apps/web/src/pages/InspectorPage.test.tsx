@@ -326,6 +326,20 @@ describe('InspectorPage', () => {
       }
     });
 
+    test('with every shot in the filter excluded, Next keeps the open excluded shot', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      act(() => v.store().setClub('Driver'));
+      const ids = v.store().tableShots.map((s) => s.id);
+      act(() => { for (const id of ids) v.store().setExcluded(id, true); v.store().select(ids[1]!); });
+      const heading = screen.getByRole('heading', { level: 1 }).textContent;
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(ids[1]);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(heading);
+      expect(screen.queryByText(/shots here are excluded/)).toBeNull();
+    });
+
     test('Include it again removes the banner', async () => {
       const user = userEvent.setup();
       const v = open();

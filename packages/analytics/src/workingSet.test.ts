@@ -71,6 +71,7 @@ describe('working set ops', () => {
     expect(stepAround('I2', ord, ex, 1)).toBe('I2');
     expect(stepAround(null, ord, new Set(['D1']), 1)).toBe('D2');
     expect(stepAround('D1', ord, new Set(['D1', 'D2', 'I1', 'I2']), 1)).toBeNull();
+    expect(stepAround('I2', ord, new Set(['D2', 'I2']), 1)).toBe('I1');
   });
   test('nextAfterExclude: next included, else previous, else null', () => {
     const ord = displayOrder(shots);
