@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 import re
+from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from . import __version__
 from .config import Settings
@@ -78,7 +80,15 @@ def create_app(settings: Settings) -> FastAPI:
         (settings.data_dir / sub).mkdir(parents=True, exist_ok=True)
     attach_log_handler(settings)
 
-    app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        # Fold the WAL into the main file so a quit never leaves data only in -wal.
+        with app.state.engine.connect() as con:
+            con.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+        app.state.engine.dispose()
+
+    app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.settings = settings
     app.state.schema_version = upgrade(settings)
     app.state.engine = make_engine(db_path(settings))
