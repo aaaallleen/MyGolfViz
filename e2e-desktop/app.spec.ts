@@ -36,12 +36,15 @@ test.beforeEach(async () => {
 
 test.afterEach(async () => {
   try {
-    for (const { app } of launched) await app.close();
+    // Every app is closed even if closing another one fails; the first failure is reported afterwards.
+    const closed = await Promise.allSettled(launched.map(({ app }) => app.close()));
+    for (const result of closed) if (result.status === 'rejected') throw result.reason;
   } finally {
     if (localBackend) await stopProcess(localBackend);
     await rm(dataDir, { recursive: true, force: true });
   }
-  // The app's Content-Security-Policy, and the splash and error pages' own, must never block anything.
+  // The app's Content-Security-Policy, and the error page's own, must never block anything. Tracking starts after
+  // the splash, so the splash page itself is not covered.
   for (const { page } of launched) expect(cspViolations(page)).toEqual([]);
 });
 

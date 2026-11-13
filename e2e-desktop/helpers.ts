@@ -16,7 +16,8 @@ const splashPage = /\/static\/splash\.html$/;
 /**
  * Launches the app on `dataDir`: the development app (`electron apps/desktop`), or the executable named by
  * MYGOLFVIZ_DESKTOP_EXECUTABLE (the packaged app). Returns once its window exists, which may still be on the splash.
- * Content-Security-Policy violations of the window are recorded from the first page after the splash.
+ * Content-Security-Policy violations of the window are recorded from the first page after the splash; the splash
+ * itself is not tracked.
  */
 export async function launchApp(dataDir: string): Promise<{ app: ElectronApplication; page: Page }> {
   const env: Record<string, string> = {};
@@ -35,6 +36,8 @@ export async function launchApp(dataDir: string): Promise<{ app: ElectronApplica
   try {
     const page = await app.firstWindow();
     await trackCspViolations(page);
+    // The window starts on about:blank, and reloading that could race main's load of the splash. Wait for a real page.
+    await page.waitForURL((url) => url.href !== 'about:blank', { waitUntil: 'commit' });
     // The tracker applies from the next page on. If the window has already left the splash, load that page again.
     if (!splashPage.test(page.url())) await page.reload();
     return { app, page };
