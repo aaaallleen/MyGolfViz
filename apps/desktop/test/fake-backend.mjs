@@ -2,6 +2,7 @@
 // Env: FAKE_MARKER = file written once the chatty output has fully flushed.
 import http from 'node:http';
 import fs from 'node:fs';
+import { spawn } from 'node:child_process';
 
 const mode = process.argv[2] ?? 'ok';
 
@@ -9,16 +10,22 @@ if (mode === 'exit3') {
   process.stderr.write('MyGolfViz is already running with this data folder\n', () => process.exit(3));
 } else if (mode === 'exit4') {
   process.stderr.write("MyGolfViz couldn't start: boom\n", () => process.exit(4));
+} else if (mode === 'grandchild') {
+  // A grandchild inherits stdout/stderr and outlives us, so 'close' lags 'exit'. Its pid goes to FAKE_MARKER.
+  const gc = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'inherit' });
+  fs.writeFileSync(process.env.FAKE_MARKER, String(gc.pid));
+  process.stderr.write("MyGolfViz couldn't start: grandchild\n", () => process.exit(4));
 } else if (mode === 'silent') {
   setInterval(() => {}, 1000);
 } else {
   const server = http.createServer((req, res) => {
-    res.statusCode = req.url === '/api/v1/health' ? 200 : 404;
+    res.statusCode = req.url === '/api/v1/health' ? (mode === 'die-unhealthy' ? 503 : 200) : 404;
     res.end('{}');
   });
   server.listen(0, '127.0.0.1', () => {
     const { port } = server.address();
     process.stdout.write(JSON.stringify({ port, url: `http://127.0.0.1:${port}/?token=t` }) + '\n');
+    if (mode === 'die-unhealthy') setTimeout(() => process.exit(5), 150);
     if (mode === 'ignore-term') {
       process.on('SIGTERM', () => {});
       return;

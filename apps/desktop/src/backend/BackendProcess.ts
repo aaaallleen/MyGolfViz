@@ -4,6 +4,7 @@ import { parsePortLine } from './portLine';
 const STDERR_TAIL_LINES = 50;
 const MAX_PARTIAL_LINE = 64 * 1024;
 const HEALTH_POLL_MS = 100;
+const CLOSE_GRACE_MS = 200;
 
 export class BackendStartError extends Error {
   constructor(
@@ -73,6 +74,7 @@ export class BackendProcess {
     const timeoutMs = this.opts.startupTimeoutMs ?? 30_000;
     const fetchImpl = this.opts.fetchImpl ?? fetch;
     const spawnImpl = this.opts.spawnImpl ?? spawn;
+    if (this.child) throw new Error('BackendProcess is single-use: start() was already called');
     const deadline = Date.now() + timeoutMs;
 
     const child = spawnImpl(command, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -101,52 +103,56 @@ export class BackendProcess {
       onLog?.(`[api] ${line}`);
     });
 
-    // 'close' (not 'exit') for start failure so stderr is fully read first.
-    const closed = new Promise<{ code: number | null }>((resolve) => {
-      child.once('close', (code) => resolve({ code }));
-    });
+    // Settles when the child is gone: on 'close' (stdio fully drained, so stderrTail is complete),
+    // or CLOSE_GRACE_MS after 'exit' if something else (a grandchild) still holds the pipes open.
+    let settleExit: () => void = () => {};
+    const exitSettled = new Promise<void>((resolve) => (settleExit = resolve));
+    child.once('close', () => settleExit());
     child.once('exit', (code, signal) => {
       this.exitInfo = { code, signal };
       for (const w of this.exitWaiters.splice(0)) w();
+      setTimeout(settleExit, CLOSE_GRACE_MS).unref();
       if (this.started && !this.stopping) this.unexpectedCb?.(code, signal);
     });
-    child.once('error', () => {
-      // spawn failure: no 'exit' will fire, 'close' resolves the race below.
-      if (!this.exitInfo) {
-        this.exitInfo = { code: null, signal: null };
-        for (const w of this.exitWaiters.splice(0)) w();
-      }
+    child.once('error', (err) => {
+      // Only a failed spawn (no pid) means the process never ran; later errors (e.g. kill) do not.
+      if (child.pid !== undefined) return;
+      const line = `spawn failed: ${err.message}`;
+      this.stderrTail.push(line);
+      onLog?.(`[api] ${line}`);
+      this.exitInfo = { code: null, signal: null };
+      for (const w of this.exitWaiters.splice(0)) w();
+      settleExit();
     });
 
     let timer: NodeJS.Timeout | undefined;
-    const timedOut = new Promise<'timeout'>((resolve) => {
-      timer = setTimeout(() => resolve('timeout'), Math.max(0, deadline - Date.now()));
+    const timedOut = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, Math.max(0, deadline - Date.now()));
     });
 
-    const fail = async (kind: 'failed' | 'timeout', exitCode: number | null, msg: string): Promise<never> => {
+    // The wait ended without success: a child that already exited is a failure, not a timeout.
+    const failure = (msg: string): never => {
+      if (this.exitInfo) return this.exitFailure(this.exitInfo.code);
       this.forceKill();
-      throw new BackendStartError(kind, exitCode, msg);
+      throw new BackendStartError('timeout', null, msg);
     };
 
     try {
       const first = await Promise.race([
-        portSeen.then((p) => ({ t: 'port' as const, p })),
-        closed.then((c) => ({ t: 'closed' as const, code: c.code })),
-        timedOut.then(() => ({ t: 'timeout' as const })),
+        portSeen.then((p) => ({ p })),
+        exitSettled.then(() => null),
+        timedOut.then(() => null),
       ]);
-      if (first.t === 'closed') return this.exitFailure(first.code);
-      if (first.t === 'timeout') return await fail('timeout', null, 'Backend did not print a port line in time');
+      if (!first) return failure('Backend did not print a port line in time');
 
       const origin = `http://127.0.0.1:${first.p.port}`;
       const healthy = this.pollHealth(origin, fetchImpl, deadline);
-      const second = await Promise.race([
-        healthy.then((ok) => ({ t: 'health' as const, ok })),
-        closed.then((c) => ({ t: 'closed' as const, code: c.code })),
+      const ok = await Promise.race([
+        healthy,
+        exitSettled.then(() => false),
+        timedOut.then(() => false),
       ]);
-      if (second.t === 'closed') return this.exitFailure(second.code);
-      if (!second.ok) {
-        return await fail('timeout', null, 'Backend health check did not return 200 in time');
-      }
+      if (!ok) return failure('Backend health check did not return 200 in time');
       this.started = true;
       return { url: first.p.url, pid: pid! };
     } finally {
@@ -161,6 +167,7 @@ export class BackendProcess {
         const remaining = Math.max(1, deadline - Date.now());
         const res = await fetchImpl(`${origin}/api/v1/health`, { signal: AbortSignal.timeout(Math.min(1000, remaining)) });
         if (res.status === 200) return true;
+        void res.body?.cancel().catch(() => {});
       } catch {
         /* not ready yet */
       }

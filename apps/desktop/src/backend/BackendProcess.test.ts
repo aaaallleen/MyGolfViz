@@ -1,4 +1,4 @@
-import { mkdtempSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -158,5 +158,95 @@ describe('BackendProcess', () => {
     await bp.stop(500);
     expect(Date.now() - t0).toBeLessThan(3000);
     expect(await until(() => !alive(pid), 1000)).toBe(true);
+  });
+
+  it('reports failed (not timeout) when a grandchild keeps the pipes open after exit 4', async () => {
+    tmp = mkdtempSync(path.join(tmpdir(), 'bp-'));
+    const marker = path.join(tmp, 'gc-pid');
+    const bp = make('grandchild', { env: { FAKE_MARKER: marker }, startupTimeoutMs: 5000 });
+    try {
+      const err = await bp.start().then(() => null, (e) => e);
+      expect(err).toBeInstanceOf(BackendStartError);
+      expect(err.kind).toBe('failed');
+      expect(err.exitCode).toBe(4);
+      expect(bp.stderrTail.join('\n')).toContain('grandchild');
+    } finally {
+      if (existsSync(marker)) {
+        try {
+          process.kill(Number(readFileSync(marker, 'utf8')), 'SIGKILL');
+        } catch {
+          /* gone */
+        }
+      }
+    }
+  });
+
+  it('reports failed with a reason when the binary does not exist', async () => {
+    const bp = new BackendProcess({ command: '/nonexistent/mygolfviz-api', args: [], env: process.env });
+    live.push(bp);
+    const err = await bp.start().then(() => null, (e) => e);
+    expect(err).toBeInstanceOf(BackendStartError);
+    expect(err.kind).toBe('failed');
+    expect(bp.stderrTail.join('\n')).toContain('ENOENT');
+  });
+
+  it('reports failed with its code when the child exits during the health poll', async () => {
+    const bp = make('die-unhealthy', { startupTimeoutMs: 5000 });
+    const err = await bp.start().then(() => null, (e) => e);
+    expect(err).toBeInstanceOf(BackendStartError);
+    expect(err.kind).toBe('failed');
+    expect(err.exitCode).toBe(5);
+  });
+
+  it('cancels the body of non-200 health responses', async () => {
+    let cancelled = false;
+    const bp = new BackendProcess({
+      command: process.execPath,
+      args: [fake, 'ok'],
+      env: process.env,
+      startupTimeoutMs: 600,
+      fetchImpl: (async () =>
+        new Response(new ReadableStream({ cancel: () => void (cancelled = true) }), { status: 503 })) as typeof fetch,
+    });
+    live.push(bp);
+    await bp.start().catch(() => {});
+    expect(cancelled).toBe(true);
+  });
+
+  it('enforces the deadline even if fetchImpl ignores the abort signal', async () => {
+    const bp = new BackendProcess({
+      command: process.execPath,
+      args: [fake, 'ok'],
+      env: process.env,
+      startupTimeoutMs: 500,
+      fetchImpl: (() => new Promise(() => {})) as typeof fetch,
+    });
+    live.push(bp);
+    const t0 = Date.now();
+    const err = await bp.start().then(() => null, (e) => e);
+    expect(err.kind).toBe('timeout');
+    expect(Date.now() - t0).toBeLessThan(2500);
+  });
+
+  it('is single-use', async () => {
+    const bp = make('ok');
+    await startedPid(bp);
+    await expect(bp.start()).rejects.toThrow(/single-use/);
+  });
+
+  it('stop() can be called twice', async () => {
+    const bp = make('ok');
+    await startedPid(bp);
+    await Promise.all([bp.stop(), bp.stop()]);
+    await expect(bp.stop()).resolves.toBeUndefined();
+  });
+
+  it('never fires onUnexpectedExit after a failed start', async () => {
+    const bp = make('exit4');
+    let n = 0;
+    bp.onUnexpectedExit(() => n++);
+    await bp.start().catch(() => {});
+    await new Promise((r) => setTimeout(r, 400));
+    expect(n).toBe(0);
   });
 });
