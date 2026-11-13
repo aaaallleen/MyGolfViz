@@ -44,8 +44,8 @@ progression across sessions and compare today's best drive with last month's.
 - Session library with **list and calendar** views (frames `00`, `01`).
 - Import into a **new or existing session**, chosen explicitly (frames `02`, `03`).
 - Remove one import, reorder imports, rename/edit and delete sessions.
-- **Progression** dashboard (§7).
-- **Compare two shots** (§8).
+- **Progression** dashboard (§8).
+- **Compare two shots** (§9), from its own **Compare** tab or from any shot in the Shot Inspector.
 - **MyGolfViz.app** for Apple Silicon macOS: Electron with the Python backend bundled. No Python,
   Node or Docker install needed.
 - Works fully offline.
@@ -258,10 +258,12 @@ On startup the backend sweeps leftover temp files and originals that no import r
 
 ### 7.2 Navigation and routes (local)
 
-Header: logo + **MyGolfViz**, nav **Sessions · Progression**, **Load Session CSV** on the right, Help.
-(The frames' *Trends · Clubs* become *Progression*; club gapping lives in Progression.) Routes
+Header: logo + **MyGolfViz**, nav **Sessions · Progression · Compare**, **Load Session CSV** on the
+right, Help. (The frames' *Trends · Clubs* become *Progression*; club gapping lives in Progression.)
+Routes
 *(builder's call on paths)*: `/sessions` (library), `/sessions/:id` (Overview of that session),
-`/sessions/:id/inspect`, `/import`, `/progression`, `/compare?a=<shotId>&b=<shotId>`. Local mode can
+`/sessions/:id/inspect`, `/import`, `/progression`, `/compare` (with optional `?a=<shotId>&b=<shotId>`;
+either may be absent). Local mode can
 use history routing (the backend serves `index.html` as a fallback).
 
 ### 7.3 Library (frames `00`, `01`)
@@ -396,9 +398,24 @@ layouts are not required in v1.
 
 **Purpose:** two good shots, usually from different days, and "what changed?".
 
-- **Entry:** a **Compare…** button on any shot in the Shot Inspector (this becomes shot A). A picker
-  chooses shot B: session → club → shot, defaulting to the current session and club. Excluded shots
-  can be picked and are marked "(excluded)".
+- **Two ways in, one page.** Both land on the same `/compare` page; they differ only in which shots
+  are already filled in.
+  - **From the Shot Inspector:** a **Compare…** button on any shot opens `/compare?a=<that shot>`.
+    That shot is **A**, and the picker for **B** opens straight away, defaulting to the same session
+    and club as A.
+  - **From the Compare tab** in the header nav: opens the comparison last shown in this window, if
+    there is one *(my call: kept in memory only, not saved, so it is gone after quitting)*. Otherwise
+    it opens an empty Compare page: two slots, **A** and **B**, each with a **Choose shot…** button,
+    and a one-line hint ("Pick two shots to see what changed"). A's picker defaults to the most
+    recent session; B's defaults to A's session and club once A is chosen.
+- **Picker:** session → club → shot. Sessions are newest first. Shots are listed by shot number with
+  carry and club speed so the right one is easy to find *(my call on which two values)*. Excluded
+  shots can be picked and are marked "(excluded)". Picking a shot updates the URL, so every state
+  (none, only A, only B, both) is reloadable and works with the browser's Back button.
+- **With only one shot chosen**, the page shows that shot's label in its slot and the other slot's
+  **Choose shot…** button; the diagrams and table appear once both are chosen.
+- **A shot that no longer exists** (its session or import was deleted, or the link is stale) leaves
+  its slot empty with "That shot is no longer in your library", and the other shot stays.
 - **Layout B** (chosen by the owner from the mockups; `.superpowers/brainstorm/…/compare-layouts.html`):
   - Header: two labels, **A** (white) and **B** (purple), each with club, shot number, session name
     and session date, plus **Swap** and **Change shot…**.
@@ -409,7 +426,7 @@ layouts are not required in v1.
     call on the scale)*. If either value is missing the row says n/a and sorts last. No good/bad
     colouring.
 - Any two shots can be compared, including different clubs.
-- Comparisons are not saved. The `/compare?a=&b=` route makes the page reloadable.
+- Comparisons are not saved. The `/compare?a=&b=` URL makes the page reloadable.
 - Local mode only in v1.
 
 ## 10. Mac app (step 2)
@@ -460,7 +477,7 @@ Each step ends with something the owner can use. A separate implementation plan 
 | Repo layout | Desktop_design: `frontend/`, `backend/`, `desktop/` | Existing `apps/web`, `packages/*`; new `apps/api`, `apps/desktop` |
 | Calendar | v0.4/frames: later phase | In the first release (step 1) |
 | Session date | v0.4/frames: nullable, "No date set" list | Required in local mode; defaults to the day the session is created; no "No date set" list |
-| Nav | frames: Sessions · Trends · Clubs | Sessions · Progression |
+| Nav | frames: Sessions · Trends · Clubs | Sessions · Progression · Compare |
 | Session library on phone/iPad | v0.4 responsive matrix | Not required in v1 (no LAN access yet) |
 
 ## 13. Future work (recorded, not in v1)
@@ -487,7 +504,9 @@ Each step ends with something the owner can use. A separate implementation plan 
   handling, impact-missing exclusion, mishit frequency), session ordering, adapter behaviour.
 - **Playwright (local):** starts the backend on a temp data folder; library list/calendar, import
   new/append/duplicate, exclusions persisting across reload, remove import, progression tiles render
-  with fixtures, compare page.
+  with fixtures; compare page reached both from the Compare tab (empty → pick A → pick B) and from
+  the Shot Inspector's Compare… button (A filled in), reload keeps both shots, a deleted shot's slot
+  shows the "no longer in your library" message.
 - **Public:** `npm run ci:public` unchanged and green; `verify-public-build` passes.
 - **Mac app:** a manual checklist for step 2 (clean-machine launch, quit/reopen, upgrade keeps data,
   backend crash screen).
