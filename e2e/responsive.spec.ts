@@ -101,7 +101,7 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-touch-targets', 390);
   });
 
-  test('the full shot table scrolls inside its box with Shot pinned, KPI tiles pair up, one 2D pane at a time, viewers fit the width', async ({ page }) => {
+  test('the full shot table scrolls inside its box with Shot pinned, KPI tiles pair up, club views show one large view with three thumbnails below it, viewers fit the width', async ({ page }) => {
     await loadAndAnalyze(page);
     const box = page.locator('.shots-table');
     await expect(box).toBeVisible();
@@ -122,14 +122,18 @@ test.describe('phone 390', () => {
     await goInspector(page);
     await fitsViewport(page.locator('.ball-data svg[aria-label*="3D ball flight"]'), 'ball-flight viewer');
     await fitsViewport(page.locator('.ball-data .fsa-spin-ball svg'), 'Ball data sphere');
-    await openTab(page, '3d');
-    await fitsViewport(page.locator('.club-data svg[aria-label^="3D club replay"]'), 'club 3D svg');
-    await openTab(page, '2d');
-    const visible = [];
-    for (const c of ['.delivery-top', '.delivery-side', '.delivery-spin']) {
-      if (await page.locator(c).first().isVisible()) visible.push(c);
+    for (const id of ['3d', '2d'] as const) {
+      await openTab(page, id);
+      const large = page.locator('.club-data .view-gallery__large');
+      await fitsViewport(page.locator('.club-data .view-gallery__large canvas'), `${id} large view`);
+      const thumbs = page.locator('.club-data .view-gallery__thumbs button');
+      await expect(thumbs).toHaveCount(3);
+      const lb = (await large.boundingBox())!;
+      for (const t of await thumbs.all()) {
+        await expect(t).toBeVisible();
+        expect((await t.boundingBox())!.y, `${id} thumbnails sit below the large view on a phone`).toBeGreaterThanOrEqual(lb.y + lb.height - 1);
+      }
     }
-    expect(visible, 'exactly one 2D pane visible').toHaveLength(1);
     await shot(page, 'inspector-2d-layout', 390);
   });
 
@@ -150,7 +154,7 @@ test.describe('phone 390', () => {
 test.describe('tablet 820', () => {
   test.use({ viewport: { width: 820, height: 1180 } });
 
-  test("inspector tabs visible; dispersion 'Target' label visible; camera control and both Show fieldsets wrap without overflow", async ({ page }) => {
+  test("inspector tabs visible; dispersion 'Target' label visible; camera control and both club galleries fit without overflow", async ({ page }) => {
     await loadAndAnalyze(page);
     await expect(page.locator('.fsa-dispersion svg text', { hasText: 'Target' }).first()).toBeVisible();
     await shot(page, 'overview-tablet', 820);
@@ -161,13 +165,12 @@ test.describe('tablet 820', () => {
     const camera = page.getByRole('group', { name: 'Camera angle' });
     await expect(camera).toBeVisible();
     await fitsViewport(camera, 'camera control');
-    await openTab(page, '3d');
-    await fitsViewport(page.locator('.club-data .show-toggles'), '3D Show fieldset');
-    await openTab(page, '2d');
-    await fitsViewport(page.locator('.club-data .show-toggles'), '2D Show fieldset');
-    for (const f of await page.locator('.show-toggles').all()) {
-      const m = await f.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
-      expect(m.sw).toBeLessThanOrEqual(m.cw);
+    for (const id of ['3d', '2d'] as const) {
+      await openTab(page, id);
+      await fitsViewport(page.locator('.club-data .view-gallery'), `${id} club gallery`);
+      const lb = (await page.locator('.club-data .view-gallery__large').boundingBox())!;
+      const tb = (await page.locator('.club-data .view-gallery__thumbs button').first().boundingBox())!;
+      expect(tb.x, `${id} thumbnails sit right of the large view`).toBeGreaterThanOrEqual(lb.x + lb.width - 1);
     }
     await noOverflow(page, 'inspector 820');
   });
@@ -246,3 +249,38 @@ for (const width of [1440, 1920] as const) {
     });
   });
 }
+
+test.describe('club views render @1280', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('3D tab draws a non-blank WebGL picture, swaps views on click, and orbiting enables Reset view', async ({ page }) => {
+    await loadAndAnalyze(page);
+    await goInspector(page);
+    await openTab(page, '3d');
+    const panel = page.getByRole('tabpanel', { name: '3D reconstruction' });
+    const name = panel.locator('.view-gallery__large .view-gallery__name');
+    await expect(name).toHaveText('Face-on');
+    const canvas = panel.locator('.view-gallery__large canvas');
+    await expect.poll(async () => canvas.evaluate((c: HTMLCanvasElement) => {
+      const ctx = c.getContext('2d')!;
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      const seen = new Set<number>();
+      for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!);
+      return seen.size;
+    }), { message: 'distinct colours in the large view' }).toBeGreaterThan(8);
+    await panel.getByRole('button', { name: 'Show Top view' }).click();
+    await expect(name).toHaveText('Top');
+    await expect(panel.getByRole('button', { name: 'Show Face-on view' })).toBeVisible();
+    const reset = panel.getByRole('button', { name: 'Reset view' });
+    await expect(reset).toBeDisabled();
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 150, box.y + box.height / 2 - 50, { steps: 8 });
+    await page.mouse.up();
+    await expect(reset).toBeEnabled();
+    await reset.click();
+    await expect(reset).toBeDisabled();
+    await shot(page, 'inspector-3d-views', 1280);
+  });
+});

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import type { Shot } from '@fsa/domain';
 import { buildReplayScene } from '@fsa/analytics';
-import { clubCamera, flightCamera, projectPoint, type CameraPreset } from './camera';
+import { flightCamera, projectPoint, type CameraPreset } from './camera';
 
 const shot = {
   id: 's', fileId: 'f', sourceRow: 1,
@@ -72,28 +72,6 @@ describe('flightCamera', () => {
     const both = flightCamera(p, flightsOf([shot, wedge], 'right'), 'right', 800);
     const one = flightCamera(p, flightsOf([wedge], 'right'), 'right', 800);
     expect(one.focal).toBeGreaterThan(both.focal);
-  });
-});
-
-describe('clubCamera', () => {
-  for (const hand of ['right', 'left'] as const) {
-    test(`frames origin and arc, arc >= 40% of height (${hand})`, () => {
-      const sc = buildReplayScene(shot, hand);
-      const c = clubCamera(sc, 800);
-      let minY = Infinity, maxY = -Infinity;
-      for (const pt of [[0, 0, 0] as [number, number, number], ...sc.clubArc!]) {
-        const r = projectPoint(pt, c, vp480)!;
-        expect(r).not.toBeNull();
-        expect(r.x).toBeGreaterThanOrEqual(16); expect(r.x).toBeLessThanOrEqual(784);
-        expect(r.y).toBeGreaterThanOrEqual(9.6); expect(r.y).toBeLessThanOrEqual(470.4);
-        minY = Math.min(minY, r.y); maxY = Math.max(maxY, r.y);
-      }
-      expect(maxY - minY).toBeGreaterThanOrEqual(0.4 * 480 + 10);
-    });
-  }
-  test('eye on golfer side', () => {
-    expect(clubCamera(buildReplayScene(shot, 'right'), 800).eye[0]).toBeLessThan(0);
-    expect(clubCamera(buildReplayScene(shot, 'left'), 800).eye[0]).toBeGreaterThan(0);
   });
 });
 

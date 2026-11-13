@@ -1,10 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { FaceImpactDiagram } from './FaceImpact';
-import { HorizontalDeliveryDiagram } from './HorizontalDelivery';
-import { SpinAxisDiagram } from './SpinAxis';
 import { SPIN_DISPLAY_SLOWDOWN, SpinBallDiagram } from './SpinBall';
-import { VerticalDeliveryDiagram } from './VerticalDelivery';
 
 const num = (el: Element, a: string) => Number(el.getAttribute(a));
 const role = (c: HTMLElement, r: string) => c.querySelector(`[data-role="${r}"]`);
@@ -13,86 +10,6 @@ const roles = (c: HTMLElement, r: string) => Array.from(c.querySelectorAll(`[dat
 const lineAngle = (el: Element) =>
   (Math.atan2(num(el, 'y1') - num(el, 'y2'), num(el, 'x2') - num(el, 'x1')) * 180) / Math.PI;
 
-const top = (o: Partial<Parameters<typeof HorizontalDeliveryDiagram>[0]> = {}) =>
-  ({ clubPath: 3.1, faceToTarget: 1.4, faceToPath: -1.7, launchH: 1.9, exaggerate: 1 as const, ...o });
-const side = (o: Partial<Parameters<typeof VerticalDeliveryDiagram>[0]> = {}) =>
-  ({ aoa: 2.6, dynamicLoft: 14.9, launchV: 12.8, spinLoft: 12.3, exaggerate: 1 as const, ...o });
-
-test('top view (3.1, 1.4, −1.7, 1.9): all four roles drawn; labels; club-path leans right', () => {
-  const { container } = render(<HorizontalDeliveryDiagram {...top()} />);
-  for (const r of ['target-line', 'club-path', 'face', 'launch']) expect(role(container, r)).not.toBeNull();
-  for (const t of ['3.1° R', '1.4° R', '1.7° L', '1.9° R']) expect(container.textContent).toContain(t);
-  const cp = role(container, 'club-path')!;
-  expect(num(cp, 'x2')).toBeGreaterThan(num(cp, 'x1'));
-  expect(num(cp, 'y2')).toBeLessThan(num(cp, 'y1'));
-});
-
-test('top view with clubPath null: no club-path element, "Club path · Not measured", no "0.0°"', () => {
-  const { container } = render(<HorizontalDeliveryDiagram {...top({ clubPath: null })} />);
-  expect(role(container, 'club-path')).toBeNull();
-  expect(container.textContent).toContain('Club path · –Not measured');
-  expect(container.textContent).not.toContain('0.0°');
-});
-
-test('top view all null: message and only target-line drawn', () => {
-  const { container } = render(
-    <HorizontalDeliveryDiagram clubPath={null} faceToTarget={null} faceToPath={null} launchH={null} exaggerate={1} />);
-  expect(container.textContent).toContain('Club delivery not measured for this shot');
-  expect(role(container, 'target-line')).not.toBeNull();
-  for (const r of ['club-path', 'face', 'launch']) expect(role(container, r)).toBeNull();
-});
-
-test('side view (2.6, 14.9, 12.8, 12.3): labels and spin loft as reported', () => {
-  const { container } = render(<VerticalDeliveryDiagram {...side()} />);
-  for (const r of ['ground', 'attack', 'loft', 'launch']) expect(role(container, r)).not.toBeNull();
-  const t = container.textContent!;
-  for (const s of ['Attack angle 2.6° up', 'Dynamic loft 14.9°', 'Launch angle 12.8°', 'Spin loft · as reported 12.3°'])
-    expect(t.replace(/\s+/g, ' ')).toContain(s);
-  expect(t).toContain('Illustrative');
-  expect(t).toContain('Club head is a generic profile, drawn for orientation only');
-});
-
-test('side view spinLoft null: "Spin loft · Not measured" and no 12.3 or 12.4', () => {
-  const { container } = render(<VerticalDeliveryDiagram {...side({ spinLoft: null })} />);
-  expect(container.textContent).toContain('Spin loft · –Not measured');
-  expect(container.textContent).not.toContain('12.3');
-  expect(container.textContent).not.toContain('12.4');
-});
-
-test('side view all null shows the not-measured message', () => {
-  const { container } = render(
-    <VerticalDeliveryDiagram aoa={null} dynamicLoft={null} launchV={null} spinLoft={null} exaggerate={1} />);
-  expect(container.textContent).toContain('Club delivery not measured for this shot');
-  expect(role(container, 'attack')).toBeNull();
-  expect(role(container, 'ground')).not.toBeNull();
-});
-
-test('exaggerate doubles the attack line angle, labels unchanged; top view ×4', () => {
-  const a = render(<VerticalDeliveryDiagram {...side()} />);
-  const a1 = lineAngle(role(a.container, 'attack')!);
-  expect(a1).toBeCloseTo(2.6, 1);
-  expect(a.container.textContent).not.toContain('Angles ×');
-  const b = render(<VerticalDeliveryDiagram {...side({ exaggerate: 2 })} />);
-  expect(lineAngle(role(b.container, 'attack')!)).toBeCloseTo(5.2, 1);
-  expect(b.container.textContent).toContain('Angles ×2');
-  expect(b.container.textContent).toContain('Attack angle 2.6° up');
-  const c = render(<HorizontalDeliveryDiagram {...top({ exaggerate: 4 })} />);
-  expect(c.container.textContent).toContain('Angles ×4');
-  expect(c.container.textContent).toContain('3.1° R');
-});
-
-test('side view lowPoint −2.9 puts the marker behind (left of) the ball; null draws none', () => {
-  const { container } = render(<VerticalDeliveryDiagram {...side({ lowPoint: -2.9 })} />);
-  const marker = role(container, 'low-point')!;
-  expect(marker).not.toBeNull();
-  expect(container.textContent).toContain('Low point');
-  expect(num(marker, 'x1')).toBeLessThan(num(role(container, 'ball')!, 'cx'));
-  expect(role(container, 'club-arc')).not.toBeNull();
-  const ahead = render(<VerticalDeliveryDiagram {...side({ lowPoint: 1.5 })} />);
-  expect(num(role(ahead.container, 'low-point')!, 'x1')).toBeGreaterThan(num(role(ahead.container, 'ball')!, 'cx'));
-  const none = render(<VerticalDeliveryDiagram {...side({ lowPoint: null })} />);
-  expect(role(none.container, 'low-point')).toBeNull();
-});
 
 test('spin ball (3000, 10): readouts and Derived tags', () => {
   const { container } = render(<SpinBallDiagram spin={3000} spinAxis={10} />);
@@ -211,67 +128,4 @@ test('face impact: positive y above centre; data-category; no provisional note',
   expect(num(role(container, 'selected-impact')!, 'cy')).toBeCloseTo(cy - 0.3 * 40, 5);
   expect(container.querySelector('svg')).toHaveAttribute('data-category', 'iron');
   expect(container.textContent!.toLowerCase()).not.toContain('provisional');
-});
-
-test('top view rows use each value\'s own field key', async () => {
-  const { formatMeasurement } = await import('@fsa/domain');
-  const { container } = render(<HorizontalDeliveryDiagram {...top()} />);
-  const texts = Array.from(container.querySelectorAll('li strong')).map((e) => e.textContent);
-  expect(texts).toEqual([
-    formatMeasurement('clubPath', 3.1), formatMeasurement('ftt', 1.4),
-    formatMeasurement('ftp', -1.7), formatMeasurement('launchH', 1.9),
-  ]);
-});
-
-test('top view layers default: face and face-to-path drawn with their rows', () => {
-  const { container } = render(<HorizontalDeliveryDiagram {...top()} />);
-  expect(role(container, 'face')).not.toBeNull();
-  expect(role(container, 'face-to-path')).not.toBeNull();
-  expect(container.textContent).toContain('Face to target');
-  expect(container.textContent).toContain('Face to path');
-});
-
-test("layers.faceToTarget false: no face, no 'Face to target' row; club path, target line, launch still drawn", () => {
-  const { container } = render(<HorizontalDeliveryDiagram {...top()} layers={{ faceToTarget: false }} />);
-  expect(role(container, 'face')).toBeNull();
-  expect(container.textContent).not.toContain('Face to target');
-  for (const r of ['club-path', 'target-line', 'launch']) expect(role(container, r)).not.toBeNull();
-});
-
-test("layers.faceToPath false: no [data-role=face-to-path], no 'Face to path' row", () => {
-  const { container } = render(<HorizontalDeliveryDiagram {...top()} layers={{ faceToPath: false }} />);
-  expect(role(container, 'face-to-path')).toBeNull();
-  expect(container.textContent).not.toContain('Face to path');
-  expect(role(container, 'face')).not.toBeNull();
-});
-
-test("side view layers.dynamicLoft false: no loft, no 'Dynamic loft' row; spin loft row stays", () => {
-  const { container } = render(<VerticalDeliveryDiagram {...side()} layers={{ dynamicLoft: false }} />);
-  expect(role(container, 'loft')).toBeNull();
-  expect(container.textContent).not.toContain('Dynamic loft');
-  expect(container.textContent).toContain('Spin loft');
-  expect(role(container, 'launch')).not.toBeNull();
-});
-
-test('SpinAxisDiagram: tilt sign matches the ball convention', () => {
-  const ends = (c: HTMLElement) => { const l = role(c, 'spin-axis')!; return [num(l, 'y1'), num(l, 'y2')] as [number, number]; };
-  const a = render(<SpinAxisDiagram spinAxis={10} />);
-  expect(a.container.textContent).toContain('10.0° R');
-  expect(a.container.textContent).toContain('Viewed from behind the ball · axis tilted right = ball curves right');
-  expect(role(a.container, 'ball')).not.toBeNull();
-  expect(role(a.container, 'reference')).not.toBeNull();
-  const [l1, r1] = ends(a.container);
-  expect(r1).toBeGreaterThan(l1);
-  const b = render(<SpinAxisDiagram spinAxis={-10} />);
-  const [l2, r2] = ends(b.container);
-  expect(r2).toBeLessThan(l2);
-  const c = render(<SpinAxisDiagram spinAxis={0} />);
-  const [l3, r3] = ends(c.container);
-  expect(r3).toBe(l3);
-});
-
-test('SpinAxisDiagram(null): not measured and no axis line', () => {
-  const { container } = render(<SpinAxisDiagram spinAxis={null} />);
-  expect(container.textContent).toContain('Spin axis · –Not measured');
-  expect(role(container, 'spin-axis')).toBeNull();
 });

@@ -1,5 +1,5 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
-import type { View2D, View3D } from '@fsa/visualizations';
+import type { View2D, View3D } from '@fsa/visualizations/club3d';
 import { displayOrder, filterShots, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 

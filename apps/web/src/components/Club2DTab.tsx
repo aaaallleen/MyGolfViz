@@ -1,7 +1,7 @@
 import { summarize, type ReplayScene } from '@fsa/analytics';
 import { FIELD_DEFS, formatMeasurement, type Handedness, type MeasurementKey, type Shot } from '@fsa/domain';
 import { Missing } from '@fsa/ui';
-import { ClubViews2D } from '@fsa/visualizations';
+import { ClubViews2D } from '@fsa/visualizations/club3d';
 import { useWorkingSet } from '../state/store';
 
 const ANGLES: { key: MeasurementKey; label: string }[] = [

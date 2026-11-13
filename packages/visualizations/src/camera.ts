@@ -93,29 +93,6 @@ export function flightCamera(
   return presetCamera(preset, pts, handedness, viewportWidth);
 }
 
-/** Corners of the swing-plane quad the 3D component draws: origin ± u·R, and those points + w·R. */
-export function planeQuad(scene: ReplayScene): Vec3[] {
-  const pl = scene.plane;
-  if (!pl) return [];
-  const R = CLUB_ARC_RADIUS_YD;
-  const at = (su: number, sw: number): Vec3 =>
-    [0, 1, 2].map((k) => su * pl.u[k]! * R + sw * pl.w[k]! * R) as Vec3;
-  return [at(-1, 0), at(1, 0), at(1, 1), at(-1, 1)];
-}
-
-/** Fixed elevated 3/4 view from the golfer side, framing origin, club arc and plane quad only. */
-export function clubCamera(scene: ReplayScene, viewportWidth: number): Camera {
-  const g = scene.handedness === 'right' ? -1 : 1;
-  const pts: Vec3[] = [[0, 0, 0], ...(scene.clubArc ?? []), ...planeQuad(scene)];
-  if (pts.length === 1) pts.push([-R_FALLBACK, -R_FALLBACK, 0], [R_FALLBACK, R_FALLBACK, R_FALLBACK]);
-  const { lo, hi, mid } = bounds(pts);
-  const S = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], 1);
-  const eye: Vec3 = [mid[0] + g * 1.2 * S, mid[1] - 1.0 * S, mid[2] + 0.5 * S];
-  return fitCamera(eye, mid, [0, 0, 1], pts, viewportWidth);
-}
-
-const R_FALLBACK = CLUB_ARC_RADIUS_YD;
-
 export function projectPoint(
   p: Vec3, cam: Camera, viewport: { width: number; height: number },
 ): { x: number; y: number; depth: number } | null {

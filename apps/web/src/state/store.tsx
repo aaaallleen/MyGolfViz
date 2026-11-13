@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRe
 import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import type { LandingMode } from '@fsa/analytics';
-import type { View2D, View3D } from '@fsa/visualizations';
+import type { View2D, View3D } from '@fsa/visualizations/club3d';
 import { initialState, reducer, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';

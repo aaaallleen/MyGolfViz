@@ -1,6 +1,6 @@
 import type { ReplayScene } from '@fsa/analytics';
 import type { Shot } from '@fsa/domain';
-import { ClubViews3D } from '@fsa/visualizations';
+import { ClubViews3D } from '@fsa/visualizations/club3d';
 import { useWorkingSet } from '../state/store';
 
 export function Club3DTab({ shot, scene, others }: { shot: Shot; scene: ReplayScene; others: ReplayScene[] }) {
