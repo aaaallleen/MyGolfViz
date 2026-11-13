@@ -22,6 +22,8 @@ export interface StoreState {
   /** 3D tab: fixed measuring cameras or the draggable 3D reconstruction. */
   clubMode3D: Mode3D;
   busy: boolean;
+  /** The open saved session in the local build; always null in the public build. */
+  sessionId: string | null;
 }
 
 export type Action =
@@ -64,6 +66,7 @@ export const initialState: StoreState = {
   clubView2D: 'ftt',
   clubMode3D: 'views',
   busy: false,
+  sessionId: null,
 };
 
 /** Every shot in the filter, in display order, excluded ones included. */

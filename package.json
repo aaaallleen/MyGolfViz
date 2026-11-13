@@ -21,7 +21,9 @@
     "build:e2e": "PAGES_BASE=/fsa-e2e/ npm run build:public",
     "preview:e2e": "PAGES_BASE=/fsa-e2e/ npm run preview -w @fsa/web -- --port 4173 --strictPort",
     "e2e": "playwright test",
-    "ci:public": "npm run typecheck && npm test && npm run build:public && npm run verify:public && npm run e2e"
+    "ci:public": "npm run typecheck && npm test && npm run build:public && npm run verify:public && npm run e2e",
+    "api:types": "uv run --project apps/api python -m mygolfviz_api.openapi_dump > apps/web/src/local/openapi.json && npx openapi-typescript apps/web/src/local/openapi.json -o apps/web/src/local/api-types.ts",
+    "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -43,6 +45,7 @@
     "@types/three": "0.187.0",
     "@vitejs/plugin-react": "^6.3.0",
     "jsdom": "^29.1.1",
+    "openapi-typescript": "7.13.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"

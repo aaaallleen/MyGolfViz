@@ -7,6 +7,7 @@ import { PrivacyNotice } from '../components/PrivacyNotice';
 import { FileDropZone } from '../components/FileDropZone';
 import { PreviewList } from '../components/PreviewList';
 import { SessionDetailsForm } from '../components/SessionDetailsForm';
+import { useAppPaths } from '../paths';
 import { REPO_URL } from '../mode';
 import { useWorkingSet } from '../state/store';
 
@@ -15,6 +16,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function LoadPage() {
   const ws = useWorkingSet();
   const navigate = useNavigate();
+  const paths = useAppPaths();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLButtonElement>(null);
   const undoToast = useRef<string | number | null>(null);
@@ -88,7 +90,7 @@ export function LoadPage() {
             disabled={shotCount === 0}
             onClick={() => {
               ws.analyze();
-              navigate('/overview');
+              navigate(paths.overview);
             }}
           >
             Analyze files

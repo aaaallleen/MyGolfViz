@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './layout/AppShell';
 import { NoAnalysis } from './components/NoAnalysis';
@@ -23,7 +23,11 @@ function Gated({ title, Page }: { title: string; Page?: () => ReactNode }) {
   return <h1>{title}</h1>;
 }
 
+// Local-only code is reached through this inline comparison so the public build drops it entirely.
+const LocalRoutes = import.meta.env.VITE_APP_MODE === 'local' ? lazy(() => import('./local/LocalRoutes')) : null;
+
 export function AppRoutes() {
+  if (LocalRoutes) return <Suspense fallback={null}><LocalRoutes /></Suspense>;
   return (
     <AppShell>
       <Routes>
