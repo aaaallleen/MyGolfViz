@@ -80,7 +80,9 @@ Everything is in one data folder:
 
 It holds the database (`mygolfviz.sqlite3`), the original CSV files (`originals/`), a copy of the
 database taken before each schema upgrade (`backups/`) and the logs (`logs/`). Back up or move
-that folder to keep your sessions. To use another folder, set `MYGOLFVIZ_DATA_DIR` or pass
+that folder to keep your sessions. Quit the app first: the database runs in SQLite WAL mode, so
+while it is open recent changes can still be in `mygolfviz.sqlite3-wal` rather than in the
+database file. To use another folder, set `MYGOLFVIZ_DATA_DIR` or pass
 `--data-dir`. Only one backend can use a data folder at a time.
 
 ### Develop
