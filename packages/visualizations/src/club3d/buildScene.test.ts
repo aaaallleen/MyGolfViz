@@ -68,12 +68,34 @@ describe('buildClubScene', () => {
     expect(headMinZ(s)).toBeGreaterThanOrEqual(groundZ(s) - 1e-6);
     expect(named(s.root, 'target-line')!.position.z).toBeCloseTo(groundZ(s), 9);
     expect(!!named(s.root, 'tee')).toBe(groundZ(s) < -1e-6);
+    // No strike measured: the sole rests on the ground, which stays put, and no tee is drawn.
+    expect(groundZ(s)).toBe(0);
+    expect(named(s.root, 'tee')).toBeUndefined();
+    expect(headMinZ(s)).toBeCloseTo(0, 4);
+    s.dispose();
+  });
+
+  test.each(clubs)('%s: no strike measured: the ball still touches the face plane, centred heel to toe', (club) => {
+    const s = build(club, REF_M);
+    const p = touchInFace(s);
+    expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
+    s.dispose();
+  });
+
+  test('Driver with a measured centre strike is teed up: the ground drops to the head', () => {
+    const s = build('Driver', { ...REF_M, impactLateral: 0, impactVertical: 0 });
+    expect(groundZ(s)).toBeLessThan(0);
+    expect(named(s.root, 'tee')).toBeDefined();
+    expect(headMinZ(s)).toBeCloseTo(groundZ(s), 4);
     s.dispose();
   });
 
   test.each(clubs)('%s: no loft measured: the sole rests on the ground at the static loft', (club) => {
     const s = build(club, mOf({ swingH: 6, swingV: 60, aoa: -2, clubPath: 2 }));
-    expect(headMinZ(s)).toBeCloseTo(groundZ(s), 4);
+    expect(groundZ(s)).toBe(0);
+    expect(headMinZ(s)).toBeCloseTo(0, 4);
+    expect(named(s.root, 'tee')).toBeUndefined();
     s.dispose();
   });
 
@@ -96,10 +118,13 @@ describe('buildClubScene', () => {
     expect(Math.sign(x('right'))).toBe(-Math.sign(x('left')));
   });
 
-  test('one impact value alone leaves the ball on the face centre', () => {
+  test('one impact value alone is treated as no strike', () => {
     const s = build('7 Iron', { ...REF_M, impactLateral: 0.65 });
     const p = touchInFace(s);
-    expect(Math.hypot(p.x, p.z) * 36).toBeLessThan(0.01);
+    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
+    expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    expect(groundZ(s)).toBe(0);
+    expect(named(s.root, 'tee')).toBeUndefined();
     s.dispose();
   });
 

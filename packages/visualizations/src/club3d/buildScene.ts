@@ -41,6 +41,8 @@ const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
 const IN = 1 / 36; // yards per inch
+/** Below this rise of the face-up axis the face is nearly horizontal, and sliding it to the ground would run away. */
+const MIN_SLIDE_UP_Z = 0.2;
 
 const v3 = (p: Vec3) => new THREE.Vector3(p[0], p[1], p[2]);
 
@@ -214,16 +216,18 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   const strikeOffset = strike.applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
   const touch = new THREE.Vector3(0, 0, ballR).addScaledVector(yAxis, -ballR);
   holder.position.copy(touch).sub(strikeOffset);
-  // A head that would sink into the ground is teed up instead: the ground and target line drop to its lowest point
-  // (the ball stays at the origin every angle line is drawn from). A soled, unmeasured head rests on the ground.
   // The club's pivot is identity at impact, so the holder's parent frame is the world there.
   const minZ = lowestZ(head.getObjectByName('club-head') as THREE.Mesh, holder);
-  if (minZ < 0) {
+  if (!pose.strike && zAxis.z >= MIN_SLIDE_UP_Z) {
+    // Without a measured strike the contact height is unknown, so the sole rests on the ground: slide the head along
+    // its own face-up axis (the ball keeps touching the face plane) until its lowest point is at z = 0.
+    holder.position.addScaledVector(zAxis, -minZ / zAxis.z);
+  } else if (minZ < 0) {
+    // A measured strike (or a nearly horizontal face) that would sink the head is teed up instead: the ground and
+    // target line drop to its lowest point, and the ball stays at the origin every angle line is drawn from.
     ground.position.z = minZ;
     target.position.z = minZ;
     root.add(teeMesh(minZ, ballR));
-  } else if (pose.flat && pose.strike === null) {
-    holder.position.z -= minZ;
   }
 
   holder.updateMatrix();
