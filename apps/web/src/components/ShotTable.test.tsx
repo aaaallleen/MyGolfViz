@@ -12,14 +12,14 @@ const shot = (fileId: string, sourceRow: number): Shot => ({
   m: { carry: 150 } as Shot['m'], raw: {}, flags: [],
 });
 
-function setup(opts: { files?: SourceFile[]; shots?: Shot[]; excluded?: string[] } = {}) {
+function setup(opts: { files?: SourceFile[]; shots?: Shot[]; excluded?: string[]; selectedId?: string } = {}) {
   const files = opts.files ?? [file(1)];
   const shots = opts.shots ?? [shot('f1', 1), shot('f1', 2)];
   const props = {
     onSelect: vi.fn(), onSetExcluded: vi.fn(), onIncludeAll: vi.fn(),
   };
   const utils = render(
-    <ShotTable shots={shots} files={files} selectedId={null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
+    <ShotTable shots={shots} files={files} selectedId={opts.selectedId ?? null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
   );
   return { ...utils, ...props };
 }
@@ -41,6 +41,23 @@ describe('ShotTable exclusion', () => {
     expect(within(row('f1-2')).getByText('Excluded')).toBeInTheDocument();
     expect(row('f1-1')).not.toHaveClass('is-excluded');
     expect(within(row('f1-1')).queryByText('Excluded')).toBeNull();
+  });
+
+  it('the Excluded tag sits on its own line in the Shot cell so the narrow pinned column cannot clip it', () => {
+    setup({ excluded: ['f1-2'] });
+    const tag = within(row('f1-2')).getByText('Excluded');
+    const line = tag.closest('.shot-cell__tag')!;
+    const id = row('f1-2').querySelector('.shot-cell__id')!;
+    expect(line.tagName).toBe('DIV');
+    expect(line).not.toBe(id);
+    expect(id.contains(tag)).toBe(false);
+    expect(tag.closest('td')).toHaveAttribute('data-col', 'shot');
+  });
+
+  it('a selected excluded row keeps both the selected and excluded markers', () => {
+    setup({ excluded: ['f1-2'], selectedId: 'f1-2' });
+    expect(row('f1-2')).toHaveClass('is-excluded');
+    expect(row('f1-2')).toHaveAttribute('aria-current', 'true');
   });
 
   it('Edit shots shows a Use switch per row; toggling calls onSetExcluded without selecting the row', async () => {

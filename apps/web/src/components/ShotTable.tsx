@@ -40,7 +40,7 @@ const TEXT: { key: 'shotType' | 'mode' | 'location'; head: string }[] = [
 ];
 const PINNED = ['shot', 'club'];
 /** Narrower pinned columns on phones (club names wrap there), so data columns get most of the width. */
-const PHONE_SIZES: ColumnSizingState = { shot: 48, club: 92, use: 48 };
+const PHONE_SIZES: ColumnSizingState = { shot: 68, club: 92, use: 48 };
 /** While editing, the Use column sits before the usual pinned columns. */
 const PINNED_EDITING = ['use', ...PINNED];
 const NO_SIZES: ColumnSizingState = {};
@@ -76,7 +76,7 @@ function buildColumns(other: readonly string[]): ColumnDef<Features, Shot, any>[
   return [
     helper.display({ id: 'use', header: 'Use', size: 56, enableHiding: false, enableSorting: false }),
     helper.accessor((s) => Number(s.shotLabel ?? s.sourceRow) || s.sourceRow, {
-      id: 'shot', header: 'Shot', size: 64, enableHiding: false,
+      id: 'shot', header: 'Shot', size: 84, enableHiding: false,
       cell: (c) => c.row.original.shotLabel ?? c.row.original.sourceRow,
     }),
     helper.accessor('club', { id: 'club', header: 'Club', size: 140, enableHiding: false, sortFn: 'alphanumeric' }),
@@ -232,7 +232,7 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
                   }
                   if (col.id === 'use') {
                     return (
-                      <th key={header.id} scope="col" data-col="use" className={clsx('is-pinned')} style={pinStyle(col)}>
+                      <th key={header.id} scope="col" data-col="use" className="is-pinned" style={pinStyle(col)}>
                         <span className="shots-table__use-head"><table.FlexRender header={header} /></span>
                       </th>
                     );
@@ -292,11 +292,10 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
                         {/* Leaf rows under a club heading still show their club. */}
                         {col.id === 'club' ? s.club
                           : col.id === 'shot' ? (
-                            <>
-                              <FileBadge shot={s} files={files} />{' '}
-                              {s.shotLabel ?? s.sourceRow}
-                              {excluded && <span className="excluded-tag">Excluded</span>}
-                            </>
+                            <div className="shot-cell">
+                              <div className="shot-cell__id"><FileBadge shot={s} files={files} /> {s.shotLabel ?? s.sourceRow}</div>
+                              {excluded && <div className="shot-cell__tag"><span className="excluded-tag">Excluded</span></div>}
+                            </div>
                           )
                           : col.id === 'use' ? (
                             <input
