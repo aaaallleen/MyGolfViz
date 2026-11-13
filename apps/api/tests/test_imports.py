@@ -285,3 +285,69 @@ def test_check_endpoint(client):
 
 def test_requires_token(anon):
     assert anon.post("/api/v1/imports/check", json={"sha256s": []}).status_code in (401, 403)
+
+
+def test_manifest_larger_than_1mb(client):
+    e = entry(NAMES[0], "big")
+    e["shots"][0]["raw"]["pad"] = "x" * 1_500_000
+    r = post_import(client, NEW_SESSION, [e], content={"big": csv_bytes(NAMES[0])})
+    assert r.status_code == 200, r.text[:200]
+    assert r.json()["results"][0]["status"] == "imported"
+
+
+def _parallel(fns):
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(len(fns)) as ex:
+        return [f.result() for f in [ex.submit(fn) for fn in fns]]
+
+
+def test_concurrent_same_file_same_session(client):
+    sid = post_import(client, NEW_SESSION, [entry(NAMES[0], "seed")]).json()["session"]["id"]
+    sid2 = post_import(
+        client, {"newSession": {"name": "B", "date": "2022-10-01"}}, [entry(NAMES[1], "s")]
+    ).json()["session"]["id"]
+    dest = {"sessionId": sid2}
+    rs = _parallel([lambda: post_import(client, dest, [entry(NAMES[2], "f")]) for _ in range(4)])
+    statuses = sorted(r.json()["results"][0]["status"] for r in rs)
+    assert statuses == ["imported", "skipped_duplicate", "skipped_duplicate", "skipped_duplicate"]
+    assert sid
+
+
+def test_concurrent_distinct_ordinals(client):
+    sid = post_import(client, NEW_SESSION, [entry(NAMES[0], "seed")]).json()["session"]["id"]
+    dest = {"sessionId": sid}
+    variants = [csv_bytes(NAMES[1]) + b"\n" * i for i in range(1, 6)]
+    rs = _parallel(
+        [lambda v=v: post_import(client, dest, [entry(NAMES[1], "f")], content={"f": v}) for v in variants]
+    )
+    assert all(r.json()["results"][0]["status"] == "imported" for r in rs)
+    with session_scope(client.app.state.engine) as db:
+        ords = sorted(
+            db.scalars(select(models.Import.ordinal).where(models.Import.session_id == sid)).all()
+        )
+    assert ords == [1, 2, 3, 4, 5, 6]
+
+
+def test_concurrent_failure_keeps_shared_original(client, settings, monkeypatch):
+    s1 = post_import(client, NEW_SESSION, [entry(NAMES[1], "seed")]).json()["session"]["id"]
+    s2 = post_import(
+        client, {"newSession": {"name": "B", "date": "2022-10-01"}}, [entry(NAMES[2], "seed")]
+    ).json()["session"]["id"]
+    real = imports_router.insert_shots
+
+    def flaky(db, import_id, shots):
+        if db.get(models.Import, import_id).session_id == s1:
+            raise RuntimeError("fail for s1")
+        real(db, import_id, shots)
+
+    monkeypatch.setattr(imports_router, "insert_shots", flaky)
+    rs = _parallel(
+        [
+            lambda: post_import(client, {"sessionId": s1}, [entry(NAMES[0], "f", True)]),
+            lambda: post_import(client, {"sessionId": s2}, [entry(NAMES[0], "f", True)]),
+        ]
+    )
+    assert rs[0].json()["results"][0]["reason"] == "storage_error"
+    assert rs[1].json()["results"][0]["status"] == "imported"
+    assert (settings.data_dir / "originals" / f"{expected(NAMES[0])['sha256']}.csv").exists()

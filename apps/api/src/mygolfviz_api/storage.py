@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import threading
 import uuid
 from pathlib import Path
 
@@ -9,6 +10,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from . import models
+
+
+# One process-wide lock: the backend is single-user and single-process. Held by the import
+# path across duplicate check, put, ordinal read, insert and cleanup.
+STORE_LOCK = threading.RLock()
 
 
 class OriginalStore:
@@ -46,18 +52,20 @@ class OriginalStore:
         )
 
     def delete_if_unreferenced(self, db: DbSession, sha: str) -> bool:
-        if self._referenced(db, sha):
-            return False
-        self.path(sha).unlink(missing_ok=True)
-        return True
+        with STORE_LOCK:
+            if self._referenced(db, sha):
+                return False
+            self.path(sha).unlink(missing_ok=True)
+            return True
 
     def sweep(self, db: DbSession) -> int:
-        referenced = set(db.scalars(select(models.Import.sha256).distinct()).all())
-        removed = 0
-        for p in self.dir.iterdir():
-            if p.name.startswith(".tmp-") or (
-                p.suffix == ".csv" and p.stem not in referenced
-            ):
-                p.unlink(missing_ok=True)
-                removed += 1
-        return removed
+        with STORE_LOCK:
+            referenced = set(db.scalars(select(models.Import.sha256).distinct()).all())
+            removed = 0
+            for p in self.dir.iterdir():
+                if p.name.startswith(".tmp-") or (
+                    p.suffix == ".csv" and p.stem not in referenced
+                ):
+                    p.unlink(missing_ok=True)
+                    removed += 1
+            return removed

@@ -23,7 +23,9 @@ from ..schemas import (
     ImportResponse,
     SessionRef,
 )
-from ..storage import OriginalStore
+from ..storage import STORE_LOCK, OriginalStore
+
+MAX_MANIFEST_BYTES = 64 * 1024 * 1024
 
 router = APIRouter(prefix="/api/v1")
 
@@ -86,64 +88,65 @@ def _process_file(
     sha = hashlib.sha256(data).hexdigest()
     warnings = [w.model_dump(exclude_none=True) for w in f.warnings]
 
-    with session_scope(engine) as db:
-        if db.scalar(
-            select(models.Import.id).where(
-                models.Import.session_id == session_id, models.Import.sha256 == sha
-            )
-        ):
-            return FileResult(field=f.field, name=f.name, status="skipped_duplicate")
-        elsewhere = db.scalar(
-            select(models.Import.id).where(
-                models.Import.session_id != session_id, models.Import.sha256 == sha
-            ).limit(1)
-        )
-    if elsewhere and not f.accept_cross_session_duplicate:
-        return invalid("in_other_session")
-
-    created = False
-    try:
-        sha, created = store.put(data)
+    with STORE_LOCK:
         with session_scope(engine) as db:
-            ordinal = (
-                db.scalar(
-                    select(func.max(models.Import.ordinal)).where(
-                        models.Import.session_id == session_id
-                    )
+            if db.scalar(
+                select(models.Import.id).where(
+                    models.Import.session_id == session_id, models.Import.sha256 == sha
                 )
-                or 0
-            ) + 1
-            imp = models.Import(
-                id=str(uuid.uuid4()),
-                session_id=session_id,
-                original_filename=f.name,
-                display_name=None,
-                sha256=sha,
-                byte_length=len(data),
-                ordinal=ordinal,
-                parser_version=f.parser_version,
-                shot_count=len(f.shots),
-                summary_row_count=f.summary_row_count,
-                warnings=warnings,
-                imported_at=utc_now(),
+            ):
+                return FileResult(field=f.field, name=f.name, status="skipped_duplicate")
+            elsewhere = db.scalar(
+                select(models.Import.id).where(
+                    models.Import.session_id != session_id, models.Import.sha256 == sha
+                ).limit(1)
             )
-            db.add(imp)
-            db.flush()
-            insert_shots(db, imp.id, f.shots)
-            import_id = imp.id
-    except Exception:
-        if created:
+        if elsewhere and not f.accept_cross_session_duplicate:
+            return invalid("in_other_session")
+
+        created = False
+        try:
+            sha, created = store.put(data)
             with session_scope(engine) as db:
-                store.delete_if_unreferenced(db, sha)
-        return invalid("storage_error")
-    return FileResult(
-        field=f.field,
-        name=f.name,
-        status="imported",
-        import_id=import_id,
-        shot_count=len(f.shots),
-        warnings=warnings,
-    )
+                ordinal = (
+                    db.scalar(
+                        select(func.max(models.Import.ordinal)).where(
+                            models.Import.session_id == session_id
+                        )
+                    )
+                    or 0
+                ) + 1
+                imp = models.Import(
+                    id=str(uuid.uuid4()),
+                    session_id=session_id,
+                    original_filename=f.name,
+                    display_name=None,
+                    sha256=sha,
+                    byte_length=len(data),
+                    ordinal=ordinal,
+                    parser_version=f.parser_version,
+                    shot_count=len(f.shots),
+                    summary_row_count=f.summary_row_count,
+                    warnings=warnings,
+                    imported_at=utc_now(),
+                )
+                db.add(imp)
+                db.flush()
+                insert_shots(db, imp.id, f.shots)
+                import_id = imp.id
+        except Exception:
+            if created:
+                with session_scope(engine) as db:
+                    store.delete_if_unreferenced(db, sha)
+            return invalid("storage_error")
+        return FileResult(
+            field=f.field,
+            name=f.name,
+            status="imported",
+            import_id=import_id,
+            shot_count=len(f.shots),
+            warnings=warnings,
+        )
 
 
 def _run(request: Request, manifest: ImportManifestIn, blobs: dict[str, bytes]) -> ImportResponse:
@@ -179,7 +182,7 @@ def _run(request: Request, manifest: ImportManifestIn, blobs: dict[str, bytes]) 
 
 @router.post("/imports", response_model=ImportResponse)
 async def commit_imports(request: Request) -> ImportResponse:
-    form = await request.form()
+    form = await request.form(max_part_size=MAX_MANIFEST_BYTES)
     raw_manifest = form.get("manifest")
     if not isinstance(raw_manifest, str):
         raise HTTPException(422, "manifest field is required")
