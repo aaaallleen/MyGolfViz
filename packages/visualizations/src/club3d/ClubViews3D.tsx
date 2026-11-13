@@ -42,9 +42,18 @@ const FALLBACK_FRAME: Vec3[] = [[-0.6, -0.6, 0], [0.6, 0.6, 0.6]];
 export const ariaFor = (name: string, badges: Badge[]) =>
   `${name}: ${badges.map((b) => `${b.label} ${b.text ?? 'not measured'}`).join(', ')}`;
 
-/** Points a measuring view must keep in frame: the arc, the ball and every wedge rim. */
-function framePoints(scene: ReplayScene, list: Annotation[]): Vec3[] {
+/** The eight corners of an axis-aligned box. */
+export function boxCorners(b: { min: Vec3; max: Vec3 }): Vec3[] {
+  return [0, 1, 2, 3, 4, 5, 6, 7].map((k) => [0, 1, 2].map((i) => ((k >> i) & 1 ? b.max[i]! : b.min[i]!)) as Vec3);
+}
+
+/**
+ * Points a measuring view must keep in frame: the arc, the ball, every wedge rim and, when given, the club head's
+ * impact-pose box (which reaches down to a ground lowered for a tee).
+ */
+export function framePoints(scene: ReplayScene, list: Annotation[], head?: { min: Vec3; max: Vec3 }): Vec3[] {
   const pts: Vec3[] = scene.clubArc ? [...scene.clubArc, [0, 0, 0]] : [...FALLBACK_FRAME];
+  if (head) pts.push(...boxCorners(head));
   for (const a of list) {
     if (a.kind === 'wedge') for (const d of [a.from, a.to]) {
       const l = Math.hypot(...d) || 1;
@@ -68,7 +77,8 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect, mode, onM
   const [showOthers, setShowOthers] = useState(false);
   const r = useClubRender({ scene, m, club, others, headScale: 3, mode: '3d' });
   const anns = useMemo(() => Object.fromEntries(VIEWS_3D.map((v) => [v, annotations3D(v, scene, m)])) as Record<View3D, Annotation[]>, [scene, m]);
-  const camFor = (v: View3D, aspect: number): ViewCamera => frameCamera(camera3D(v, scene, m), framePoints(scene, anns[v]), aspect);
+  const camFor = (v: View3D, aspect: number): ViewCamera =>
+    frameCamera(camera3D(v, scene, m), framePoints(scene, anns[v], r.clubScene?.headBounds), aspect);
   const reconRef = useCallback((el: HTMLCanvasElement | null) => r.setCanvas(RECON, el), [r.setCanvas]);
 
   // The 3D reconstruction's free camera: rebuilt (at the overview preset) when the shot, handedness, size or Reset changes.

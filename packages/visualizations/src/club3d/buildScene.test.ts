@@ -121,6 +121,20 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
+  test.each(['right', 'left'] as const)('Driver at 35° with a measured high-heel strike (%s): headBounds hold the whole head and the lowered ground', (hand) => {
+    const s = build('Driver', { ...REF_M, dynamicLoft: 35, impactLateral: -0.5, impactVertical: 0.5 }, hand);
+    expect(groundZ(s)).toBeLessThan(0); // the case that clipped: the ground dropped for a tee
+    const { min, max } = s.headBounds;
+    const head = new THREE.Box3().setFromObject(named(s.root, 'club-head')!, true);
+    for (let i = 0; i < 3; i++) {
+      expect(min[i]).toBeLessThanOrEqual(head.min.getComponent(i) + 1e-9);
+      expect(max[i]).toBeGreaterThanOrEqual(head.max.getComponent(i) - 1e-9);
+    }
+    expect(min[2]).toBeLessThanOrEqual(headMinZ(s) + 1e-9);
+    expect(min[2]).toBeLessThanOrEqual(groundZ(s) + 1e-9);
+    s.dispose();
+  });
+
   test('Driver with a measured centre strike: contact at the face centre, the head is teed up', () => {
     const s = build('Driver', { ...REF_M, impactLateral: 0, impactVertical: 0 });
     const p = touchInFace(s);

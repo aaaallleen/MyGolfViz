@@ -1,7 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
-import { ClubViews3D } from './ClubViews3D';
+import * as THREE from 'three';
+import { annotations3D } from './annotations';
+import { buildClubScene } from './buildScene';
+import { camera3D, projectOrtho } from './cameras';
+import { ClubViews3D, boxCorners, framePoints } from './ClubViews3D';
+import { frameCamera } from './renderer';
 import { REF_M, mOf, sceneOf } from './testFixtures';
 import type { Mode3D, View3D } from './types';
 
@@ -88,5 +93,31 @@ describe('ClubViews3D', () => {
     const m = mOf({ ftt: 1 });
     setup({ scene: sceneOf(m), m });
     expect(screen.getByText('Club delivery not measured for this shot')).toBeInTheDocument();
+  });
+
+  test.each(['right', 'left'] as const)('a teed Driver (35°, high-heel strike, %s) stays inside every measuring view, ground and all', (hand) => {
+    const m = { ...REF_M, dynamicLoft: 35, impactLateral: -0.5, impactVertical: 0.5 };
+    const sc = sceneOf(m, hand);
+    const s = buildClubScene({ scene: sc, m, club: 'Driver', others: [], headScale: 3, mode: '3d', annotations: [] });
+    s.setProgress(0.63);
+    s.root.updateMatrixWorld(true);
+    const head = new THREE.Box3().setFromObject(s.root.getObjectByName('club-head')!, true);
+    const groundZ = s.root.getObjectByName('ground')!.position.z;
+    expect(groundZ).toBeLessThan(0);
+    // the head's real extremes and the lowered ground under the ball
+    const must = [...boxCorners({ min: head.min.toArray(), max: head.max.toArray() }), [0, 0, groundZ] as [number, number, number]];
+    for (const v of ['dtl', 'faceOn', 'top'] as const) {
+      for (const aspect of [1.6, 0.6]) {
+        const cam = frameCamera(camera3D(v, sc, m), framePoints(sc, annotations3D(v, sc, m), s.headBounds), aspect);
+        for (const p of must) {
+          const q = projectOrtho(cam, p, aspect);
+          expect(q.x, `${v} x`).toBeGreaterThanOrEqual(0.05 - 1e-9);
+          expect(q.x, `${v} x`).toBeLessThanOrEqual(0.95 + 1e-9);
+          expect(q.y, `${v} y`).toBeGreaterThanOrEqual(0.05 - 1e-9);
+          expect(q.y, `${v} y`).toBeLessThanOrEqual(0.95 + 1e-9);
+        }
+      }
+    }
+    s.dispose();
   });
 });

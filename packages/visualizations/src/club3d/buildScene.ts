@@ -34,6 +34,11 @@ export interface ClubScene {
   setClubOpacity(alpha: number): void;
   /** Shows these annotations. With a `key`, the layer is built on first use and reused after. */
   setAnnotations(a: Annotation[], key?: string): void;
+  /**
+   * Box around the club head at the impact pose, in scene yards, stretched down to the ground when the ground was
+   * lowered for a tee. Measuring views keep it in frame so a teed or deeply tipped head is never cut off.
+   */
+  headBounds: { min: Vec3; max: Vec3 };
   dispose(): void;
 }
 
@@ -269,6 +274,11 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   const shaftTop = segment(hoselTop, SHAFT_YD - GRIP_YD, shaftR, '#AEB7BF', 'club-shaft');
   segment(shaftTop, GRIP_YD, shaftR * 1.6, '#15191C', 'club-grip');
   root.add(pivot);
+  // The pivot is still identity here, so this is the impact pose; `precise` follows the vertices, not the tilted box.
+  pivot.updateMatrixWorld(true);
+  const headBox = new THREE.Box3().setFromObject(headMesh, true);
+  headBox.min.z = Math.min(headBox.min.z, ground.position.z);
+  const headBounds = { min: headBox.min.toArray() as Vec3, max: headBox.max.toArray() as Vec3 };
 
   const ball = new THREE.Mesh(new THREE.SphereGeometry(ballR, 32, 20), new THREE.MeshStandardMaterial({ color: '#F4F6F5', roughness: 0.55 }));
   ball.name = 'ball';
@@ -321,6 +331,7 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
       });
     },
     setAnnotations,
+    headBounds,
     dispose() { disposeTree(root); },
   };
 }
