@@ -49,7 +49,9 @@ export type Action =
   | { type: 'setClubView3D'; view: View3D }
   | { type: 'setClubView2D'; view: View2D }
   | { type: 'setClubMode3D'; mode: Mode3D }
-  | { type: 'setBusy'; busy: boolean };
+  | { type: 'setBusy'; busy: boolean }
+  | { type: 'loadSession'; sessionId: string; workingSet: WorkingSet; details: SessionDetails; excluded: ReadonlySet<string>; keepView: boolean }
+  | { type: 'clearStaged' };
 
 const ALL: Filters = { club: null, fileId: null };
 
@@ -187,5 +189,20 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return { ...state, clubMode3D: action.mode };
     case 'setBusy':
       return { ...state, busy: action.busy };
+    case 'loadSession': {
+      // staged belongs to the import flow and is left alone.
+      const { sessionId, workingSet, details, excluded } = action;
+      const base = { ...state, sessionId, workingSet, details, excluded };
+      if (!action.keepView) return { ...base, filters: ALL, selectedId: null };
+      const { club, fileId } = state.filters;
+      const filters = {
+        club: club !== null && workingSet.shots.some((s) => s.club === club) ? club : null,
+        fileId: fileId !== null && workingSet.files.some((f) => f.id === fileId) ? fileId : null,
+      };
+      const keep = state.selectedId !== null && workingSet.shots.some((s) => s.id === state.selectedId);
+      return { ...base, filters, selectedId: keep ? state.selectedId : null };
+    }
+    case 'clearStaged':
+      return { ...state, staged: [] };
   }
 }

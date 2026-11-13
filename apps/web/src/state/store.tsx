@@ -4,7 +4,7 @@ import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser'
 import type { LandingMode } from '@fsa/analytics';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import { excludedShotIds } from '@fsa/analytics';
-import { initialState, reducer, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
+import { initialState, reducer, type Action, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';
 
@@ -50,6 +50,10 @@ export interface WorkingSetApi extends StoreState {
   setClubView3D(v: View3D): void;
   setClubView2D(v: View2D): void;
   setClubMode3D(m: Mode3D): void;
+  /** Opens a saved session (local build); leaves the staged import files alone. */
+  loadSession(args: Omit<Extract<Action, { type: 'loadSession' }>, 'type'>): void;
+  /** Empties the staged import files only. */
+  clearStaged(): void;
 }
 
 const Ctx = createContext<WorkingSetApi | null>(null);
@@ -162,6 +166,8 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),
       setClubMode3D: (mode) => dispatch({ type: 'setClubMode3D', mode }),
+      loadSession: (args) => dispatch({ type: 'loadSession', ...args }),
+      clearStaged: () => dispatch({ type: 'clearStaged' }),
     }),
     [state, visibleShots, tableShots, excludedIds, pending, addFiles, clear, includeAll, excludeAll],
   );

@@ -318,3 +318,57 @@ describe('store', () => {
     expect([...result.current.excludedIds]).toEqual([other.id]);
   });
 });
+
+describe('loadSession', () => {
+  async function opened() {
+    let s = reducer(initialState, await stage());
+    s = reducer(s, { type: 'analyze' });
+    return s;
+  }
+  const details = { name: 'Saved', date: '2026-01-02', notes: '', handedness: 'right' as const };
+
+  test('loadSession replaces the working set and resets the view', async () => {
+    let s = await opened();
+    const club = s.workingSet!.shots[0]!.club;
+    s = reducer(s, { type: 'setClub', club });
+    const ws = { files: s.workingSet!.files.slice(0, 1), shots: s.workingSet!.shots.slice(0, 2) };
+    const excluded = new Set(['k:1']);
+    const next = reducer(s, { type: 'loadSession', sessionId: 'sess', workingSet: ws, details, excluded, keepView: false });
+    expect(next.sessionId).toBe('sess');
+    expect(next.workingSet).toBe(ws);
+    expect(next.details).toBe(details);
+    expect(next.excluded).toBe(excluded);
+    expect(next.filters).toEqual({ club: null, fileId: null });
+    expect(next.selectedId).toBeNull();
+    expect(next.staged).toBe(s.staged);
+  });
+
+  test('loadSession keepView keeps a still-valid filter and selection, and drops gone ones', async () => {
+    let s = await opened();
+    const all = s.workingSet!;
+    const keepShot = all.shots[0]!;
+    s = reducer(s, { type: 'setFile', fileId: keepShot.fileId });
+    s = reducer(s, { type: 'setClub', club: keepShot.club });
+    s = reducer(s, { type: 'select', id: keepShot.id });
+    const same = { files: all.files, shots: all.shots };
+    const kept = reducer(s, { type: 'loadSession', sessionId: 'x', workingSet: same, details, excluded: new Set(), keepView: true });
+    expect(kept.filters).toEqual({ club: keepShot.club, fileId: keepShot.fileId });
+    expect(kept.selectedId).toBe(keepShot.id);
+
+    const gone = { files: all.files.filter((f) => f.id !== keepShot.fileId), shots: all.shots.filter((x) => x.fileId !== keepShot.fileId) };
+    const dropped = reducer(s, { type: 'loadSession', sessionId: 'x', workingSet: gone, details, excluded: new Set(), keepView: true });
+    expect(dropped.filters.fileId).toBeNull();
+    expect(dropped.selectedId).toBeNull();
+    const noClub = { files: all.files, shots: all.shots.filter((x) => x.club !== keepShot.club) };
+    expect(reducer(s, { type: 'loadSession', sessionId: 'x', workingSet: noClub, details, excluded: new Set(), keepView: true }).filters.club).toBeNull();
+  });
+
+  test('clearStaged leaves the open session alone', async () => {
+    let s = reducer(await opened(), { type: 'loadSession', sessionId: 'sess', workingSet: { files: [], shots: [] }, details, excluded: new Set(), keepView: false });
+    s = reducer(s, await stage());
+    expect(s.staged.length).toBeGreaterThan(0);
+    const cleared = reducer(s, { type: 'clearStaged' });
+    expect(cleared).toEqual({ ...s, staged: [] });
+    expect(cleared.sessionId).toBe('sess');
+  });
+});
