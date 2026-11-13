@@ -53,13 +53,35 @@ describe('ImportDestination', () => {
     expect(latest).toMatchObject({ sessionId: 's1' });
   });
 
+  test('a stale ?session id selects nothing and says so', async () => {
+    renderIt([], '/import?session=gone');
+    expect(await screen.findByText('That session no longer exists. Choose another.')).toBeInTheDocument();
+    const select = screen.getByRole('combobox', { name: 'Existing session' });
+    expect(select).toHaveValue('');
+    expect(latest).toMatchObject({ sessionId: '' });
+  });
+
+  test('choosing Existing session without ?session never auto-picks one', async () => {
+    const user = userEvent.setup();
+    renderIt();
+    await user.click(screen.getByRole('radio', { name: 'Existing session' }));
+    const select = await screen.findByRole('combobox', { name: 'Existing session' });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Driver range' })).toBeInTheDocument());
+    expect(select).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'Choose a session' })).toBeInTheDocument();
+    expect(latest).toMatchObject({ sessionId: '' });
+    expect(screen.queryByText('That session no longer exists. Choose another.')).toBeNull();
+    await user.selectOptions(select, 's2');
+    expect(latest).toMatchObject({ sessionId: 's2' });
+  });
+
   test('sessions are listed newest first', async () => {
     const user = userEvent.setup();
     renderIt();
     await user.click(screen.getByRole('radio', { name: 'Existing session' }));
     const select = await screen.findByRole('combobox', { name: 'Existing session' });
-    await waitFor(() => expect(select).toHaveValue('s1'));
-    expect(Array.from(select.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['Driver range', 'Wedges']);
+    await waitFor(() => expect(select.querySelectorAll('option')).toHaveLength(3));
+    expect(Array.from(select.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['Choose a session', 'Driver range', 'Wedges']);
   });
 
   test('duplicate statuses render and ticking Import anyway sets accept', async () => {

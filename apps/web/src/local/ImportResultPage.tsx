@@ -31,8 +31,8 @@ export function ImportResultPage() {
         ))}
       </ul>
       <div className="import-result__actions">
-        <Link className="fsa-button fsa-button--primary" to={`/sessions/${session.id}`}>Open session</Link>
-        <Link className="fsa-button" to={`/import?session=${encodeURIComponent(session.id)}`}>Load more files</Link>
+        <Link className="fsa-btn fsa-touch fsa-btn--primary" to={`/sessions/${session.id}`}>Open session</Link>
+        <Link className="fsa-btn fsa-touch fsa-btn--secondary" to={`/import?session=${encodeURIComponent(session.id)}`}>Load more files</Link>
       </div>
     </div>
   );

@@ -283,6 +283,14 @@ describe('LoadPage in local mode', () => {
     expect(btn).toBeEnabled();
   });
 
+  test('Import files stays disabled on Existing session until one is chosen', async () => {
+    const { user, input } = await setupLocal();
+    await user.upload(input(), fixture(F1));
+    await screen.findByText('1 file · 16 shots ready');
+    await user.click(await screen.findByRole('radio', { name: 'Existing session' }));
+    expect(screen.getByRole('button', { name: 'Import files' })).toBeDisabled();
+  });
+
   test('a successful commit clears the staged list and opens the result', async () => {
     const response = { session: { id: 's9', name: 'Range day' }, results: [] };
     commitImport.mockResolvedValue(response);

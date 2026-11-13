@@ -50,10 +50,12 @@ export function ImportDestination({ staged, value, onChange }: {
     return () => { live = false; };
   }, []);
 
-  // Once the list is known, an unknown or empty selection falls back to the newest session.
+  // Never auto-pick: an id that is not in the list (a stale link) is cleared, with a note, so files cannot land in another session.
+  const [stale, setStale] = useState(false);
   useEffect(() => {
-    if (sessions && isExisting(value) && !newest.some((s) => s.id === value.sessionId)) {
-      onChange({ sessionId: newest[0]?.id ?? '', accept: value.accept });
+    if (sessions && isExisting(value) && value.sessionId !== '' && !newest.some((s) => s.id === value.sessionId)) {
+      setStale(true);
+      onChange({ sessionId: '', accept: value.accept });
     }
   }, [sessions, value]);
 
@@ -79,7 +81,7 @@ export function ImportDestination({ staged, value, onChange }: {
     onChange({ newSession: { name: next.name, date: next.date ?? '', notes: next.notes, handedness: next.handedness }, accept: value.accept });
   };
   const chooseNew = () => onChange({ newSession: draft.current, accept: value.accept });
-  const chooseExisting = () => onChange({ sessionId: lastId.current || newest[0]?.id || '', accept: value.accept });
+  const chooseExisting = () => onChange({ sessionId: lastId.current, accept: value.accept });
   const existing = isExisting(value);
 
   return (
@@ -90,14 +92,18 @@ export function ImportDestination({ staged, value, onChange }: {
         <label><input type="radio" name="dest" checked={existing} onChange={chooseExisting} />Existing session</label>
       </fieldset>
       {existing ? (
+        <div className="import-destination__pick">
         <select
           aria-label="Existing session"
           className="fsa-select fsa-touch"
           value={value.sessionId}
-          onChange={(e) => onChange({ sessionId: e.target.value, accept: value.accept })}
+          onChange={(e) => { setStale(false); onChange({ sessionId: e.target.value, accept: value.accept }); }}
         >
+          <option value="">Choose a session</option>
           {newest.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
+        {stale && value.sessionId === '' && <p role="status" className="import-destination__note">That session no longer exists. Choose another.</p>}
+        </div>
       ) : (
         <SessionDetailsForm
           required
