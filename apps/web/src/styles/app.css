@@ -296,3 +296,10 @@ textarea.field__input { padding: 10px 12px; }
 /* Route fallback: invisible for the first 300ms so a quick page load never flashes it. */
 .page-loading { margin: 0; color: var(--muted); animation: page-loading-in 0s 300ms both; }
 @keyframes page-loading-in { from { visibility: hidden; } to { visibility: visible; } }
+/* File badge: which file a shot came from (shown with 2+ files). Colour plus the F-number, never colour alone. */
+.file-badge { display: inline-block; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 18px; letter-spacing: 0.02em; white-space: nowrap; vertical-align: middle; color: var(--bg); background: var(--muted); }
+.file-badge--1 { background: var(--club); }
+.file-badge--2 { background: var(--ball); }
+.file-badge--3 { background: #b79cf2; }
+.file-badge--4 { background: #7fd6a4; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

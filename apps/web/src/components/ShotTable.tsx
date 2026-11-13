@@ -13,6 +13,7 @@ import {
 } from '@fsa/domain';
 import { Missing } from '@fsa/ui';
 import { usePhone } from './usePhone';
+import { rowTitle } from './shotLabel';
 
 /** Preferred column order inside each group; any field not listed here follows its group's list. */
 const ORDER: readonly MeasurementKey[] = [
@@ -108,10 +109,7 @@ function rawHeaders(shots: readonly Shot[]): string[] {
   return [...seen];
 }
 
-export function rowTitle(shot: Shot, files: readonly SourceFile[]): string {
-  const f = files.find((x) => x.id === shot.fileId);
-  return `File ${f?.ordinal ?? '?'} · ${f?.name ?? ''} · CSV row ${shot.sourceRow}`;
-}
+export { rowTitle };
 
 const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
 
