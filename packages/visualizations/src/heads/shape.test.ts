@@ -176,3 +176,40 @@ test.each(['driver', 'wood', 'hybrid'] as const)('%s silhouette contains the fac
 });
 
 test('iron has no silhouette', () => expect(bodySilhouette(HEAD_SPECS.iron)).toBeNull());
+
+/** Level-frame profile of a wood body: where the crown peaks and where it is widest, as fractions of the depth behind the face's front. */
+function levelProfile(c: 'driver' | 'wood' | 'hybrid') {
+  const s = HEAD_SPECS[c], { positions } = bodySurface(s, 48, 32);
+  const L = toPoints(positions).map((p) => rotX(p, s.loftDeg));
+  const front = Math.max(...L.map((p) => p[1]!)), depth = front - Math.min(...L.map((p) => p[1]!));
+  const back = (p: number[]) => (front - p[1]!) / depth;
+  const top = L.reduce((a, p) => (p[2]! > a[2]! ? p : a));
+  const N = 20;
+  const lo = Array<number>(N).fill(Infinity), hi = Array<number>(N).fill(-Infinity);
+  for (const p of L) {
+    const k = Math.min(N - 1, Math.floor(back(p) * N));
+    lo[k] = Math.min(lo[k]!, p[0]!);
+    hi[k] = Math.max(hi[k]!, p[0]!);
+  }
+  const widths = hi.map((h, k) => h - lo[k]!);
+  const widest = widths.indexOf(Math.max(...widths));
+  return { crownAt: back(top), widestAt: (widest + 0.5) / N, widths };
+}
+
+test.each(['driver', 'wood', 'hybrid'] as const)('%s reads as a real head: crown peaks in the front 40 %%, widest 25–55 %% back', (c) => {
+  const { crownAt, widestAt, widths } = levelProfile(c);
+  expect(crownAt).toBeLessThan(0.4);
+  expect(widestAt).toBeGreaterThan(0.25);
+  expect(widestAt).toBeLessThan(0.55);
+  // and it rounds off to the rear rather than staying full width
+  expect(widths[widths.length - 2]!).toBeLessThan(0.8 * Math.max(...widths));
+});
+
+test.each(['driver', 'wood', 'hybrid'] as const)('%s crown falls toward the back: the rear edge is well below the peak', (c) => {
+  const s = HEAD_SPECS[c], { positions } = bodySurface(s, 48, 32);
+  const L = toPoints(positions).map((p) => rotX(p, s.loftDeg));
+  const front = Math.max(...L.map((p) => p[1]!)), depth = front - Math.min(...L.map((p) => p[1]!));
+  const sole = Math.min(...L.map((p) => p[2]!));
+  const heightBehind = (f: number) => Math.max(...L.filter((p) => Math.abs((front - p[1]!) / depth - f) < 0.05).map((p) => p[2]! - sole));
+  expect(heightBehind(0.85)).toBeLessThan(0.8 * (Math.max(...L.map((p) => p[2]!)) - sole));
+});

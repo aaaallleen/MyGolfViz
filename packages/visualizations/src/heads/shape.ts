@@ -164,6 +164,7 @@ function woodSurface(spec: HeadSpec, nu: number, nv: number) {
       put(r * d[0], r * d[1], r * d[2]);
     }
   put(0, -w.radius([0, -1, 0]), 0);
+  warpBody(spec, positions, nu);
   const front = 0, back = nu * (nv - 1) + 1;
   const ring = (j: number, i: number) => 1 + (j - 1) * nu + (i % nu);
   const indices: number[] = [];
@@ -176,6 +177,58 @@ function woodSurface(spec: HeadSpec, nu: number, nv: number) {
     indices.push(ring(nv - 1, i), ring(nv - 1, i + 1), back);
   }
   return { positions, indices: Uint32Array.from(indices) };
+}
+
+/** 0 at 0, 1 at 1, zero slope at both ends. */
+const ease = (u: number) => {
+  const c = Math.min(1, Math.max(0, u));
+  return c * c * (3 - 2 * c);
+};
+
+/**
+ * Shapes a wood body behind its face (spec.planform, spec.crown) in the level frame: the head soled at its static
+ * loft, X toward the toe, Y forward, Z up. Only X and Z move, each scaled by a smooth function of how far a point lies
+ * behind the back-most point of the face ring (ring 1), and both factors are exactly 1 from there forward, so the
+ * whole face plane and its edge stay put. The map is a smooth bijection (positive factors, depending on Y only), so
+ * the mesh stays closed, outward-wound and free of folds.
+ */
+function warpBody(spec: HeadSpec, positions: Float32Array, nu: number) {
+  const { planform, crown } = spec;
+  if (!planform && !crown) return;
+  const c = Math.cos(spec.loftDeg * DEG), s = Math.sin(spec.loftDeg * DEG);
+  const count = positions.length / 3;
+  const level = (k: number): V3 => {
+    const y = positions[3 * k + 1]!, z = positions[3 * k + 2]!;
+    return [positions[3 * k]!, y * c - z * s, y * s + z * c];
+  };
+  let faceBack = Infinity, bodyBack = Infinity, sole = Infinity;
+  for (let k = 0; k < count; k++) {
+    const [, Y, Z] = level(k);
+    if (k >= 1 && k <= nu) faceBack = Math.min(faceBack, Y);
+    bodyBack = Math.min(bodyBack, Y);
+    sole = Math.min(sole, Z);
+  }
+  const width = (t: number) => {
+    if (!planform) return 1;
+    const { widestAt, gain, tail } = planform;
+    return t <= widestAt ? 1 + (gain - 1) * ease(t / widestAt) : gain + (tail - gain) * ease((t - widestAt) / (1 - widestAt));
+  };
+  // The crown falls ever faster toward the back (u², zero slope where it starts), so its profile stays convex: no
+  // brim at the trailing edge, which a smoothstep's flat end would give.
+  const height = (t: number) => {
+    if (!crown) return 1;
+    const u = Math.max(0, (t - crown.holdTo) / (1 - crown.holdTo));
+    return 1 - crown.drop * u * u;
+  };
+  for (let k = 0; k < count; k++) {
+    const [X, Y, Z] = level(k);
+    const t = Math.max(0, (faceBack - Y) / (faceBack - bodyBack));
+    if (t === 0) continue;
+    const Z2 = sole + (Z - sole) * height(t);
+    positions[3 * k] = X * width(t);
+    positions[3 * k + 1] = Y * c + Z2 * s;
+    positions[3 * k + 2] = -Y * s + Z2 * c;
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -21,6 +21,15 @@ export interface HeadSpec {
    *  outline's top is clamped flat at faceHeightIn / 2. */
   exponent?: number;
   flatTop?: boolean;
+  /**
+   * wood only: the body is warped behind the face so it reads as a real head (identity on the face plane, so the flat
+   * face, its outline and score lines are untouched). `t` runs from 0 at the back-most point of the face to 1 at the
+   * back of the body, in the level frame (the head soled at its static loft). Absent fields leave the body unwarped.
+   * - planform: heel-to-toe width grows smoothly to ×`gain` at t = `widestAt`, then eases to ×`tail` at the back.
+   * - crown: height above the sole is kept up to t = `holdTo`, then eases down to ×(1 − `drop`) at the back.
+   */
+  planform?: { widestAt: number; gain: number; tail: number };
+  crown?: { holdTo: number; drop: number };
   /** `base` is the point on the heel, inside the body, where the hosel starts. */
   hosel: { base: [number, number, number]; lengthIn: number; radiusIn: number };
   /** clearCentreIn > 0 leaves that width in the middle of the face without lines (driver). */
@@ -49,6 +58,8 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headDepthIn: 4.6, // 4.5 in the design table
     headHeightIn: 2.5,
     exponent: 2.2, // rounder than the 2.5 default: a rounded-triangle planform rather than a squared cup
+    planform: { widestAt: 0.38, gain: 1.08, tail: 0.92 }, // broad and deep, widest about 40 % back
+    crown: { holdTo: 0.15, drop: 0.4 }, // peaks just behind the face, low trailing edge
     hosel: { base: [-2.0, -0.4, 0.5], lengthIn: 1.5, radiusIn: 0.25 },
     scoreLines: { count: 9, spacingIn: 0.18, clearCentreIn: 1.4 },
     finish: BLACK_FINISH,
@@ -64,6 +75,8 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headHeightIn: 1.6,
     exponent: 2.2,
     flatTop: true,
+    planform: { widestAt: 0.45, gain: 1.06, tail: 0.85 }, // pear: widest further back, tapering rear
+    crown: { holdTo: 0.15, drop: 0.35 },
     hosel: { base: [-1.7, -0.3, 0.3], lengthIn: 1.5, radiusIn: 0.24 },
     scoreLines: { count: 7, spacingIn: 0.15, clearCentreIn: 0 },
     finish: BLACK_FINISH,
@@ -79,6 +92,8 @@ export const HEAD_SPECS: Record<ClubCategory, HeadSpec> = {
     headHeightIn: 1.55,
     exponent: 3,
     flatTop: true,
+    planform: { widestAt: 0.4, gain: 1.04, tail: 0.9 }, // compact
+    crown: { holdTo: 0.2, drop: 0.35 },
     hosel: { base: [-1.5, -0.3, 0.3], lengthIn: 1.5, radiusIn: 0.23 },
     scoreLines: { count: 7, spacingIn: 0.15, clearCentreIn: 0 },
     finish: BLACK_FINISH,
