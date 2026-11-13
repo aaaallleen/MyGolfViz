@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import type { Shot, WorkingSet } from '@fsa/domain';
-import { clubCounts, displayOrder, filterShots, reconcileSelection, selectionPosition, stepSelection } from './workingSet';
+import {
+  clubCounts, displayOrder, excludedShotIds, exclusionKey, filterShots, nextAfterExclude, reconcileSelection,
+  selectionPosition, stepSelection,
+} from './workingSet';
 
 const mk = (id: string, fileId: string, club: string, sourceRow: number): Shot => ({
   id, fileId, sourceRow, shotLabel: null, club, shotType: null, mode: null, location: null,
@@ -12,6 +15,9 @@ const D2 = mk('D2', 'f2', 'Driver', 2);
 const I2 = mk('I2', 'f2', '7 Iron', 3);
 const shots = [D1, I1, D2, I2];
 const ws: WorkingSet = { files: [], shots };
+const mkFile = (id: string, sha256: string, ordinal: number): WorkingSet['files'][number] =>
+  ({ id, ordinal, sha256, name: `${id}.csv`, byteLength: 0, parserVersion: 'test' }) as WorkingSet['files'][number];
+const wsF: WorkingSet = { files: [mkFile('f1', 'aaa', 1), mkFile('f2', 'bbb', 2)], shots };
 const ids = (s: Shot[]) => s.map((x) => x.id);
 
 describe('working set ops', () => {
@@ -47,5 +53,18 @@ describe('working set ops', () => {
     expect(selectionPosition('D2', [D1, D2, I1, I2])).toEqual({ index: 2, total: 4 });
     expect(selectionPosition('X', shots)).toBeNull();
     expect(selectionPosition(null, shots)).toBeNull();
+  });
+  test('exclusionKey and excludedShotIds map content keys to shot ids', () => {
+    expect(exclusionKey('aaa', 2)).toBe('aaa:2');
+    expect([...excludedShotIds(wsF, new Set(['aaa:2', 'bbb:3', 'zzz:9']))]).toEqual(['D1', 'I2']);
+  });
+  test('clubCounts counts included shots and keeps a club whose shots are all excluded', () => {
+    expect(clubCounts(shots, new Set(['D1', 'D2']))).toEqual([{ club: 'Driver', count: 0 }, { club: '7 Iron', count: 2 }]);
+  });
+  test('nextAfterExclude: next included, else previous, else null', () => {
+    const ord = displayOrder(shots);
+    expect(nextAfterExclude('D2', ord, new Set(['D2']))).toBe('I1');
+    expect(nextAfterExclude('I2', ord, new Set(['I2']))).toBe('I1');
+    expect(nextAfterExclude('D1', ord, new Set(['D1', 'D2', 'I1', 'I2']))).toBeNull();
   });
 });

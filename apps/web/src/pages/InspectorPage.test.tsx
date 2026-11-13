@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test } from 'vitest';
 import { summarize } from '@fsa/analytics';
 import { formatMeasurement } from '@fsa/domain';
+import { shotOptionLabel } from '../components/shotLabel';
 import { renderWithData } from '../test/renderWithData';
 
 const F1 = 'FlightScope Golf Session Sept 19 2022.csv';
@@ -217,6 +218,8 @@ describe('InspectorPage', () => {
     const crumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(crumb).toHaveTextContent('Untitled session / Shot 15');
     expect(within(crumb).getByRole('link', { name: 'Untitled session' })).toHaveAttribute('href', '/overview');
+    // The breadcrumb is the way back; the header has no separate Back to overview button.
+    expect(screen.queryByRole('link', { name: 'Back to overview' })).toBeNull();
     v.unmount();
     const w = open(ALL, { details: { name: 'Range day' } });
     pick(w, 1, 16);
@@ -290,6 +293,19 @@ describe('InspectorPage', () => {
     expect(d).not.toHaveTextContent(/\bTime\b/);
   });
 
+  test('All measurements starts folded with a visible "Show all" cue that turns into "Hide" when opened', async () => {
+    const user = userEvent.setup();
+    open();
+    const d = screen.getByText(/All measurements/).closest('details')!;
+    const summary = d.querySelector('summary')!;
+    expect(d.open).toBe(false);
+    expect(within(summary).getByText('Show all')).toBeInTheDocument();
+    await user.click(summary);
+    expect(d.open).toBe(true);
+    expect(within(summary).getByText('Hide')).toBeInTheDocument();
+    expect(within(summary).queryByText('Show all')).toBeNull();
+  });
+
   test('2D tab: clicking "Show Spin axis view" makes it large, and the choice survives Next shot', async () => {
     const user = userEvent.setup();
     const v = open();
@@ -303,5 +319,148 @@ describe('InspectorPage', () => {
   test('legend and provenance copy are present', () => {
     open();
     expect(screen.getByLabelText('Value provenance')).toBeInTheDocument();
+  });
+
+  describe('excluded shots', () => {
+    const BANNER = "This shot is excluded. It isn't in your averages or comparisons.";
+
+    test('‹ › step onto excluded shots too: they open with the banner and the position', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const o = v.store().tableShots;
+      act(() => { v.store().setExcluded(o[3]!.id, true); v.store().select(o[2]!.id); });
+      expect(screen.queryByText(BANNER)).toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(o[3]!.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      expect(screen.getByText(`4 of ${o.length}`)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(o[4]!.id);
+      expect(screen.queryByText(BANNER)).toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Previous shot' }));
+      expect(v.store().selectedId).toBe(o[3]!.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+    });
+
+    test('with every shot in the filter excluded, Next moves to the next excluded shot and never empties the page', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      act(() => v.store().setClub('Driver'));
+      const ids = v.store().tableShots.map((s) => s.id);
+      act(() => { for (const id of ids) v.store().setExcluded(id, true); v.store().select(ids[1]!); });
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(ids[2]);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      expect(screen.queryByText(/shots here are excluded/)).toBeNull();
+    });
+
+    test('Exclude shot in the header excludes the open shot and moves on to the next included shot', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const [target, next] = [v.store().visibleShots[2]!, v.store().visibleShots[3]!];
+      act(() => v.store().select(target.id));
+      const used = v.store().visibleShots.length;
+      await user.click(screen.getByRole('button', { name: 'Exclude shot' }));
+      expect(v.store().excludedIds.has(target.id)).toBe(true);
+      expect(v.store().selectedId).toBe(next.id);
+      expect(v.store().visibleShots).toHaveLength(used - 1);
+      expect(screen.queryByText(BANNER)).toBeNull();
+      expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toContain(`excluded · ${used - 1} shots used`);
+    });
+
+    test('the Exclude shot button sits on the title row, not with the ‹ › buttons', () => {
+      const v = open();
+      act(() => v.store().select(v.store().visibleShots[2]!.id));
+      const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!;
+      expect(within(titleRow).getByRole('button', { name: 'Exclude shot' })).toBeInTheDocument();
+      const nav = screen.getByRole('button', { name: 'Next shot' }).parentElement!;
+      expect(within(nav).queryByRole('button', { name: 'Exclude shot' })).toBeNull();
+    });
+
+    test('on an excluded open shot the Excluded tag sits on the title and the banner holds the only include button', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!;
+      expect(within(titleRow).getByText('Excluded')).toBeInTheDocument();
+      const nav = screen.getByRole('button', { name: 'Next shot' }).parentElement!;
+      expect(within(nav).queryByText('Excluded')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Exclude shot' })).toBeNull();
+      expect(screen.getAllByRole('button', { name: /^Include/ }).map((b) => b.textContent)).toEqual(['Include it again']);
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
+      expect(v.store().excludedIds.has(target.id)).toBe(false);
+      expect(v.store().selectedId).toBe(target.id);
+      expect(screen.queryByText(BANNER)).toBeNull();
+    });
+
+    test('Include it again removes the banner', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
+      expect(screen.queryByText(BANNER)).toBeNull();
+      expect(v.store().selectedId).toBe(target.id);
+      expect(v.store().excludedIds.has(target.id)).toBe(false);
+    });
+
+    test('Include it again announces through a polite live region', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
+      expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toMatch(/included · \d+ shots used/);
+    });
+
+    test('an excluded open shot sits at its display-order position in the picker, marked excluded', () => {
+      const v = open();
+      const ordered = v.store().tableShots;
+      const target = ordered[3]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      const files = v.store().workingSet!.files;
+      const names = within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent);
+      expect(names[3]).toBe(`${shotOptionLabel(target, files)} (excluded)`);
+      expect(names[2]).toBe(shotOptionLabel(ordered[2]!, files));
+      expect(names[4]).toBe(shotOptionLabel(ordered[4]!, files));
+    });
+
+    test('with an included shot open, the picker still lists excluded shots, and picking one opens it', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const [x, y] = [v.store().visibleShots[1]!, v.store().visibleShots[2]!];
+      act(() => { v.store().setExcluded(x.id, true); v.store().select(y.id); });
+      const files = v.store().workingSet!.files;
+      const picker = screen.getByRole('combobox', { name: 'Choose shot' });
+      const names = within(picker).getAllByRole('option').map((o) => o.textContent);
+      expect(names).toHaveLength(v.store().tableShots.length);
+      expect(names).toContain(`${shotOptionLabel(x, files)} (excluded)`);
+      expect(names).toContain(shotOptionLabel(y, files));
+      expect(screen.queryByText(BANNER)).toBeNull();
+      await user.selectOptions(picker, x.id);
+      expect(v.store().selectedId).toBe(x.id);
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      // Stepping off it and back lands on it again; the picker keeps listing it.
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().selectedId).toBe(y.id);
+      await user.click(screen.getByRole('button', { name: 'Previous shot' }));
+      expect(v.store().selectedId).toBe(x.id);
+      expect(within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent))
+        .toContain(`${shotOptionLabel(x, files)} (excluded)`);
+    });
+
+    test('all shots in the filter excluded: all-excluded empty state with Include all', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      act(() => v.store().setClub('Driver'));
+      const ids = v.store().tableShots.map((s) => s.id);
+      act(() => { for (const id of ids) v.store().setExcluded(id, true); v.store().select(null); });
+      expect(screen.getByRole('heading', { name: `All ${ids.length} shots here are excluded` })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Back to overview' })).toHaveAttribute('href', '/overview');
+      await user.click(screen.getByRole('button', { name: 'Include all' }));
+      expect(v.store().visibleShots).toHaveLength(ids.length);
+      expect(screen.queryByText(/are excluded/)).toBeNull();
+    });
   });
 });

@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { DEFAULT_SESSION_DETAILS } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import { filterShots, displayOrder } from '@fsa/analytics';
-import { initialState, reducer } from './state/reducer';
+import { initialState, reducer, tableOf, visibleOf } from './state/reducer';
 import { WorkingSetProvider, useWorkingSet } from './state/store';
 import { buildWorkingSet } from './state/staging';
 
@@ -85,6 +85,98 @@ describe('reducer', () => {
     s = reducer(s, { type: 'setFile', fileId: null });
     expect(s.details).toMatchObject({ name: 'Range day', date: '2026-11-07' });
     expect(reducer(s, { type: 'clear' }).details).toEqual(DEFAULT_SESSION_DETAILS);
+  });
+});
+
+async function analyzed() {
+  return reducer(reducer(initialState, await stage()), { type: 'analyze' });
+}
+
+describe('reducer: excluding shots', () => {
+  test('excluded shots leave visibleOf but stay in tableOf; analyze keeps them; clear empties them', async () => {
+    let s = await analyzed();
+    const x = s.workingSet!.shots[0]!;
+    s = reducer(s, { type: 'setExcluded', id: x.id, excluded: true });
+    expect(visibleOf(s).some((v) => v.id === x.id)).toBe(false);
+    expect(tableOf(s).some((v) => v.id === x.id)).toBe(true);
+    s = reducer(reducer(s, await stage()), { type: 'analyze' });
+    const again = s.workingSet!.shots.find((v) => v.sourceRow === x.sourceRow && v.fileId === x.fileId)!;
+    expect(visibleOf(s).some((v) => v.id === again.id)).toBe(false);
+    expect(reducer(s, { type: 'clear' })).toEqual(initialState);
+  });
+
+  test('removing a file and adding it back keeps its exclusions', async () => {
+    let s = await analyzed();
+    const fileB = s.workingSet!.files[1]!;
+    const x = s.workingSet!.shots.find((v) => v.fileId === fileB.id)!;
+    s = reducer(s, { type: 'setExcluded', id: x.id, excluded: true });
+    const key = s.staged[1]!.key;
+    s = reducer(s, { type: 'removeStaged', key });
+    s = reducer(s, { type: 'stage', makeKey: () => 'again', incoming: [await incomingOf(FIXTURE_B, 'b.csv')] });
+    s = reducer(s, { type: 'analyze' });
+    const back = s.workingSet!.shots.find((v) => v.sourceRow === x.sourceRow && v.club === x.club)!;
+    expect(visibleOf(s).some((v) => v.id === back.id)).toBe(false);
+  });
+
+  test('excludeAndAdvance moves the selection to the next included shot; setExcluded keeps it', async () => {
+    let s = await analyzed();
+    const order = tableOf(s);
+    s = reducer(s, { type: 'select', id: order[1]!.id });
+    s = reducer(s, { type: 'setExcluded', id: order[1]!.id, excluded: true });
+    expect(s.selectedId).toBe(order[1]!.id);
+    s = reducer(s, { type: 'setExcluded', id: order[1]!.id, excluded: false });
+    s = reducer(s, { type: 'excludeAndAdvance', id: order[1]!.id });
+    expect(s.selectedId).toBe(order[2]!.id);
+    s = reducer(s, { type: 'excludeAndAdvance', id: order[5]!.id });
+    expect(s.selectedId).toBe(order[2]!.id);
+  });
+
+  test('step walks every shot in the filter in table order, excluded ones too', async () => {
+    let s = await analyzed();
+    const o = tableOf(s);
+    s = reducer(s, { type: 'setExcluded', id: o[2]!.id, excluded: true });
+    s = reducer(s, { type: 'select', id: o[1]!.id });
+    s = reducer(s, { type: 'step', delta: 1 });
+    expect(s.selectedId).toBe(o[2]!.id);
+    expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(o[3]!.id);
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(o[1]!.id);
+  });
+
+  test('step with every shot in the filter excluded still walks them, clamping at the ends', async () => {
+    let s = await analyzed();
+    s = reducer(s, { type: 'setClub', club: 'Driver' });
+    const ids = tableOf(s).map((v) => v.id);
+    for (const id of ids) s = reducer(s, { type: 'setExcluded', id, excluded: true });
+    s = reducer(s, { type: 'select', id: ids[1]! });
+    expect(reducer(s, { type: 'step', delta: 1 }).selectedId).toBe(ids[2]);
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[0]);
+    s = reducer(s, { type: 'select', id: ids[0]! });
+    expect(reducer(s, { type: 'step', delta: -1 }).selectedId).toBe(ids[0]);
+  });
+
+  test('a filter change keeps an excluded selection while it is still in the table', async () => {
+    let s = await analyzed();
+    const driver = s.workingSet!.shots.find((v) => v.club === 'Driver')!;
+    s = reducer(s, { type: 'setExcluded', id: driver.id, excluded: true });
+    s = reducer(s, { type: 'select', id: driver.id });
+    s = reducer(s, { type: 'setFile', fileId: driver.fileId });
+    expect(s.selectedId).toBe(driver.id);
+    const other = s.workingSet!.shots.find((v) => v.club !== 'Driver')!.club;
+    s = reducer(s, { type: 'setClub', club: other });
+    expect(s.selectedId).toBe(visibleOf(s)[0]?.id ?? null);
+    expect(s.selectedId).not.toBe(driver.id);
+  });
+
+  test('reveal widens the filter to show the shot', async () => {
+    let s = await analyzed();
+    const [fileA, fileB] = s.workingSet!.files;
+    const shot = s.workingSet!.shots.find((v) => v.fileId === fileA!.id)!;
+    const otherClub = s.workingSet!.shots.find((v) => v.club !== shot.club)!.club;
+    s = reducer(s, { type: 'setFile', fileId: fileB!.id });
+    s = reducer(s, { type: 'setClub', club: otherClub });
+    s = reducer(s, { type: 'reveal', id: shot.id });
+    expect(s.filters).toEqual({ club: shot.club, fileId: null });
+    expect(s.selectedId).toBe(shot.id);
   });
 });
 
@@ -166,5 +258,63 @@ describe('store', () => {
     let undo: (() => void) | null = () => {};
     act(() => { undo = result.current.clear(); });
     expect(undo).toBeNull();
+  });
+
+  test('includeAll returns a count and an undo that only works if nothing changed since', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    await act(async () => { await result.current.addFiles([mkFile()]); });
+    act(() => { result.current.analyze(); });
+    const [a, b, c] = result.current.tableShots;
+    act(() => { result.current.setExcluded(a!.id, true); result.current.setExcluded(b!.id, true); });
+    expect(result.current.excludedIds.size).toBe(2);
+    let out: ReturnType<typeof result.current.includeAll> = null;
+    act(() => { out = result.current.includeAll('session'); });
+    expect(out!.count).toBe(2);
+    expect(result.current.excludedIds.size).toBe(0);
+    act(() => { out!.undo(); });
+    expect(result.current.excludedIds.size).toBe(2);
+
+    act(() => { out = result.current.includeAll('session'); });
+    act(() => { result.current.setExcluded(c!.id, true); });
+    act(() => { out!.undo(); });
+    expect([...result.current.excludedIds]).toEqual([c!.id]);
+    act(() => { result.current.includeAll('session'); });
+    expect(result.current.includeAll('session')).toBeNull();
+  });
+
+  test('excludeAll excludes every included shot in the filter, keeps the selection, and its undo restores the set', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    await act(async () => { await result.current.addFiles([mkFile(), new File([new Uint8Array(readFileSync(FIXTURE_B))], 'y.csv', { type: 'text/csv' })]); });
+    act(() => { result.current.analyze(); });
+    const club = result.current.tableShots[0]!.club;
+    act(() => { result.current.setClub(club); });
+    const inClub = result.current.tableShots.map((s) => s.id);
+    const selected = result.current.selectedId;
+    act(() => { result.current.setExcluded(inClub[1]!, true); });
+    let out: ReturnType<typeof result.current.excludeAll> = null;
+    act(() => { out = result.current.excludeAll(); });
+    expect(out!.count).toBe(inClub.length - 1);
+    expect(result.current.visibleShots).toHaveLength(0);
+    expect(result.current.excludedIds.size).toBe(inClub.length);
+    expect(result.current.selectedId).toBe(selected);
+    act(() => { out!.undo(); });
+    expect([...result.current.excludedIds]).toEqual([inClub[1]]);
+    act(() => { result.current.excludeAll(); });
+    expect(result.current.excludeAll()).toBeNull();
+  });
+
+  test('includeAll(filter) only includes the shots of the filtered club', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    await act(async () => { await result.current.addFiles([mkFile(), new File([new Uint8Array(readFileSync(FIXTURE_B))], 'y.csv', { type: 'text/csv' })]); });
+    act(() => { result.current.analyze(); });
+    const shots = result.current.tableShots;
+    const club = shots[0]!.club;
+    const other = shots.find((v) => v.club !== club)!;
+    act(() => { result.current.setExcluded(shots[0]!.id, true); result.current.setExcluded(other.id, true); });
+    act(() => { result.current.setClub(club); });
+    let out: ReturnType<typeof result.current.includeAll> = null;
+    act(() => { out = result.current.includeAll('filter'); });
+    expect(out!.count).toBe(1);
+    expect([...result.current.excludedIds]).toEqual([other.id]);
   });
 });

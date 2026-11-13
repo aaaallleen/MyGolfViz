@@ -1,6 +1,7 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
-import { displayOrder, filterShots, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
+import type { Shot } from '@fsa/domain';
+import { displayOrder, exclusionKey, excludedShotIds, filterShots, nextAfterExclude, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 
 export type InspectorTab = 'impact' | '3d' | '2d';
@@ -11,6 +12,8 @@ export interface StoreState {
   details: SessionDetails;
   filters: Filters;
   selectedId: string | null;
+  /** Exclusion keys (`sha256:sourceRow`): tied to file content, so they survive removing and re-adding a file. */
+  excluded: ReadonlySet<string>;
   landingMode: LandingMode;
   inspectorTab: InspectorTab;
   /** The large view in each club tab; kept while moving between shots, reset by a reload. */
@@ -33,6 +36,12 @@ export type Action =
   | { type: 'setFile'; fileId: string | null }
   | { type: 'select'; id: string | null }
   | { type: 'step'; delta: 1 | -1 }
+  | { type: 'setExcluded'; id: string; excluded: boolean }
+  | { type: 'excludeAndAdvance'; id: string }
+  | { type: 'includeShots'; ids: readonly string[] }
+  | { type: 'excludeShots'; ids: readonly string[] }
+  | { type: 'setExcludedKeys'; excluded: ReadonlySet<string> }
+  | { type: 'reveal'; id: string }
   | { type: 'setLandingMode'; mode: LandingMode }
   | { type: 'setInspectorTab'; tab: InspectorTab }
   | { type: 'setClubView3D'; view: View3D }
@@ -48,6 +57,7 @@ export const initialState: StoreState = {
   details: DEFAULT_SESSION_DETAILS,
   filters: ALL,
   selectedId: null,
+  excluded: new Set(),
   landingMode: 'carry',
   inspectorTab: '2d',
   clubView3D: 'faceOn',
@@ -56,15 +66,43 @@ export const initialState: StoreState = {
   busy: false,
 };
 
-export function visibleOf(state: Pick<StoreState, 'workingSet' | 'filters'>) {
+/** Every shot in the filter, in display order, excluded ones included. */
+export function tableOf(state: Pick<StoreState, 'workingSet' | 'filters'>): Shot[] {
   return state.workingSet ? displayOrder(filterShots(state.workingSet, state.filters)) : [];
 }
 
-// A filter change keeps the selected shot while it is still visible; otherwise nothing is selected.
+/** The included shots in the filter, in display order. */
+export function visibleOf(state: Pick<StoreState, 'workingSet' | 'filters' | 'excluded'>): Shot[] {
+  if (!state.workingSet) return [];
+  const ids = excludedShotIds(state.workingSet, state.excluded);
+  return tableOf(state).filter((s) => !ids.has(s.id));
+}
+
+// The exclusion key of a shot id, or null when the shot is unknown.
+function keyOfShot(ws: WorkingSet | null, id: string): string | null {
+  const shot = ws?.shots.find((s) => s.id === id);
+  const file = shot && ws!.files.find((f) => f.id === shot.fileId);
+  return shot && file ? exclusionKey(file.sha256, shot.sourceRow) : null;
+}
+
+function withExcluded(state: StoreState, id: string, excluded: boolean): ReadonlySet<string> {
+  const key = keyOfShot(state.workingSet, id);
+  if (key === null || state.excluded.has(key) === excluded) return state.excluded;
+  const next = new Set(state.excluded);
+  if (excluded) next.add(key);
+  else next.delete(key);
+  return next;
+}
+
+// A filter change keeps the selected shot while it is still in the table (excluded or not); otherwise nothing is selected.
 function withFilters(state: StoreState, filters: Filters): StoreState {
   const next = { ...state, filters };
-  const keep = state.selectedId !== null && visibleOf(next).some((s) => s.id === state.selectedId);
+  const keep = state.selectedId !== null && tableOf(next).some((s) => s.id === state.selectedId);
   return { ...next, selectedId: keep ? state.selectedId : null };
+}
+
+function excludedIdsOf(state: StoreState): Set<string> {
+  return state.workingSet ? excludedShotIds(state.workingSet, state.excluded) : new Set();
 }
 
 export function reducer(state: StoreState, action: Action): StoreState {
@@ -96,7 +134,44 @@ export function reducer(state: StoreState, action: Action): StoreState {
     case 'select':
       return { ...state, selectedId: action.id };
     case 'step':
-      return { ...state, selectedId: stepSelection(state.selectedId, visibleOf(state), action.delta) };
+      // ‹ › walk every shot in the filter, in table order; an excluded one opens with its banner.
+      return { ...state, selectedId: stepSelection(state.selectedId, tableOf(state), action.delta) };
+    case 'setExcluded':
+      return { ...state, excluded: withExcluded(state, action.id, action.excluded) };
+    case 'excludeAndAdvance': {
+      const next = { ...state, excluded: withExcluded(state, action.id, true) };
+      if (action.id !== state.selectedId) return next;
+      return { ...next, selectedId: nextAfterExclude(action.id, tableOf(next), excludedIdsOf(next)) };
+    }
+    case 'includeShots': {
+      const keys = new Set(state.excluded);
+      for (const id of action.ids) {
+        const key = keyOfShot(state.workingSet, id);
+        if (key !== null) keys.delete(key);
+      }
+      return { ...state, excluded: keys };
+    }
+    case 'excludeShots': {
+      // Like setExcluded, the selection stays where it is.
+      const keys = new Set(state.excluded);
+      for (const id of action.ids) {
+        const key = keyOfShot(state.workingSet, id);
+        if (key !== null) keys.add(key);
+      }
+      return { ...state, excluded: keys };
+    }
+    case 'setExcludedKeys':
+      return { ...state, excluded: action.excluded };
+    case 'reveal': {
+      const shot = state.workingSet?.shots.find((s) => s.id === action.id);
+      if (!shot) return state;
+      const { club, fileId } = state.filters;
+      const filters = {
+        club: club !== null && club !== shot.club ? shot.club : club,
+        fileId: fileId !== null && fileId !== shot.fileId ? null : fileId,
+      };
+      return { ...state, filters, selectedId: action.id };
+    }
     case 'setLandingMode':
       return { ...state, landingMode: action.mode };
     case 'setInspectorTab':

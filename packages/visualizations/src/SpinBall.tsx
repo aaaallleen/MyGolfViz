@@ -116,9 +116,11 @@ export function SpinBallDiagram({ spin, spinAxis }: SpinBallDiagramProps) {
   const sideText = sidespin === null ? null : `${formatMeasurement('spin', Math.abs(sidespin))}${sidespin > 0.5 ? ' R' : sidespin < -0.5 ? ' L' : ''}`;
 
   return (
-    <div className="fsa-spin-ball" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    // The drawing takes the panel's full width and any spare height (flex: 1), with the ball centred in it;
+    // the sunken background is the SVG box itself, so it fills that whole area rather than a fixed square.
+    <div className="fsa-spin-ball" style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: '1 1 auto' }}>
       <svg role="img" aria-label={`Ball seen from behind with its spin axis. Total spin ${formatMeasurement('spin', spin)}, spin axis ${axisText}.`}
-        viewBox="0 0 320 320" style={{ width: '100%', maxWidth: 360, height: 'auto', display: 'block' }}>
+        viewBox="0 0 320 320" style={{ width: '100%', height: 'auto', minHeight: 240, flex: '1 1 auto', display: 'block', background: SURFACE, borderRadius: 8 }}>
         <defs>
           <radialGradient id={`${gid}-ball`} cx="36%" cy="30%" r="80%">
             <stop offset="0%" stopColor="#FFD9A0" />
@@ -126,7 +128,6 @@ export function SpinBallDiagram({ spin, spinAxis }: SpinBallDiagramProps) {
             <stop offset="100%" stopColor="#7A4B12" />
           </radialGradient>
         </defs>
-        <rect x={0} y={0} width={320} height={320} rx={8} fill={SURFACE} />
         <circle data-role="ball" cx={C} cy={C} r={R} fill={`url(#${gid}-ball)`} stroke={BALL_EDGE} strokeWidth={2} />
         {ring && (
           <g data-role="spin-ring" fill="none" stroke={INK} strokeWidth={2}>

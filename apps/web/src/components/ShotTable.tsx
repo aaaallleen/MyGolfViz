@@ -13,6 +13,8 @@ import {
 } from '@fsa/domain';
 import { Missing } from '@fsa/ui';
 import { usePhone } from './usePhone';
+import { fileOrdinal, rowTitle } from './shotLabel';
+import { FileBadge } from './FileBadge';
 
 /** Preferred column order inside each group; any field not listed here follows its group's list. */
 const ORDER: readonly MeasurementKey[] = [
@@ -38,7 +40,9 @@ const TEXT: { key: 'shotType' | 'mode' | 'location'; head: string }[] = [
 ];
 const PINNED = ['shot', 'club'];
 /** Narrower pinned columns on phones (club names wrap there), so data columns get most of the width. */
-const PHONE_SIZES: ColumnSizingState = { shot: 48, club: 92 };
+const PHONE_SIZES: ColumnSizingState = { shot: 68, club: 92, use: 48 };
+/** While editing, the Use column sits before the usual pinned columns. */
+const PINNED_EDITING = ['use', ...PINNED];
 const NO_SIZES: ColumnSizingState = {};
 const LAST_PINNED = PINNED[PINNED.length - 1];
 
@@ -70,8 +74,9 @@ const show = (v: string | undefined) => v ?? <Missing />;
 
 function buildColumns(other: readonly string[]): ColumnDef<Features, Shot, any>[] {
   return [
+    helper.display({ id: 'use', header: 'Use', size: 56, enableHiding: false, enableSorting: false }),
     helper.accessor((s) => Number(s.shotLabel ?? s.sourceRow) || s.sourceRow, {
-      id: 'shot', header: 'Shot', size: 64, enableHiding: false,
+      id: 'shot', header: 'Shot', size: 84, enableHiding: false,
       cell: (c) => c.row.original.shotLabel ?? c.row.original.sourceRow,
     }),
     helper.accessor('club', { id: 'club', header: 'Club', size: 140, enableHiding: false, sortFn: 'alphanumeric' }),
@@ -108,11 +113,6 @@ function rawHeaders(shots: readonly Shot[]): string[] {
   return [...seen];
 }
 
-export function rowTitle(shot: Shot, files: readonly SourceFile[]): string {
-  const f = files.find((x) => x.id === shot.fileId);
-  return `File ${f?.ordinal ?? '?'} · ${f?.name ?? ''} · CSV row ${shot.sourceRow}`;
-}
-
 const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
 
 /**
@@ -120,12 +120,20 @@ const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
  * the Shot and Club columns stay in view. Sort by any column, hide columns from the Columns menu, and
  * (with all clubs showing) rows sit under one heading per club.
  */
-export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
+export function ShotTable({ title, note, shots, files, selectedId, onSelect, grouped, excludedIds, onSetExcluded, onIncludeAll, onExcludeAll }: {
+  /** The panel heading; it reads "Editing shots" while Edit shots is on. */
+  title: string;
+  /** Shown under the heading row, before the sort hint. */
+  note?: string;
   shots: readonly Shot[];
   files: readonly SourceFile[];
   selectedId: string | null;
   onSelect(id: string): void;
   grouped: boolean;
+  excludedIds: ReadonlySet<string>;
+  onSetExcluded(id: string, excluded: boolean): void;
+  onIncludeAll(): void;
+  onExcludeAll(): void;
 }) {
   const other = useMemo(() => unparsedHeaders(rawHeaders(shots)), [shots]);
   // Rebuild column definitions only when the set of extra CSV columns changes, not on every filter.
@@ -137,6 +145,10 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
   const [expanded, setExpanded] = useState<ExpandedState>(true);
   const grouping = useMemo(() => (grouped ? ['club'] : []), [grouped]);
+  const [editing, setEditing] = useState(false);
+  // The Use column exists only while editing; it is hidden (not removed) otherwise so column ids stay stable.
+  const visibility = useMemo(() => ({ ...columnVisibility, use: editing }), [columnVisibility, editing]);
+  const columnPinning = useMemo(() => ({ start: editing ? PINNED_EDITING : PINNED, end: [] as string[] }), [editing]);
   const columnSizing = usePhone() ? PHONE_SIZES : NO_SIZES;
 
   const table = useTable({
@@ -148,7 +160,7 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
     // TanStack resets expansion to its initial state whenever the data changes (a club or file filter),
     // so that state must be "all expanded", not its default of all collapsed.
     initialState: { columnPinning: { start: PINNED, end: [] }, expanded: true },
-    state: { sorting, columnVisibility, grouping, expanded, columnSizing },
+    state: { sorting, columnVisibility: visibility, columnPinning, grouping, expanded, columnSizing },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onExpandedChange: setExpanded,
@@ -179,14 +191,30 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
   };
   const visibleLeaves = table.getVisibleLeafColumns().length;
   // Group labels (Ball, Club, ...) slide along just right of the pinned columns while scrolling sideways.
-  const pinnedWidth = PINNED.reduce((w, id) => w + (table.getColumn(id)?.getSize() ?? 0), 0);
+  const pinnedWidth = (editing ? PINNED_EDITING : PINNED).reduce((w, id) => w + (table.getColumn(id)?.getSize() ?? 0), 0);
 
   return (
-    <div className="shots-table-wrap">
-      <div className="shots-table__tools">
-        <span className="panel__note">{sorting.length > 0 ? 'Sorted by a column · tap its header again to change or clear' : 'Tap a column header to sort'}</span>
-        <ColumnMenu table={table} />
+    <div className={clsx('shots-table-wrap', editing && 'is-editing')}>
+      {/* Heading and actions share one row, actions at the top right of the panel. */}
+      <div className="panel__head shots-table__head">
+        <h2>{editing ? 'Editing shots' : title}</h2>
+        <div className="shots-table__actions">
+          {editing ? (
+            <>
+              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" disabled={!shots.some((s) => !excludedIds.has(s.id))} onClick={onExcludeAll}>Exclude all</button>
+              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" disabled={!shots.some((s) => excludedIds.has(s.id))} onClick={onIncludeAll}>Include all</button>
+              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" onClick={() => setEditing(false)}>Done</button>
+            </>
+          ) : (
+            <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" onClick={() => setEditing(true)}>Edit shots</button>
+          )}
+          <ColumnMenu table={table} />
+        </div>
       </div>
+      <p className="panel__note">
+        {note !== undefined && `${note} · `}
+        {sorting.length > 0 ? 'Sorted by a column · tap its header again to change or clear' : 'Tap a column header to sort'}
+      </p>
       <div className="shots-table" ref={boxRef} role="region" aria-label="All shot data" tabIndex={0}>
         <table>
           <thead>
@@ -204,6 +232,13 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
                             <table.FlexRender header={header} />
                           </span>
                         )}
+                      </th>
+                    );
+                  }
+                  if (col.id === 'use') {
+                    return (
+                      <th key={header.id} scope="col" data-col="use" className="is-pinned" style={pinStyle(col)}>
+                        <span className="shots-table__use-head"><table.FlexRender header={header} /></span>
                       </th>
                     );
                   }
@@ -240,9 +275,11 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
                 );
               }
               const s = row.original;
+              const excluded = excludedIds.has(s.id);
               return (
                 <tr
                   key={row.id}
+                  className={excluded ? 'is-excluded' : undefined}
                   data-shot-id={s.id}
                   tabIndex={0}
                   {...(s.id === selectedId ? { 'aria-current': 'true' as const } : {})}
@@ -258,7 +295,23 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped }: {
                       <td key={cell.id} data-col={col.id} style={pinStyle(col)}
                         className={clsx(isText && 'is-left', col.getIsPinned() === 'start' && 'is-pinned', col.id === LAST_PINNED && 'is-pinned-last', value === undefined && 'is-missing')}>
                         {/* Leaf rows under a club heading still show their club. */}
-                        {col.id === 'club' ? s.club : <table.FlexRender cell={cell} />}
+                        {col.id === 'club' ? s.club
+                          : col.id === 'shot' ? (
+                            <div className="shot-cell">
+                              <div className="shot-cell__id"><FileBadge shot={s} files={files} /> {s.shotLabel ?? s.sourceRow}</div>
+                              {excluded && <div className="shot-cell__tag"><span className="excluded-tag">Excluded</span></div>}
+                            </div>
+                          )
+                          : col.id === 'use' ? (
+                            <input
+                              type="checkbox" role="switch" className="use-switch" checked={!excluded}
+                              aria-label={`Use shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${fileOrdinal(s, files) ?? '?'}`}
+                              onChange={(e) => onSetExcluded(s.id, !e.target.checked)}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          )
+                          : <table.FlexRender cell={cell} />}
                       </td>
                     );
                   })}

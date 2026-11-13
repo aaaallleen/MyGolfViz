@@ -75,6 +75,30 @@ describe('OverviewPage', () => {
     expect(tile('Carry')).toHaveTextContent(/n 34$/);
   });
 
+  test('picking a club in the Clubs table puts the averages on that club; picking it again goes back to all clubs', async () => {
+    const user = userEvent.setup();
+    renderWithData(ALL);
+    const clubs = screen.getByRole('region', { name: 'Clubs' });
+    await user.click(within(clubs).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · Driver · 34 shots' })).toBeInTheDocument();
+    const tile = (label: string) => screen.getByText(label, { selector: '.fsa-kpi__label' }).closest('.fsa-kpi') as HTMLElement;
+    expect(tile('Carry')).toHaveTextContent(/n 34$/);
+    await user.click(within(clubs).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+  });
+
+  test('picking a single shot leaves the averages on all clubs; a shot of another club drops a picked club', async () => {
+    const user = userEvent.setup();
+    const r = renderWithData(ALL);
+    const ironRow = tableRows(r.container).find((x) => r.store().tableShots.find((s) => s.id === x.dataset.shotId)?.club === '7 Iron')!;
+    await user.click(ironRow);
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+    await user.click(within(screen.getByRole('region', { name: 'Clubs' })).getByRole('button', { name: 'Driver' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · Driver · 34 shots' })).toBeInTheDocument();
+    await user.click(ironRow);
+    expect(screen.getByRole('heading', { level: 2, name: 'Averages · All clubs · 133 shots' })).toBeInTheDocument();
+  });
+
   test('eight KPI labels in order, with Mean lateral', () => {
     renderWithData(ALL);
     expect(Array.from(document.querySelectorAll('.fsa-kpi__label')).map((x) => x.textContent)).toEqual(
@@ -262,7 +286,7 @@ describe('OverviewPage', () => {
     const card = document.querySelector('.selected-card') as HTMLElement;
     const shot = r.store().visibleShots[0]!;
     act(() => r.store().select(shot.id));
-    expect(card.querySelector('.selected-card__title')).toHaveTextContent(`${shot.club} · Shot ${shot.shotLabel ?? shot.sourceRow}`);
+    expect(card.querySelector('.selected-card__title')).toHaveTextContent(`${shot.club} · F1 Shot ${shot.shotLabel ?? shot.sourceRow}`);
     const tableSwatch = (document.querySelector(`.club-table tr[data-club="${shot.club}"] .club-table__swatch`) as HTMLElement).style.background;
     expect((card.querySelector('.selected-card__dot') as HTMLElement).style.background).toBe(tableSwatch);
     expect(within(card).queryAllByRole('heading')).toHaveLength(0); // the visible name is decoration over the select
@@ -363,5 +387,126 @@ describe('OverviewPage', () => {
     expect(visible()).toEqual(['shot', 'club', 'ballSpeed', 'launchV', 'spin', 'carry', 'total', 'lateral', 'clubSpeed', 'smash', 'clubPath', 'ftp', 'impactLateral', 'impactVertical']);
     await user.click(screen.getByRole('button', { name: 'Show all' }));
     expect(visible()).toHaveLength(total);
+  });
+
+  describe('excluding shots from the card', () => {
+    test("the shot card's picker lists excluded shots too, marked excluded", () => {
+      const r = renderWithData([F1, F2]);
+      const [x, y] = [r.store().visibleShots[1]!, r.store().visibleShots[2]!];
+      act(() => { r.store().setExcluded(x.id, true); r.store().select(y.id); });
+      const picker = within(document.querySelector('.selected-card') as HTMLElement).getByLabelText('Choose shot');
+      const options = within(picker).getAllByRole('option') as HTMLOptionElement[];
+      expect(options).toHaveLength(r.store().tableShots.length);
+      expect(options.find((o) => o.value === x.id)!.textContent).toMatch(/ \(excluded\)$/);
+      expect(options.find((o) => o.value === y.id)!.textContent).not.toMatch(/excluded/);
+    });
+
+    const countOf = () => Number(/(\d+) shots$/.exec(screen.getByRole('heading', { level: 2, name: /^Averages/ }).textContent ?? '')![1]);
+
+    test('Exclude shot drops the shot from the averages count and moves the card to the next shot', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const before = countOf();
+      const target = r.store().visibleShots[3]!;
+      await user.click(tableRows(r.container).find((x) => x.dataset.shotId === target.id)!);
+      await user.click(screen.getByRole('button', { name: 'Exclude shot' }));
+      expect(countOf()).toBe(before - 1);
+      expect(r.store().selectedId).not.toBe(target.id);
+      expect(screen.getByLabelText('Choose shot')).not.toHaveValue(target.id);
+      expect(screen.getByRole('status')).toHaveTextContent(/excluded · \d+ shots used/);
+    });
+
+    test('an excluded selection shows Excluded and Include shot, which brings it back', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const target = r.store().visibleShots[3]!;
+      const before = countOf();
+      act(() => r.store().setExcluded(target.id, true));
+      act(() => r.store().select(target.id));
+      const card = document.querySelector('.selected-card') as HTMLElement;
+      expect(within(card).getByText('Excluded')).toBeInTheDocument();
+      expect(within(card).queryByRole('button', { name: 'Exclude shot' })).toBeNull();
+      expect(countOf()).toBe(before - 1);
+      await user.click(within(card).getByRole('button', { name: 'Include shot' }));
+      expect(countOf()).toBe(before);
+      expect(within(card).queryByText('Excluded')).toBeNull();
+      expect(screen.getByRole('status')).toHaveTextContent(/included · \d+ shots used/);
+    });
+
+    test('excluding every shot of the filtered club shows the all-excluded state, keeping the card and table', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const counts = new Map<string, number>();
+      for (const s of r.store().visibleShots) counts.set(s.club, (counts.get(s.club) ?? 0) + 1);
+      const [club, n] = [...counts].sort((a, b) => a[1] - b[1])[0]!;
+      act(() => r.store().setClub(club));
+      const ids = r.store().visibleShots.map((s) => s.id);
+      expect(ids).toHaveLength(n);
+      act(() => { for (const id of ids) r.store().setExcluded(id, true); });
+      expect(screen.getByRole('heading', { level: 2, name: `All ${n} shots here are excluded` })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { level: 2, name: /^Averages/ })).toBeNull();
+      expect(tableRows(r.container)).toHaveLength(n);
+      expect(document.querySelector('.selected-card')).not.toBeNull();
+      await user.click(screen.getByRole('button', { name: 'Include all' }));
+      expect(screen.getByRole('heading', { level: 2, name: new RegExp(`^Averages · ${club} · ${n} shots$`) })).toBeInTheDocument();
+    });
+  });
+
+  describe('edit mode through the all-excluded swap', () => {
+    test('turning off every Use switch swaps in the all-excluded state but keeps the table in edit mode', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const counts = new Map<string, number>();
+      for (const s of r.store().visibleShots) counts.set(s.club, (counts.get(s.club) ?? 0) + 1);
+      const [club, n] = [...counts].sort((a, b) => a[1] - b[1])[0]!;
+      act(() => r.store().setClub(club));
+      await user.click(screen.getByRole('button', { name: 'Edit shots' }));
+      for (const sw of screen.getAllByRole('switch')) await user.click(sw);
+      expect(screen.getByRole('heading', { level: 2, name: `All ${n} shots here are excluded` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+      expect(screen.getAllByRole('switch')).toHaveLength(n);
+    });
+  });
+
+  describe('filter bar and exclusions', () => {
+    const clubsOf = (r: ReturnType<typeof renderWithData>) => {
+      const by = new Map<string, string[]>();
+      for (const s of r.store().visibleShots) by.set(s.club, [...(by.get(s.club) ?? []), s.id]);
+      return by;
+    };
+
+    test('club chips count included shots; a club with every shot excluded keeps a 0 chip', () => {
+      const r = renderWithData([F1, F2]);
+      const by = clubsOf(r);
+      const total = r.store().visibleShots.length;
+      const [club, ids] = [...by].sort((a, b) => a[1].length - b[1].length)[0]!;
+      act(() => r.store().setExcluded(ids[0]!, true));
+      expect(chip('All').lastElementChild).toHaveTextContent(String(total - 1));
+      expect(chip(club).lastElementChild).toHaveTextContent(String(ids.length - 1));
+      act(() => { for (const id of ids) r.store().setExcluded(id, true); });
+      expect(chip(club).lastElementChild).toHaveTextContent('0');
+      expect(chip('All').lastElementChild).toHaveTextContent(String(total - ids.length));
+    });
+
+    test('the N excluded list: picking an entry outside the filter reveals it, Include brings one back, Include all brings back all', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const by = clubsOf(r);
+      const driver = by.get('Driver')![0]!;
+      const [otherClub, otherIds] = [...by].find(([c]) => c !== 'Driver')!;
+      act(() => { r.store().setExcluded(driver, true); r.store().setExcluded(otherIds[0]!, true); });
+      act(() => r.store().setClub(otherClub));
+      await user.click(screen.getByRole('button', { name: '2 excluded' }));
+      const popup = screen.getByRole('dialog');
+      await user.click(popup.querySelector(`[data-shot-id="${driver}"]`) as HTMLElement);
+      expect(chip('Driver')).toHaveAttribute('aria-pressed', 'true');
+      expect(r.store().selectedId).toBe(driver);
+      expect(within(document.querySelector('.selected-card') as HTMLElement).getByText('Excluded')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: '2 excluded' }));
+      await user.click(screen.getByRole('button', { name: new RegExp(`^Include shot .*, ${otherClub}, file \\d$`) }));
+      expect(screen.getByRole('button', { name: '1 excluded' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Include all' }));
+      expect(screen.queryByRole('button', { name: /\d+ excluded$/ })).toBeNull();
+    });
   });
 });

@@ -1,0 +1,157 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import type { Shot, SourceFile } from '@fsa/domain';
+import { ShotTable } from './ShotTable';
+
+const file = (ordinal: number): SourceFile => ({
+  id: `f${ordinal}`, name: `session-${ordinal}.csv`, ordinal, sha256: `sha${ordinal}`, byteLength: 1, parserVersion: '1',
+});
+const shot = (fileId: string, sourceRow: number): Shot => ({
+  id: `${fileId}-${sourceRow}`, fileId, sourceRow, shotLabel: String(sourceRow), club: '7 Iron', shotType: null, mode: null, location: null,
+  m: { carry: 150 } as Shot['m'], raw: {}, flags: [],
+});
+
+function setup(opts: { files?: SourceFile[]; shots?: Shot[]; excluded?: string[]; selectedId?: string } = {}) {
+  const files = opts.files ?? [file(1)];
+  const shots = opts.shots ?? [shot('f1', 1), shot('f1', 2)];
+  const props = {
+    onSelect: vi.fn(), onSetExcluded: vi.fn(), onIncludeAll: vi.fn(), onExcludeAll: vi.fn(),
+  };
+  const utils = render(
+    <ShotTable title="Shots" shots={shots} files={files} selectedId={opts.selectedId ?? null} grouped={false} excludedIds={new Set(opts.excluded ?? [])} {...props} />,
+  );
+  return { ...utils, ...props };
+}
+const row = (id: string) => document.querySelector<HTMLElement>(`tr[data-shot-id="${id}"]`)!;
+
+describe('ShotTable header', () => {
+  it('puts the title, Edit shots and Columns in one header row', () => {
+    render(
+      <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} onExcludeAll={vi.fn()} />,
+    );
+    const head = screen.getByRole('heading', { level: 2, name: 'Shots' }).parentElement!;
+    expect(within(head).getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
+    expect(within(head).getByRole('button', { name: /^Columns/ })).toBeInTheDocument();
+  });
+
+  it('while editing, the title reads Editing shots and Done sits in the same row', async () => {
+    const user = userEvent.setup();
+    render(
+      <ShotTable title="Shots" shots={[shot('f1', 1)]} files={[file(1)]} selectedId={null} grouped={false} excludedIds={new Set()}
+        onSelect={vi.fn()} onSetExcluded={vi.fn()} onIncludeAll={vi.fn()} onExcludeAll={vi.fn()} />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Edit shots' }));
+    const head = screen.getByRole('heading', { level: 2, name: 'Editing shots' }).parentElement!;
+    expect(within(head).getByRole('button', { name: 'Done' })).toBeInTheDocument();
+  });
+});
+
+describe('ShotTable exclusion', () => {
+  it('outside edit mode there are no Use switches and a row click only selects', async () => {
+    const { onSelect, onSetExcluded } = setup();
+    expect(screen.queryByRole('switch')).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Use' })).toBeNull();
+    await userEvent.click(row('f1-1'));
+    expect(onSelect).toHaveBeenCalledWith('f1-1');
+    expect(onSetExcluded).not.toHaveBeenCalled();
+  });
+
+  it('an excluded row is marked is-excluded with an Excluded tag', () => {
+    setup({ excluded: ['f1-2'] });
+    expect(row('f1-2')).toHaveClass('is-excluded');
+    expect(within(row('f1-2')).getByText('Excluded')).toBeInTheDocument();
+    expect(row('f1-1')).not.toHaveClass('is-excluded');
+    expect(within(row('f1-1')).queryByText('Excluded')).toBeNull();
+  });
+
+  it('the Excluded tag sits on its own line in the Shot cell so the narrow pinned column cannot clip it', () => {
+    setup({ excluded: ['f1-2'] });
+    const tag = within(row('f1-2')).getByText('Excluded');
+    const line = tag.closest('.shot-cell__tag')!;
+    const id = row('f1-2').querySelector('.shot-cell__id')!;
+    expect(line.tagName).toBe('DIV');
+    expect(line).not.toBe(id);
+    expect(id.contains(tag)).toBe(false);
+    expect(tag.closest('td')).toHaveAttribute('data-col', 'shot');
+  });
+
+  it('a selected excluded row keeps both the selected and excluded markers', () => {
+    setup({ excluded: ['f1-2'], selectedId: 'f1-2' });
+    expect(row('f1-2')).toHaveClass('is-excluded');
+    expect(row('f1-2')).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('Edit shots shows a Use switch per row; toggling calls onSetExcluded without selecting the row', async () => {
+    const { onSelect, onSetExcluded } = setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByText('Editing shots')).toBeInTheDocument();
+    const switches = screen.getAllByRole('switch');
+    expect(switches).toHaveLength(2);
+    expect(switches[0]).toBeChecked();
+    expect(switches[1]).not.toBeChecked();
+    expect(switches[0]).toHaveAccessibleName('Use shot 1, 7 Iron, file 1');
+
+    await userEvent.click(switches[0]!);
+    expect(onSetExcluded).toHaveBeenCalledWith('f1-1', true);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    switches[1]!.focus();
+    await userEvent.keyboard(' ');
+    expect(onSetExcluded).toHaveBeenCalledWith('f1-2', false);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('keeps the Use column out of the Columns menu and pins it first while editing', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('columnheader', { name: 'Use' })).toBeInTheDocument();
+    const cells = [...row('f1-1').querySelectorAll('td')].map((td) => td.getAttribute('data-col'));
+    expect(cells.slice(0, 3)).toEqual(['use', 'shot', 'club']);
+    await userEvent.click(screen.getByRole('button', { name: /^Columns/ }));
+    expect(screen.queryByRole('checkbox', { name: 'Use' })).toBeNull();
+  });
+
+  it('Include all calls onIncludeAll; Done leaves edit mode', async () => {
+    const { onIncludeAll } = setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Include all' }));
+    expect(onIncludeAll).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('switch')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
+  });
+
+  it('Exclude all calls onExcludeAll', async () => {
+    const { onExcludeAll } = setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Exclude all' }));
+    expect(onExcludeAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('the edit-mode Exclude all is disabled when every row is already excluded', async () => {
+    setup({ excluded: ['f1-1', 'f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Exclude all' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeEnabled();
+  });
+
+  it('the edit-mode Include all is disabled until a row is excluded', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeDisabled();
+  });
+
+  it('the edit-mode Include all is enabled when a row is excluded', async () => {
+    setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeEnabled();
+  });
+
+  it('two files: rows carry F1/F2 badges', () => {
+    setup({ files: [file(1), file(2)], shots: [shot('f1', 1), shot('f2', 1)] });
+    expect(within(row('f1-1')).getByText('F1')).toBeInTheDocument();
+    expect(within(row('f2-1')).getByText('F2')).toBeInTheDocument();
+  });
+});

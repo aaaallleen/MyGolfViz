@@ -3,14 +3,20 @@ import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
 import type { LandingMode } from '@fsa/analytics';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
-import { initialState, reducer, visibleOf, type InspectorTab, type StoreState } from './reducer';
+import { excludedShotIds } from '@fsa/analytics';
+import { initialState, reducer, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';
 
 export { initialState, reducer, type InspectorTab, type StoreState } from './reducer';
 
 export interface WorkingSetApi extends StoreState {
+  /** Included shots in the filter, in display order. */
   visibleShots: Shot[];
+  /** Every shot in the filter in display order, excluded ones included. */
+  tableShots: Shot[];
+  /** Shot ids of every excluded shot in the session (not just the filter). */
+  excludedIds: ReadonlySet<string>;
   /** Reads and stages each file independently; resolves with the names of files that could not be read. */
   addFiles(files: readonly File[]): Promise<{ failed: string[] }>;
   setInclude(key: string, include: boolean): void;
@@ -27,6 +33,18 @@ export interface WorkingSetApi extends StoreState {
   /** Select a shot, or pass null to select none. */
   select(id: string | null): void;
   step(delta: 1 | -1): void;
+  setExcluded(id: string, excluded: boolean): void;
+  /** Excludes the shot; when it is the selected one, the selection moves to the next included shot. */
+  excludeAndAdvance(id: string): void;
+  /** Widens the filter just enough to show the shot, then selects it. */
+  reveal(id: string): void;
+  /**
+   * Includes every excluded shot in scope. Returns the count and an undo, or null when nothing was excluded.
+   * The undo does nothing once exclusions have changed since.
+   */
+  includeAll(scope: 'session' | 'filter'): { count: number; undo: () => void } | null;
+  /** Excludes every included shot in the club/file filter (Edit shots). Null when none is left to exclude. */
+  excludeAll(): { count: number; undo: () => void } | null;
   setLandingMode(m: LandingMode): void;
   setInspectorTab(t: InspectorTab): void;
   setClubView3D(v: View3D): void;
@@ -92,13 +110,38 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
   }, []);
 
   // Same array until the shots or filters change, so tables and charts keyed on it don't redo work on every selection.
-  const { workingSet, filters } = state;
-  const visibleShots = useMemo(() => visibleOf({ workingSet, filters }), [workingSet, filters]);
+  const { workingSet, filters, excluded } = state;
+  const visibleShots = useMemo(() => visibleOf({ workingSet, filters, excluded }), [workingSet, filters, excluded]);
+  const tableShots = useMemo(() => tableOf({ workingSet, filters }), [workingSet, filters]);
+  const excludedIds = useMemo(() => (workingSet ? excludedShotIds(workingSet, excluded) : new Set<string>()), [workingSet, excluded]);
+
+  // Applies one bulk change to the exclusion set and returns an undo that works only while nothing has touched the set since.
+  const bulk = useCallback((type: 'includeShots' | 'excludeShots', ids: readonly string[]) => {
+    if (ids.length === 0) return null;
+    const cur = latest.current;
+    const before = cur.excluded;
+    const after = reducer(cur, { type, ids }).excluded;
+    dispatch({ type: 'setExcludedKeys', excluded: after });
+    return {
+      count: ids.length,
+      undo: () => {
+        if (latest.current.excluded === after) dispatch({ type: 'setExcludedKeys', excluded: before });
+      },
+    };
+  }, []);
+  const includeAll = useCallback((scope: 'session' | 'filter') => {
+    const cur = latest.current;
+    const all = cur.workingSet ? excludedShotIds(cur.workingSet, cur.excluded) : new Set<string>();
+    return bulk('includeShots', scope === 'session' ? [...all] : tableOf(cur).filter((s) => all.has(s.id)).map((s) => s.id));
+  }, [bulk]);
+  const excludeAll = useCallback(() => bulk('excludeShots', visibleOf(latest.current).map((s) => s.id)), [bulk]);
   const value = useMemo<WorkingSetApi>(
     () => ({
       ...state,
       busy: pending > 0,
       visibleShots,
+      tableShots,
+      excludedIds,
       addFiles,
       setInclude: (key, include) => dispatch({ type: 'setInclude', key, include }),
       removeStaged: (key) => dispatch({ type: 'removeStaged', key }),
@@ -109,13 +152,18 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setFile: (fileId) => dispatch({ type: 'setFile', fileId }),
       select: (id) => dispatch({ type: 'select', id }),
       step: (delta) => dispatch({ type: 'step', delta }),
+      setExcluded: (id, excl) => dispatch({ type: 'setExcluded', id, excluded: excl }),
+      excludeAndAdvance: (id) => dispatch({ type: 'excludeAndAdvance', id }),
+      reveal: (id) => dispatch({ type: 'reveal', id }),
+      includeAll,
+      excludeAll,
       setLandingMode: (mode) => dispatch({ type: 'setLandingMode', mode }),
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),
       setClubMode3D: (mode) => dispatch({ type: 'setClubMode3D', mode }),
     }),
-    [state, visibleShots, pending, addFiles, clear],
+    [state, visibleShots, tableShots, excludedIds, pending, addFiles, clear, includeAll, excludeAll],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
