@@ -229,8 +229,8 @@ textarea.field__input { padding: 10px 12px; }
 .section-label--club { color: var(--club); }
 .ball-data, .club-data { display: flex; flex-direction: column; gap: 12px; }
 .club-data__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.ball-data__grid, .club-3d__diagrams, .club-2d__diagrams, .club-2d__angles, .impact-tab { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
-.ball-data__grid > *, .club-3d__diagrams > *, .club-2d__diagrams > *, .club-2d__angles > *, .impact-tab > * { min-width: 0; }
+.ball-data__grid, .club-2d__angles, .impact-tab { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.ball-data__grid > *, .club-2d__angles > *, .impact-tab > * { min-width: 0; }
 .ball-data__readouts { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .readouts { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
 .readouts dl, .all-measurements dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
@@ -239,12 +239,42 @@ textarea.field__input { padding: 10px 12px; }
 .readouts dd, .all-measurements dd { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .readouts dd.is-missing, .all-measurements dd.is-missing, .stat-list dd.is-missing { color: var(--muted); font-size: 15px; font-weight: 500; }
 .value-tag { font-family: var(--font-body); font-size: 11px; font-weight: 400; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 6px; }
-.show-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin: 0; padding: 0; border: 0; }
-.show-toggles legend { float: left; margin-right: 12px; padding: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; line-height: 44px; }
 .show-toggles__opt { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text-2); }
 .show-toggles__opt input { width: 18px; height: 18px; accent-color: var(--club); }
 .club-3d, .club-2d { display: flex; flex-direction: column; gap: 16px; }
-.phone-only { display: none; }
+.view-gallery { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.view-gallery__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.view-gallery__grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.view-gallery__large { display: flex; flex-direction: column; gap: 8px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px; }
+.view-gallery__stage { position: relative; display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--surface-sunken); }
+.view-gallery__canvas { display: block; width: 100%; height: 100%; }
+/* Only the draggable 3D reconstruction takes over touch drags; every other view lets the page scroll. */
+.club-views__recon .view-gallery__canvas { touch-action: none; }
+.view-gallery__label { position: absolute; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
+.view-gallery__fallback { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; color: var(--muted); font-size: 14px; }
+.view-gallery__fallback--thumb { font-size: 12px; padding: 4px; }
+.view-gallery__caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.view-gallery__name { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.view-gallery__hint { font-size: 12px; color: var(--muted); }
+.view-gallery__thumbs { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.view-gallery__thumb { display: flex; flex-direction: column; gap: 6px; min-height: 44px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.view-gallery__thumb:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }
+.view-gallery__toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text-2); }
+.view-gallery__toggle input { width: 18px; height: 18px; accent-color: var(--club); }
+.view-gallery__reset { min-height: 44px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.view-gallery__reset:disabled { opacity: 0.45; cursor: default; }
+.club-views { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.club-views__note, .club-views__prov { margin: 0; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.view-gallery__note { position: absolute; left: 8px; bottom: 8px; margin: 0; font-size: 12px; color: var(--muted); background: rgba(13, 18, 16, 0.8); border-radius: 6px; padding: 4px 8px; }
+.view-badges { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.view-badges__item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-2); }
+.view-badges__swatch { width: 12px; height: 4px; border-radius: 2px; }
+.view-badges__value { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.view-badges__note { font-size: 12px; color: var(--muted); }
+@media (max-width: 639px) {
+  .view-gallery__grid { grid-template-columns: 1fr; }
+  .view-gallery__thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+}
 .stat-list--stack { grid-template-columns: 1fr; }
 .stat-list__delta { font-size: 13px; font-weight: 500; color: var(--muted); }
 .impact-tab__missing { display: flex; flex-direction: column; gap: 4px; }
@@ -254,16 +284,12 @@ textarea.field__input { padding: 10px 12px; }
 @media (min-width: 1024px) {
   .ball-data__grid { grid-template-columns: 3fr 2fr; }
   .ball-data__readouts { grid-template-columns: 1fr 2fr; }
-  .club-3d__diagrams { grid-template-columns: 1fr 1fr; }
-  .club-2d__diagrams { grid-template-columns: repeat(3, 1fr); }
   .club-2d__angles { grid-template-columns: 1fr 1fr; }
   .impact-tab { grid-template-columns: 3fr 2fr; }
 }
 @media (max-width: 639px) {
   .inspector h1 { font-size: 26px; }
   .head-tiles { grid-template-columns: repeat(2, 1fr); }
-  .phone-only { display: block; }
-  .is-hidden-phone { display: none; }
   .inspector-head__nav select { flex: 1 1 100%; }
 }
 .selected-card__empty { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }

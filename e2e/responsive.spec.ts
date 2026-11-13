@@ -62,7 +62,7 @@ for (const [width, height, hasTouch] of [[390, 844, true], [820, 1180, false], [
   test.describe(`no overflow @${width}`, () => {
     test.use({ viewport: { width, height }, hasTouch });
 
-    test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Ball data plus Face impact, 3D reconstruction, 2D reconstruction)', async ({ page }) => {
+    test('no horizontal body overflow on Load (files staged), Overview, and Inspector (Ball data plus Face impact, 3D, 2D reconstruction)', async ({ page }) => {
       await stageFiles(page);
       await noOverflow(page, 'load');
       await shot(page, 'load', width);
@@ -78,6 +78,21 @@ for (const [width, height, hasTouch] of [[390, 844, true], [820, 1180, false], [
         await noOverflow(page, `inspector ${tab}`);
         await shot(page, `inspector-${tab}`, width);
       }
+    });
+
+    test('headline tiles keep their text inside the box, including a measured Impact', async ({ page }) => {
+      await stageFiles(page);
+      await page.getByRole('button', { name: 'Analyze files' }).click();
+      await expect(page.getByText('In this browser only')).toBeVisible();
+      await goInspector(page);
+      const tiles = page.locator('.head-tiles');
+      for (let i = 0; i < 60 && !/\bin (toe|heel|centered)\b/.test(await tiles.innerText()); i++) {
+        await page.getByRole('button', { name: 'Next shot' }).first().click();
+      }
+      await expect(tiles).toContainText(/in (toe|heel|centered)/);
+      const spill = await tiles.locator(':scope > *').evaluateAll((els) =>
+        els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent));
+      expect(spill, 'tiles whose content is wider than the box').toEqual([]);
     });
   });
 }
@@ -101,7 +116,7 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-touch-targets', 390);
   });
 
-  test('the full shot table scrolls inside its box with Shot pinned, KPI tiles pair up, one 2D pane at a time, viewers fit the width', async ({ page }) => {
+  test('the full shot table scrolls inside its box with Shot pinned, KPI tiles pair up, club views show one large view with three thumbnails below it, viewers fit the width', async ({ page }) => {
     await loadAndAnalyze(page);
     const box = page.locator('.shots-table');
     await expect(box).toBeVisible();
@@ -122,15 +137,33 @@ test.describe('phone 390', () => {
     await goInspector(page);
     await fitsViewport(page.locator('.ball-data svg[aria-label*="3D ball flight"]'), 'ball-flight viewer');
     await fitsViewport(page.locator('.ball-data .fsa-spin-ball svg'), 'Ball data sphere');
-    await openTab(page, '3d');
-    await fitsViewport(page.locator('.club-data svg[aria-label^="3D club replay"]'), 'club 3D svg');
-    await openTab(page, '2d');
-    const visible = [];
-    for (const c of ['.delivery-top', '.delivery-side', '.delivery-spin']) {
-      if (await page.locator(c).first().isVisible()) visible.push(c);
+    for (const id of ['3d', '2d'] as const) {
+      await openTab(page, id);
+      const large = page.locator('.club-data .view-gallery__large');
+      await fitsViewport(page.locator('.club-data .view-gallery__large canvas'), `${id} large view`);
+      const thumbs = page.locator('.club-data .view-gallery__thumbs button');
+      await expect(thumbs).toHaveCount(3);
+      const lb = (await large.boundingBox())!;
+      for (const t of await thumbs.all()) {
+        await expect(t).toBeVisible();
+        expect((await t.boundingBox())!.y, `${id} thumbnails sit below the large view on a phone`).toBeGreaterThanOrEqual(lb.y + lb.height - 1);
+      }
     }
-    expect(visible, 'exactly one 2D pane visible').toHaveLength(1);
     await shot(page, 'inspector-2d-layout', 390);
+  });
+
+  test('touch: only the draggable 3D reconstruction captures swipes; every fixed view lets the page scroll', async ({ page }) => {
+    await loadAndAnalyze(page);
+    await goInspector(page);
+    const touch = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).touchAction);
+    await openTab(page, '3d');
+    expect(await touch('.club-data .view-gallery__large canvas')).not.toBe('none');
+    expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
+    await page.getByRole('button', { name: '3D reconstruction', exact: true }).click();
+    expect(await touch('.club-data .club-views__recon canvas')).toBe('none');
+    await openTab(page, '2d');
+    expect(await touch('.club-data .view-gallery__large canvas')).not.toBe('none');
+    expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
   });
 
   test('touch: tapping a table row selects it; tapping Next shot advances the position text', async ({ page }) => {
@@ -150,24 +183,23 @@ test.describe('phone 390', () => {
 test.describe('tablet 820', () => {
   test.use({ viewport: { width: 820, height: 1180 } });
 
-  test("inspector tabs visible; dispersion 'Target' label visible; camera control and both Show fieldsets wrap without overflow", async ({ page }) => {
+  test("inspector tabs visible; dispersion 'Target' label visible; camera control and both club galleries fit without overflow", async ({ page }) => {
     await loadAndAnalyze(page);
     await expect(page.locator('.fsa-dispersion svg text', { hasText: 'Target' }).first()).toBeVisible();
     await shot(page, 'overview-tablet', 820);
     await goInspector(page);
-    for (const name of ['Face impact', '3D reconstruction', '2D reconstruction']) {
-      await expect(page.getByRole('tab', { name })).toBeVisible();
+    for (const name of ['Face impact', '3D', '2D reconstruction']) {
+      await expect(page.getByRole('tab', { name, exact: true })).toBeVisible();
     }
     const camera = page.getByRole('group', { name: 'Camera angle' });
     await expect(camera).toBeVisible();
     await fitsViewport(camera, 'camera control');
-    await openTab(page, '3d');
-    await fitsViewport(page.locator('.club-data .show-toggles'), '3D Show fieldset');
-    await openTab(page, '2d');
-    await fitsViewport(page.locator('.club-data .show-toggles'), '2D Show fieldset');
-    for (const f of await page.locator('.show-toggles').all()) {
-      const m = await f.evaluate((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }));
-      expect(m.sw).toBeLessThanOrEqual(m.cw);
+    for (const id of ['3d', '2d'] as const) {
+      await openTab(page, id);
+      await fitsViewport(page.locator('.club-data .view-gallery'), `${id} club gallery`);
+      const lb = (await page.locator('.club-data .view-gallery__large').boundingBox())!;
+      const tb = (await page.locator('.club-data .view-gallery__thumbs button').first().boundingBox())!;
+      expect(tb.x, `${id} thumbnails sit right of the large view`).toBeGreaterThanOrEqual(lb.x + lb.width - 1);
     }
     await noOverflow(page, 'inspector 820');
   });
@@ -246,3 +278,54 @@ for (const width of [1440, 1920] as const) {
     });
   });
 }
+
+test.describe('club views render @1280', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('3D tab draws a non-blank WebGL picture and swaps views; dragging works only in 3D reconstruction, where it enables Reset view', async ({ page }) => {
+    await loadAndAnalyze(page);
+    await goInspector(page);
+    await openTab(page, '3d');
+    const panel = page.getByRole('tabpanel', { name: '3D', exact: true });
+    const name = panel.locator('.view-gallery__large .view-gallery__name');
+    await expect(name).toHaveText('Face-on');
+    const canvas = panel.locator('.view-gallery__large canvas');
+    const colours = (c: typeof canvas) => c.evaluate((el: HTMLCanvasElement) => {
+      const d = el.getContext('2d')!.getImageData(0, 0, el.width, el.height).data;
+      const seen = new Set<number>();
+      for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!);
+      return seen.size;
+    });
+    await expect.poll(() => colours(canvas), { message: 'distinct colours in the large view' }).toBeGreaterThan(8);
+    // Idle, with Play paused: the gallery must not keep redrawing.
+    const idleDraws = await page.evaluate(async () => {
+      let n = 0;
+      const orig = CanvasRenderingContext2D.prototype.drawImage;
+      CanvasRenderingContext2D.prototype.drawImage = function (this: CanvasRenderingContext2D, ...args: Parameters<typeof orig>) { n++; return orig.apply(this, args); } as typeof orig;
+      await new Promise((r) => setTimeout(r, 1000));
+      CanvasRenderingContext2D.prototype.drawImage = orig;
+      return n;
+    });
+    expect(idleDraws, 'drawImage calls in 1 s of idle').toBeLessThan(5);
+    await panel.getByRole('button', { name: 'Show Top view' }).click();
+    await expect(name).toHaveText('Top');
+    await expect(panel.getByRole('button', { name: 'Show Face-on view' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Reset view' })).toHaveCount(0);
+
+    await panel.getByRole('button', { name: '3D reconstruction', exact: true }).click();
+    const recon = panel.getByRole('region', { name: '3D reconstruction' });
+    const rc = recon.locator('canvas');
+    await expect.poll(() => colours(rc), { message: 'distinct colours in the reconstruction' }).toBeGreaterThan(8);
+    const reset = recon.getByRole('button', { name: 'Reset view' });
+    await expect(reset).toBeDisabled();
+    const box = (await rc.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 150, box.y + box.height / 2 - 50, { steps: 8 });
+    await page.mouse.up();
+    await expect(reset).toBeEnabled();
+    await reset.click();
+    await expect(reset).toBeDisabled();
+    await shot(page, 'inspector-3d-views', 1280);
+  });
+});

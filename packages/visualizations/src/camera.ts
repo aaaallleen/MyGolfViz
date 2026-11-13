@@ -25,7 +25,8 @@ const bounds = (pts: Vec3[]) => {
 };
 
 /** Re-centre the target on the framed points, then fit focal so every point sits within FILL of the half-extents. */
-function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewportWidth: number): Camera {
+/** `lockLateral` keeps the view's left-right centre where it is (DTL keeps the target line straight up the middle). */
+function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewportWidth: number, lockLateral = false): Camera {
   let target = initialTarget;
   const offsets = (cam: Camera) => {
     const out: { x: number; y: number; depth: number }[] = [];
@@ -48,7 +49,7 @@ function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewpo
       if (q.y > yHi) yHi = q.y;
       dSum += q.depth;
     }
-    const cx = (xLo + xHi) / 2;
+    const cx = lockLateral ? 0 : (xLo + xHi) / 2;
     const cy = (yLo + yHi) / 2;
     const dAvg = dSum / o.length;
     const f = normalize(sub(target, eye));
@@ -66,6 +67,8 @@ function fitCamera(eye: Vec3, initialTarget: Vec3, up: Vec3, pts: Vec3[], viewpo
   return { eye, target, up, focal: Math.min(fit, 3 * viewportWidth) };
 }
 
+const DTL_EYE_HEIGHT_YD = 1.6;
+
 function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness, viewportWidth: number): Camera {
   const g = handedness === 'right' ? -1 : 1;
   const { lo, hi, mid } = bounds(pts);
@@ -74,11 +77,13 @@ function presetCamera(preset: CameraPreset, pts: Vec3[], handedness: Handedness,
   const behind = Math.max(0, -lo[1]);
   let eye: Vec3, up: Vec3 = [0, 0, 1];
   switch (preset) {
-    case 'dtl': eye = [2.5 * g, -(behind + 10), 3]; break;
+    // Down the line: on the target line, a few yards behind the ball at eye height, looking straight at the target.
+    case 'dtl': eye = [0, -(behind + 6), DTL_EYE_HEIGHT_YD]; break;
     case 'perspective': eye = [0.45 * M * g, -(behind + 0.45 * M), 0.3 * M + Z]; break;
     case 'side': eye = [-(0.8 * M + 20) * g, mid[1], 1.5]; break;
     case 'top': eye = [mid[0], mid[1], Z + M]; up = [0, 1, 0]; break;
   }
+  if (preset === 'dtl') return fitCamera(eye, [0, mid[1], DTL_EYE_HEIGHT_YD], up, pts, viewportWidth, true);
   const target: Vec3 = preset === 'top' ? [mid[0], mid[1], 0] : mid;
   return fitCamera(eye, target, up, pts, viewportWidth);
 }
@@ -92,29 +97,6 @@ export function flightCamera(
   if (pts.length === 1) pts.push([-5, -5, 0], [5, 5, 3]);
   return presetCamera(preset, pts, handedness, viewportWidth);
 }
-
-/** Corners of the swing-plane quad the 3D component draws: origin ± u·R, and those points + w·R. */
-export function planeQuad(scene: ReplayScene): Vec3[] {
-  const pl = scene.plane;
-  if (!pl) return [];
-  const R = CLUB_ARC_RADIUS_YD;
-  const at = (su: number, sw: number): Vec3 =>
-    [0, 1, 2].map((k) => su * pl.u[k]! * R + sw * pl.w[k]! * R) as Vec3;
-  return [at(-1, 0), at(1, 0), at(1, 1), at(-1, 1)];
-}
-
-/** Fixed elevated 3/4 view from the golfer side, framing origin, club arc and plane quad only. */
-export function clubCamera(scene: ReplayScene, viewportWidth: number): Camera {
-  const g = scene.handedness === 'right' ? -1 : 1;
-  const pts: Vec3[] = [[0, 0, 0], ...(scene.clubArc ?? []), ...planeQuad(scene)];
-  if (pts.length === 1) pts.push([-R_FALLBACK, -R_FALLBACK, 0], [R_FALLBACK, R_FALLBACK, R_FALLBACK]);
-  const { lo, hi, mid } = bounds(pts);
-  const S = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2], 1);
-  const eye: Vec3 = [mid[0] + g * 1.2 * S, mid[1] - 1.0 * S, mid[2] + 0.5 * S];
-  return fitCamera(eye, mid, [0, 0, 1], pts, viewportWidth);
-}
-
-const R_FALLBACK = CLUB_ARC_RADIUS_YD;
 
 export function projectPoint(
   p: Vec3, cam: Camera, viewport: { width: number; height: number },

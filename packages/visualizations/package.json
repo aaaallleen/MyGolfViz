@@ -5,10 +5,15 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./club3d": "./src/club3d/index.ts"
+  },
   "dependencies": {
     "@fsa/analytics": "*",
     "@fsa/domain": "*",
-    "@fsa/ui": "*"
+    "@fsa/ui": "*",
+    "three": "0.187.0"
   },
   "peerDependencies": {
     "react": "^19.0.0"

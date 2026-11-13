@@ -1,4 +1,5 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
+import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import { displayOrder, filterShots, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 
@@ -12,6 +13,11 @@ export interface StoreState {
   selectedId: string | null;
   landingMode: LandingMode;
   inspectorTab: InspectorTab;
+  /** The large view in each club tab; kept while moving between shots, reset by a reload. */
+  clubView3D: View3D;
+  clubView2D: View2D;
+  /** 3D tab: fixed measuring cameras or the draggable 3D reconstruction. */
+  clubMode3D: Mode3D;
   busy: boolean;
 }
 
@@ -29,6 +35,9 @@ export type Action =
   | { type: 'step'; delta: 1 | -1 }
   | { type: 'setLandingMode'; mode: LandingMode }
   | { type: 'setInspectorTab'; tab: InspectorTab }
+  | { type: 'setClubView3D'; view: View3D }
+  | { type: 'setClubView2D'; view: View2D }
+  | { type: 'setClubMode3D'; mode: Mode3D }
   | { type: 'setBusy'; busy: boolean };
 
 const ALL: Filters = { club: null, fileId: null };
@@ -41,6 +50,9 @@ export const initialState: StoreState = {
   selectedId: null,
   landingMode: 'carry',
   inspectorTab: '2d',
+  clubView3D: 'faceOn',
+  clubView2D: 'ftt',
+  clubMode3D: 'views',
   busy: false,
 };
 
@@ -89,6 +101,12 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return { ...state, landingMode: action.mode };
     case 'setInspectorTab':
       return { ...state, inspectorTab: action.tab };
+    case 'setClubView3D':
+      return { ...state, clubView3D: action.view };
+    case 'setClubView2D':
+      return { ...state, clubView2D: action.view };
+    case 'setClubMode3D':
+      return { ...state, clubMode3D: action.mode };
     case 'setBusy':
       return { ...state, busy: action.busy };
   }

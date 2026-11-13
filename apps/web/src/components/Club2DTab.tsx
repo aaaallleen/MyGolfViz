@@ -1,19 +1,8 @@
-import { clsx } from 'clsx';
-import { useState } from 'react';
-import { summarize } from '@fsa/analytics';
-import { FIELD_DEFS, formatMeasurement, type MeasurementKey, type Shot } from '@fsa/domain';
-import { Missing, SegmentedControl } from '@fsa/ui';
-import { HorizontalDeliveryDiagram, SpinAxisDiagram, VerticalDeliveryDiagram } from '@fsa/visualizations';
-import { ShowToggles } from './ShowToggles';
-
-const OPTIONS = [
-  { key: 'ftt', label: 'Face to target' },
-  { key: 'ftp', label: 'Face to path' },
-  { key: 'loft', label: 'Dynamic loft' },
-  { key: 'spin', label: 'Spin axis' },
-] as const;
-type Key = (typeof OPTIONS)[number]['key'];
-type Pane = 'top' | 'side' | 'spin';
+import { summarize, type ReplayScene } from '@fsa/analytics';
+import { FIELD_DEFS, formatMeasurement, type Handedness, type MeasurementKey, type Shot } from '@fsa/domain';
+import { Missing } from '@fsa/ui';
+import { ClubViews2D } from '@fsa/visualizations/club3d';
+import { useWorkingSet } from '../state/store';
 
 const ANGLES: { key: MeasurementKey; label: string }[] = [
   { key: 'dynamicLoft', label: 'Dynamic loft' },
@@ -22,47 +11,18 @@ const ANGLES: { key: MeasurementKey; label: string }[] = [
 ];
 const CLUB_KEYS = FIELD_DEFS.filter((d) => d.group === 'club').map((d) => d.key);
 
-export function Club2DTab({ shot, visibleShots }: { shot: Shot; visibleShots: readonly Shot[] }) {
-  const [show, setShow] = useState<Record<Key, boolean>>({ ftt: true, ftp: true, loft: true, spin: true });
-  const [scale, setScale] = useState<'true' | 'x2'>('true');
-  const [pane, setPane] = useState<Pane>('top');
+export function Club2DTab({ shot, scene, visibleShots, handedness }: {
+  shot: Shot; scene: ReplayScene; visibleShots: readonly Shot[]; handedness: Handedness;
+}) {
+  const { clubView2D, setClubView2D } = useWorkingSet();
   const m = shot.m;
-
-  const panes: { value: Pane; label: string }[] = [
-    { value: 'top', label: 'Top view' },
-    { value: 'side', label: 'Side view' },
-    ...(show.spin ? [{ value: 'spin' as const, label: 'Spin axis' }] : []),
-  ];
-  const activePane = panes.some((p) => p.value === pane) ? pane : 'top';
-  const cls = (p: Pane, base: string) => clsx('panel', base, p !== activePane && 'is-hidden-phone');
 
   const sameClub = visibleShots.filter((s) => s.club === shot.club);
   const withClubData = sameClub.filter((s) => CLUB_KEYS.some((k) => s.m[k] !== null));
 
   return (
     <div className="club-2d">
-      <ShowToggles options={[...OPTIONS]} value={show} onChange={(k, on) => setShow((s) => ({ ...s, [k]: on }))} />
-      <div className="phone-only">
-        <SegmentedControl<Pane> label="Diagram" options={panes} value={activePane} onChange={setPane} />
-      </div>
-      <div className="club-2d__diagrams">
-        <div className={cls('top', 'delivery-top')}>
-          <HorizontalDeliveryDiagram title="Impact geometry · top view" clubPath={m.clubPath} faceToTarget={m.ftt} faceToPath={m.ftp}
-            launchH={m.launchH} exaggerate={4} layers={{ faceToTarget: show.ftt, faceToPath: show.ftp }} />
-        </div>
-        <div className={cls('side', 'delivery-side')}>
-          <SegmentedControl<'true' | 'x2'> label="Scale" value={scale} onChange={setScale}
-            options={[{ value: 'true', label: 'True scale' }, { value: 'x2', label: 'Exaggerated ×2' }]} />
-          <VerticalDeliveryDiagram aoa={m.aoa} dynamicLoft={m.dynamicLoft} launchV={m.launchV} spinLoft={m.spinLoft}
-            exaggerate={scale === 'true' ? 1 : 2} layers={{ dynamicLoft: show.loft }} />
-        </div>
-        {show.spin && (
-          <div className={cls('spin', 'delivery-spin')}>
-            <h3>Spin axis</h3>
-            <SpinAxisDiagram spinAxis={m.spinAxis} />
-          </div>
-        )}
-      </div>
+      <ClubViews2D scene={scene} m={m} club={shot.club} handedness={handedness} large={clubView2D} onSelect={setClubView2D} />
       <div className="club-2d__angles">
         <div className="panel">
           <h3>Measured angles</h3>

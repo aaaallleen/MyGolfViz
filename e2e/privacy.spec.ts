@@ -40,7 +40,7 @@ test('no request leaves the origin, uses a non-GET method, carries a body, or ta
   await expect(page.getByRole('tab', { name: 'Face impact' })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: '2D reconstruction' }).click();
   await expect(page.getByRole('tab', { name: '2D reconstruction' })).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: '3D reconstruction' }).click();
+  await page.getByRole('tab', { name: '3D', exact: true }).click();
   await expect(page.getByText('Illustrative reconstruction')).toBeVisible();
   await playBriefly(page, clubData);
 

@@ -13,7 +13,7 @@ import { useWorkingSet, type InspectorTab } from '../state/store';
 
 const TABS: { id: InspectorTab; label: string; short: string }[] = [
   { id: 'impact', label: 'Face impact', short: 'Impact' },
-  { id: '3d', label: '3D reconstruction', short: '3D' },
+  { id: '3d', label: '3D', short: '3D' },
   { id: '2d', label: '2D reconstruction', short: '2D' },
 ];
 
@@ -37,6 +37,12 @@ export function InspectorPage() {
     () => visibleShots.filter((s) => s.id !== shot?.id).map((s) => scenes.get(s.id)!),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scenes, shot?.id],
+  );
+  // The 3D club views' "All shots" overlay compares against the same club only.
+  const sameClub = useMemo(
+    () => visibleShots.filter((s) => s.id !== shot?.id && s.club === shot?.club).map((s) => scenes.get(s.id)!),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scenes, shot?.id, shot?.club],
   );
 
   const { select } = ws;
@@ -68,8 +74,8 @@ export function InspectorPage() {
           <TabList label="Club data view" tabs={TABS.map((t) => ({ id: t.id, label: phone ? t.short : t.label }))} />
         </div>
         <TabPanel value="impact"><ImpactTab shot={shot} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
-        <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} /></TabPanel>
-        <TabPanel value="2d"><Club2DTab shot={shot} visibleShots={visibleShots} /></TabPanel>
+        <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} others={sameClub} /></TabPanel>
+        <TabPanel value="2d"><Club2DTab shot={shot} scene={scene} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
       </Tabs>
       <ProvenanceLegend />
       <AllMeasurements shot={shot} />
