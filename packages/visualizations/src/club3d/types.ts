@@ -17,3 +17,6 @@ export interface ViewCamera {
   /** ortho: half-height of the view in yards; persp: vertical field of view in degrees. */
   size: number;
 }
+
+/** Golf ball radius in yards (1.68 in diameter). */
+export const BALL_RADIUS_YD = 0.84 / 36;

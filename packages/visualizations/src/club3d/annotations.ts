@@ -2,7 +2,7 @@ import { formatMeasurement, type MeasurementKey, type Measurements, type Vec3 } 
 import type { ReplayScene } from '@fsa/analytics';
 import { screenBasis } from './cameras';
 import { BALL, CLUB, FACE, INK, MUTED, PLANE } from './palette';
-import type { View2D, View3D, ViewCamera } from './types';
+import { BALL_RADIUS_YD, type View2D, type View3D, type ViewCamera } from './types';
 
 export type Annotation =
   | { kind: 'line'; id: string; color: string; a: Vec3; b: Vec3; dashed?: boolean; width?: number }
@@ -43,9 +43,9 @@ function badge(key: MeasurementKey, m: Measurements, note?: string): Badge {
 }
 
 /** A wedge plus the label that names it, placed just past the arc on the bisector. */
-function wedgeWithLabel(id: string, key: MeasurementKey, m: Measurements, from: Vec3, to: Vec3, radius: number): Annotation[] {
-  const w: Wedge = { kind: 'wedge', id, color: COLORS[key]!, origin: ORIGIN, from, to, radius };
-  const at = scale(normalize(add(normalize(from), normalize(to))), radius * 1.15);
+function wedgeWithLabel(id: string, key: MeasurementKey, m: Measurements, from: Vec3, to: Vec3, radius: number, origin: Vec3 = ORIGIN): Annotation[] {
+  const w: Wedge = { kind: 'wedge', id, color: COLORS[key]!, origin, from, to, radius };
+  const at = add(origin, scale(normalize(add(normalize(from), normalize(to))), radius * 1.15));
   return [w, { kind: 'label', id: `${id}-label`, color: w.color, at, text: `${LABELS[key]} ${fmt(key, m[key])}` }];
 }
 
@@ -57,6 +57,9 @@ function planeVectors(m: Measurements, handedness: 'right' | 'left') {
   const w: Vec3 = add(scale(s, Math.cos(V)), scale(Z, Math.sin(V)));
   return { u, s, w };
 }
+
+/** Where the face meets the back of the ball (ball resting on the ground), for a horizontal face heading. */
+const contact = (heading: Vec3): Vec3 => [-heading[0] * BALL_RADIUS_YD, -heading[1] * BALL_RADIUS_YD, BALL_RADIUS_YD];
 
 /** Face normal for a face-to-target wedge: the measured FTT. */
 const faceToTarget = (m: Measurements): Vec3 | null => (m.ftt === null ? null : heading(m.ftt));
@@ -128,7 +131,8 @@ export function annotations2D(view: View2D, m: Measurements): Annotation[] {
       const face = view === 'ftt' ? faceToTarget(m) : faceFromPath(m) ?? faceToTarget(m);
       if (face) {
         const edge: Vec3 = [face[1], -face[0], 0]; // along the leading edge, perpendicular to the face normal
-        out.push({ kind: 'line', id: 'face-edge', color: FACE, a: scale(edge, -0.06), b: scale(edge, 0.06), width: 3 });
+        const c = contact(face);
+        out.push({ kind: 'line', id: 'face-edge', color: FACE, a: add(c, scale(edge, -0.06)), b: add(c, scale(edge, 0.06)), width: 3 });
       }
       if (path) out.push({ kind: 'line', id: 'path-line', color: CLUB, a: scale(path, -0.12), b: scale(path, 0.12), width: 3 });
       if (m.launchH !== null) out.push({ kind: 'line', id: 'launch-line', color: BALL, a: ORIGIN, b: scale(heading(m.launchH), 0.14), width: 3 });
@@ -142,8 +146,9 @@ export function annotations2D(view: View2D, m: Measurements): Annotation[] {
       out.push({ kind: 'line', id: 'ground', color: MUTED, a: scale(p, -0.3), b: scale(p, 0.3) });
       if (m.dynamicLoft !== null) {
         const up = add(scale(p, -Math.sin(rad(m.dynamicLoft))), scale(Z, Math.cos(rad(m.dynamicLoft))));
-        out.push({ kind: 'line', id: 'face-plane', color: FACE, a: scale(up, -0.08), b: scale(up, 0.1), width: 3 });
-        out.push(...wedgeWithLabel('loft', 'dynamicLoft', m, Z, up, 0.05));
+        const c = contact(p);
+        out.push({ kind: 'line', id: 'face-plane', color: FACE, a: add(c, scale(up, -0.08)), b: add(c, scale(up, 0.1)), width: 3 });
+        out.push(...wedgeWithLabel('loft', 'dynamicLoft', m, Z, up, 0.05, c));
       }
       if (m.aoa !== null) {
         const a = tilt(p, m.aoa);
@@ -157,11 +162,12 @@ export function annotations2D(view: View2D, m: Measurements): Annotation[] {
       break;
     }
     case 'spinAxis': {
-      out.push({ kind: 'line', id: 'level', color: MUTED, a: [-0.1, 0, 0], b: [0.1, 0, 0], dashed: true });
+      const centre: Vec3 = [0, 0, BALL_RADIUS_YD];
+      out.push({ kind: 'line', id: 'level', color: MUTED, a: add(centre, [-0.1, 0, 0]), b: add(centre, [0.1, 0, 0]), dashed: true });
       if (m.spinAxis !== null) {
         const a = rad(m.spinAxis);
         const d: Vec3 = [Math.cos(a), 0, -Math.sin(a)]; // positive (R) tilts the right end down
-        out.push({ kind: 'line', id: 'spin-axis', color: INK, a: scale(d, -0.09), b: scale(d, 0.09), width: 3 });
+        out.push({ kind: 'line', id: 'spin-axis', color: INK, a: add(centre, scale(d, -0.09)), b: add(centre, scale(d, 0.09)), width: 3 });
       }
       break;
     }

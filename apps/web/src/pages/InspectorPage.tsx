@@ -75,7 +75,7 @@ export function InspectorPage() {
         </div>
         <TabPanel value="impact"><ImpactTab shot={shot} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
         <TabPanel value="3d"><Club3DTab shot={shot} scene={scene} others={sameClub} /></TabPanel>
-        <TabPanel value="2d"><Club2DTab shot={shot} visibleShots={visibleShots} /></TabPanel>
+        <TabPanel value="2d"><Club2DTab shot={shot} scene={scene} visibleShots={visibleShots} handedness={handedness} /></TabPanel>
       </Tabs>
       <ProvenanceLegend />
       <AllMeasurements shot={shot} />

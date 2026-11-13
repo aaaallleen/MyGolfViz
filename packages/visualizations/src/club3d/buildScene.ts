@@ -9,6 +9,7 @@ import { buildClubModel } from './clubModel';
 import { arcCenter, headPose } from './headPose';
 import { CLUB, MUTED, PLANE } from './palette';
 import { GRID } from '../theme';
+import { BALL_RADIUS_YD } from './types';
 
 export interface ClubSceneInput {
   scene: ReplayScene;
@@ -29,12 +30,13 @@ export interface ClubScene {
   setProgress(p: number): void;
   setShowOthers(on: boolean): void;
   setPlaneVisible(on: boolean): void;
+  /** 1 = solid; below 1 ghosts the club so the ball shows through it (2D spin-axis view). */
+  setClubOpacity(alpha: number): void;
   /** Shows these annotations. With a `key`, the layer is built on first use and reused after. */
   setAnnotations(a: Annotation[], key?: string): void;
   dispose(): void;
 }
 
-const BALL_RADIUS_YD = 0.84 / 36;
 const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
@@ -235,6 +237,16 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
     },
     setShowOthers(on) { others.visible = on && !is2D; },
     setPlaneVisible(on) { plane.visible = on && !is2D; },
+    setClubOpacity(alpha) {
+      club.traverse((o) => {
+        const mat = (o as THREE.Mesh).material as THREE.Material | undefined;
+        if (!mat) return;
+        mat.transparent = alpha < 1;
+        mat.opacity = alpha;
+        mat.depthWrite = alpha >= 1;
+        mat.needsUpdate = true; // the transparent flag changes the shader program
+      });
+    },
     setAnnotations,
     dispose() { disposeTree(root); },
   };

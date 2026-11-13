@@ -125,6 +125,22 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
+  test('setClubOpacity ghosts every club material and restores it', () => {
+    const s = buildClubScene(input());
+    const mats = () => {
+      const out: THREE.Material[] = [];
+      named(s.root, 'club')!.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) out.push(m as THREE.Material); });
+      return out;
+    };
+    const before = mats().map((m) => m.version);
+    s.setClubOpacity(0.3);
+    expect(mats().every((m) => m.transparent && m.opacity === 0.3)).toBe(true);
+    expect(mats().every((m, i) => m.version > before[i]!), 'needsUpdate so the shader recompiles').toBe(true);
+    s.setClubOpacity(1);
+    expect(mats().every((m) => m.opacity === 1 && !m.transparent)).toBe(true);
+    s.dispose();
+  });
+
   test('driver and left-handed builds do not throw', () => {
     expect(() => buildClubScene(input({ club: 'Driver', scene: sceneOf(REF_M, 'left') })).dispose()).not.toThrow();
     expect(() => buildClubScene(input({ club: '4 Hybrid' })).dispose()).not.toThrow();

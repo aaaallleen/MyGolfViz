@@ -3,7 +3,7 @@ import { annotations2D, annotations3D, apparentWedgeDeg, badges2D, badges3D, typ
 import { camera2D, camera3D } from './cameras';
 import { BALL, CLUB, FACE, INK, PLANE } from './palette';
 import { REF_M, mOf, sceneOf } from './testFixtures';
-import { VIEWS_2D, VIEWS_3D, type View2D, type View3D } from './types';
+import { BALL_RADIUS_YD, VIEWS_2D, VIEWS_3D, type View2D, type View3D } from './types';
 
 const rh = sceneOf(REF_M, 'right');
 const lh = sceneOf(REF_M, 'left');
@@ -64,6 +64,25 @@ describe('2D wedges read true', () => {
     const axis = annotations2D('spinAxis', REF_M).find((a) => a.id === 'spin-axis') as Extract<Annotation, { kind: 'line' }>;
     const [right, left] = axis.a[0] > axis.b[0] ? [axis.a, axis.b] : [axis.b, axis.a];
     expect(right[2]).toBeLessThan(left[2]);
+  });
+
+  test('spin axis and its level line pass through the ball centre', () => {
+    const list = annotations2D('spinAxis', REF_M);
+    for (const id of ['spin-axis', 'level']) {
+      const l = list.find((a) => a.id === id) as Extract<Annotation, { kind: 'line' }>;
+      expect((l.a[2] + l.b[2]) / 2).toBeCloseTo(BALL_RADIUS_YD, 9);
+    }
+  });
+
+  test('2D face lines and the loft wedge sit on the club face, one ball radius behind the ball centre', () => {
+    const faceN = [Math.sin(11.8 * Math.PI / 180), Math.cos(11.8 * Math.PI / 180), 0];
+    const edge = annotations2D('ftt', REF_M).find((a) => a.id === 'face-edge') as Extract<Annotation, { kind: 'line' }>;
+    const mid = [0, 1, 2].map((i) => (edge.a[i]! + edge.b[i]!) / 2);
+    expect(mid[0]).toBeCloseTo(-faceN[0]! * BALL_RADIUS_YD, 9);
+    expect(mid[1]).toBeCloseTo(-faceN[1]! * BALL_RADIUS_YD, 9);
+    const loft = wedge(annotations2D('loft', REF_M), 'loft')!;
+    expect(loft.origin[2]).toBeCloseTo(BALL_RADIUS_YD, 9);
+    expect(loft.origin[1]).toBeLessThan(0);
   });
 
   test('loft view: the face plane leans back, away from the target', () => {

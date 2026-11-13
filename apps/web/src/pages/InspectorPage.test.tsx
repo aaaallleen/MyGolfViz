@@ -23,10 +23,6 @@ function pick(view: ReturnType<typeof open>, ordinal: number, row: number) {
 }
 const panel = () => screen.getByRole('tabpanel');
 const tab = (name: string) => screen.getByRole('tab', { name });
-const checks = (root: HTMLElement) =>
-  Array.from(within(within(root).getByRole('group', { name: 'Show' })).getAllByRole('checkbox')).map((c) => [
-    c.closest('label')!.textContent, (c as HTMLInputElement).checked,
-  ]);
 
 describe('InspectorPage', () => {
   test('opened with no shot selected, it shows the first visible shot and selects it', () => {
@@ -141,30 +137,22 @@ describe('InspectorPage', () => {
     expect(within(panel()).getAllByText('Club delivery not measured for this shot').length).toBeGreaterThan(0);
   });
 
-  test('2D tab: Show checkboxes exactly Face to target, Face to path, Dynamic loft, Spin axis (checked); unchecking Spin axis / Dynamic loft removes layers', async () => {
-    const user = userEvent.setup();
+  test('2D tab: a gallery opens on Face to target with Face to path, Dynamic loft and Spin axis as thumbnails; no Show fieldset', () => {
     open();
-    expect(checks(panel())).toEqual([['Face to target', true], ['Face to path', true], ['Dynamic loft', true], ['Spin axis', true]]);
-    expect(panel().querySelector('.delivery-spin')).not.toBeNull();
-    expect(panel().querySelector('[data-role="loft"]')).not.toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Spin axis' }));
-    expect(panel().querySelector('.delivery-spin')).toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Dynamic loft' }));
-    expect(panel().querySelector('[data-role="loft"]')).toBeNull();
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Face to target' }));
-    expect(panel().querySelector('[data-role="face"]')).toBeNull();
+    const gallery = within(panel()).getByRole('region', { name: '2D club views' });
+    expect((gallery.querySelector('.view-gallery__large .view-gallery__name') as HTMLElement).textContent).toBe('Face to target');
+    expect(within(gallery).getAllByRole('button', { name: /^Show / }).map((b) => b.getAttribute('aria-label')))
+      .toEqual(['Show Face to path view', 'Show Dynamic loft view', 'Show Spin axis view']);
+    expect(within(panel()).queryByRole('group', { name: 'Show' })).toBeNull();
+    expect(within(panel()).queryByRole('button', { name: 'True scale' })).toBeNull();
   });
 
-  test("2D tab: panel titles, measured angles and session average note", () => {
+  test("2D tab: measured angles and session average panels stay", () => {
     open();
     const t = panel().textContent!;
-    expect(t).toContain('Impact geometry · top view');
-    expect(t).toContain('Impact geometry · side view');
     expect(t).toContain('Measured angles');
     expect(t).toContain('Against session average');
     expect(t).toMatch(/Driver averages from \d+ of \d+ shots that have club data\./);
-    expect(screen.getByRole('button', { name: 'True scale' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Exaggerated ×2' })).toBeInTheDocument();
   });
 
   test('2D tab: session average rows read "{this shot} vs {average}" with no delta', () => {
@@ -181,16 +169,17 @@ describe('InspectorPage', () => {
     expect(panel().textContent).not.toContain('vs this shot');
   });
 
-  test("File 1 Shot 14, 2D tab: Not measured copy, launch 8.9° R, no zero fallbacks", () => {
+  test("File 1 Shot 14, 2D tab: Not measured badges, launch 8.9° R, no zero fallbacks", () => {
     const v = open();
     pick(v, 1, 15);
-    const t = panel().textContent!.replace(/\s+/g, ' ');
-    expect(t).toContain('Club path · –Not measured');
-    expect(t).toContain('Face to target · –Not measured');
-    expect(t).toContain('Face to path · –Not measured');
-    expect(t).toContain('8.9° R');
-    expect(t).toContain('Spin loft · –Not measured');
-    expect(t).not.toContain('0.0°');
+    const t = () => panel().textContent!.replace(/\s+/g, ' ');
+    expect(t()).toContain('Club path –Not measured');
+    expect(t()).toContain('Face to target –Not measured');
+    expect(t()).toContain('Launch direction 8.9° R');
+    expect(t()).not.toContain('0.0°');
+    act(() => v.store().setClubView2D('loft'));
+    expect(t()).toContain('Spin loft –Not measured');
+    expect(t()).not.toContain('0.0°');
   });
 
   test("File 1 Shot 15: header, chips and Impact tile", () => {
@@ -286,19 +275,14 @@ describe('InspectorPage', () => {
     expect(d).not.toHaveTextContent(/\bTime\b/);
   });
 
-  test('2D tab phone control toggles is-hidden-phone among delivery panels', async () => {
+  test('2D tab: clicking "Show Spin axis view" makes it large, and the choice survives Next shot', async () => {
     const user = userEvent.setup();
-    open();
-    const hidden = () => ['top', 'side', 'spin'].filter((k) => panel().querySelector(`.delivery-${k}`)?.classList.contains('is-hidden-phone'));
-    expect(hidden()).toEqual(['side', 'spin']);
-    const ctl = within(panel()).getByRole('group', { name: 'Diagram' });
-    await user.click(within(ctl).getByRole('button', { name: 'Side view' }));
-    expect(hidden()).toEqual(['top', 'spin']);
-    await user.click(within(ctl).getByRole('button', { name: 'Spin axis' }));
-    expect(hidden()).toEqual(['top', 'side']);
-    await user.click(within(panel()).getByRole('checkbox', { name: 'Spin axis' }));
-    expect(within(ctl).queryByRole('button', { name: 'Spin axis' })).toBeNull();
-    expect(hidden()).toEqual(['side']);
+    const v = open();
+    await user.click(within(panel()).getByRole('button', { name: 'Show Spin axis view' }));
+    const largeName = () => (panel().querySelector('.view-gallery__large .view-gallery__name') as HTMLElement).textContent;
+    expect(largeName()).toBe('Spin axis');
+    act(() => v.store().step(1));
+    expect(largeName()).toBe('Spin axis');
   });
 
   test('legend and provenance copy are present', () => {
