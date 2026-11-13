@@ -5,6 +5,7 @@ import { annotations3D } from './annotations';
 import { buildClubScene, type ClubScene, type ClubSceneInput } from './buildScene';
 import type { ClubModelData } from './clubModel';
 import { REF_M, mOf, sceneOf } from './testFixtures';
+import { BALL_RADIUS_YD } from './types';
 
 const scene = sceneOf(REF_M);
 const input = (over: Partial<ClubSceneInput> = {}): ClubSceneInput => ({
@@ -45,14 +46,17 @@ describe('buildClubScene', () => {
   });
 
   const clubs = ['7 Iron', 'Driver', '3 Wood', '4 Hybrid'];
-  const build = (club: string, m: Measurements, hand: Handedness = 'right') => {
+  const NO_LOFT = mOf({ swingH: 6, swingV: 60, aoa: -2, clubPath: 2 });
+  const build = (club: string, m: Measurements, hand: Handedness = 'right', over: Partial<ClubSceneInput> = {}) => {
     const sc = sceneOf(m, hand);
-    const s = buildClubScene(input({ club, m, scene: sc, annotations: [] }));
+    const s = buildClubScene(input({ club, m, scene: sc, annotations: [], ...over }));
     s.setProgress(0.63); s.root.updateMatrixWorld(true);
     return s;
   };
   const ballR = (s: ClubScene) => ((named(s.root, 'ball') as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius;
   const groundZ = (s: ClubScene) => named(s.root, 'ground')!.position.z;
+  /** How deep a sole may brush into the turf, in scene yards (0.35 in, scaled with the head like the ball). */
+  const turf = (s: ClubScene) => (0.35 / 36) * (ballR(s) / BALL_RADIUS_YD);
   /** Lowest vertex of the head (precise: the bounding box of a tilted head reaches below its real sole). */
   const headMinZ = (s: ClubScene) => new THREE.Box3().setFromObject(named(s.root, 'club-head')!, true).min.z;
   /** World point where the ball touches the face: ball centre minus radius along the face normal. */
@@ -61,41 +65,70 @@ describe('buildClubScene', () => {
     const normal = new THREE.Vector3(0, 1, 0).transformDirection(centre.matrixWorld);
     return centre.worldToLocal(worldOf(named(s.root, 'ball')!).addScaledVector(normal, -ballR(s)));
   };
+  /** The ball touches the face plane, centred heel to toe, at least 0.1 in inside the face's top and bottom. */
+  const expectContactOnFace = (s: ClubScene) => {
+    const face = new THREE.Box3().setFromBufferAttribute((named(s.root, 'club-face') as THREE.Mesh).geometry.getAttribute('position') as THREE.BufferAttribute);
+    const p = touchInFace(s);
+    expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
+    expect(p.z * 36).toBeGreaterThanOrEqual(face.min.z * 36 + 0.1 - 1e-3);
+    expect(p.z * 36).toBeLessThanOrEqual(face.max.z * 36 - 0.1 + 1e-3);
+  };
+  /** The head brushes at most the turf depth below the ground, and the tee is there exactly when the ground dropped. */
+  const expectGround = (s: ClubScene) => {
+    expect(headMinZ(s)).toBeGreaterThanOrEqual(groundZ(s) - turf(s) - 1e-6);
+    expect(named(s.root, 'target-line')!.position.z).toBeCloseTo(groundZ(s), 9);
+    expect(!!named(s.root, 'tee')).toBe(groundZ(s) < 0);
+  };
 
-  test.each(clubs)('%s: the ball stays on the origin and the head is never below the ground', (club) => {
+  test.each(clubs)('%s, no strike measured: the ball stays on the origin and touches the face; the head is not sunk', (club) => {
     const s = build(club, REF_M);
     expect(worldOf(named(s.root, 'ball')!).z).toBeCloseTo(ballR(s), 6);
-    expect(headMinZ(s)).toBeGreaterThanOrEqual(groundZ(s) - 1e-6);
-    expect(named(s.root, 'target-line')!.position.z).toBeCloseTo(groundZ(s), 9);
-    expect(!!named(s.root, 'tee')).toBe(groundZ(s) < -1e-6);
-    // No strike measured: the sole rests on the ground, which stays put, and no tee is drawn.
+    expectGround(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test.each(clubs)('%s, no loft measured: the ball touches the face and the head is not sunk', (club) => {
+    const s = build(club, NO_LOFT);
+    expectGround(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test('7 Iron at its static loft, no strike: the sole rests on the ground, no tee', () => {
+    const s = build('7 Iron', { ...REF_M, dynamicLoft: 33 });
     expect(groundZ(s)).toBe(0);
     expect(named(s.root, 'tee')).toBeUndefined();
     expect(headMinZ(s)).toBeCloseTo(0, 4);
     s.dispose();
   });
 
-  test.each(clubs)('%s: no strike measured: the ball still touches the face plane, centred heel to toe', (club) => {
-    const s = build(club, REF_M);
-    const p = touchInFace(s);
-    expect(Math.abs(p.y)).toBeLessThan(1e-3);
-    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
+  test('7 Iron at 40.9° loft, no strike: the contact is clamped onto the face and the sole stays within the turf', () => {
+    const s = build('7 Iron', REF_M);
+    expect(groundZ(s)).toBe(0);
+    expect(named(s.root, 'tee')).toBeUndefined();
+    expectContactOnFace(s);
     s.dispose();
   });
 
-  test('Driver with a measured centre strike is teed up: the ground drops to the head', () => {
-    const s = build('Driver', { ...REF_M, impactLateral: 0, impactVertical: 0 });
+  test('Driver at 35° loft, no strike: contact on the face, the head is teed up', () => {
+    const s = build('Driver', { ...REF_M, dynamicLoft: 35 });
+    expectContactOnFace(s);
     expect(groundZ(s)).toBeLessThan(0);
     expect(named(s.root, 'tee')).toBeDefined();
     expect(headMinZ(s)).toBeCloseTo(groundZ(s), 4);
     s.dispose();
   });
 
-  test.each(clubs)('%s: no loft measured: the sole rests on the ground at the static loft', (club) => {
-    const s = build(club, mOf({ swingH: 6, swingV: 60, aoa: -2, clubPath: 2 }));
-    expect(groundZ(s)).toBe(0);
-    expect(headMinZ(s)).toBeCloseTo(0, 4);
-    expect(named(s.root, 'tee')).toBeUndefined();
+  test('Driver with a measured centre strike: contact at the face centre, the head is teed up', () => {
+    const s = build('Driver', { ...REF_M, impactLateral: 0, impactVertical: 0 });
+    const p = touchInFace(s);
+    expect(p.x * 36).toBeCloseTo(0, 6);
+    expect(p.z * 36).toBeCloseTo(0, 6);
+    expect(groundZ(s)).toBeLessThan(0);
+    expect(named(s.root, 'tee')).toBeDefined();
+    expect(headMinZ(s)).toBeCloseTo(groundZ(s), 4);
     s.dispose();
   });
 
@@ -119,19 +152,36 @@ describe('buildClubScene', () => {
   });
 
   test('one impact value alone is treated as no strike', () => {
+    const none = build('7 Iron', REF_M);
     const s = build('7 Iron', { ...REF_M, impactLateral: 0.65 });
-    const p = touchInFace(s);
-    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
-    expect(Math.abs(p.y)).toBeLessThan(1e-3);
-    expect(groundZ(s)).toBe(0);
-    expect(named(s.root, 'tee')).toBeUndefined();
+    expect(touchInFace(s).distanceTo(touchInFace(none))).toBeLessThan(1e-9);
+    expect(groundZ(s)).toBe(groundZ(none));
+    expectContactOnFace(s);
+    none.dispose(); s.dispose();
+  });
+
+  const expectFinite = (s: ClubScene) =>
+    s.root.traverse((o) => expect(o.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite)).toBe(true));
+
+  test.each([[-5, 0, 0], [75, 0, 0], [40.9, 2.5, 1.5]])('extreme input loft %s strike (%s, %s): finite and not sunk', (loft, lat, vert) => {
+    const s = build('Gap Wedge', { ...REF_M, dynamicLoft: loft, impactLateral: lat, impactVertical: vert });
+    expectFinite(s);
+    expectGround(s);
     s.dispose();
   });
 
-  test.each([[-5, 0, 0], [75, 0, 0], [40.9, 2.5, 1.5]])('extreme input loft %s strike (%s, %s): finite and above ground', (loft, lat, vert) => {
-    const s = build('Gap Wedge', { ...REF_M, dynamicLoft: loft, impactLateral: lat, impactVertical: vert });
-    s.root.traverse((o) => expect(o.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite)).toBe(true));
-    expect(headMinZ(s)).toBeGreaterThanOrEqual(groundZ(s) - 1e-6);
+  test.each([-5, 75, 85])('extreme input loft %s, no strike: finite, not sunk, contact on the face', (loft) => {
+    const s = build('Gap Wedge', { ...REF_M, dynamicLoft: loft });
+    expectFinite(s);
+    expectGround(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test('2d (headScale 1), no strike: contact on the face and the head is not sunk', () => {
+    const s = build('7 Iron', REF_M, 'right', { headScale: 1, mode: '2d' });
+    expectGround(s);
+    expectContactOnFace(s);
     s.dispose();
   });
 

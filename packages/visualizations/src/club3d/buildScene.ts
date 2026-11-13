@@ -41,8 +41,10 @@ const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
 const IN = 1 / 36; // yards per inch
-/** Below this rise of the face-up axis the face is nearly horizontal, and sliding it to the ground would run away. */
-const MIN_SLIDE_UP_Z = 0.2;
+/** How deep a sole may brush into the turf (inches, scaled with the head) before the ball is teed up instead. */
+const TURF_IN = 0.35;
+/** An unmeasured contact stays at least this far inside the face's top and bottom (inches). */
+const FACE_MARGIN_IN = 0.1;
 
 const v3 = (p: Vec3) => new THREE.Vector3(p[0], p[1], p[2]);
 
@@ -109,6 +111,13 @@ function lowestZ(mesh: THREE.Mesh, top: THREE.Object3D): number {
   let min = Infinity;
   for (let i = 0; i < pos.count; i++) min = Math.min(min, v.fromBufferAttribute(pos, i).applyMatrix4(toFrame).z);
   return min;
+}
+
+/** A mesh the club model contract (clubModel.ts) guarantees; a model without it is a bug, so fail loudly. */
+function modelMesh(model: THREE.Object3D, name: 'club-head' | 'club-face'): THREE.Mesh {
+  const mesh = model.getObjectByName(name);
+  if (!(mesh instanceof THREE.Mesh)) throw new Error(`Club model has no mesh named ${name}`);
+  return mesh;
 }
 
 /** A thin tee from the lowered ground up to the bottom of the ball. */
@@ -206,25 +215,34 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   holder.scale.setScalar(headScale);
   holder.add(head);
   club.add(holder);
-  // The ball touches the face at the measured strike point (the face centre when it was not measured). The point is
-  // in the model's own frame, so the handedness mirror and headScale reach it through the model and holder.
-  const strike = pose.strike
-    ? new THREE.Vector3(pose.strike.lateralIn * IN, 0, pose.strike.verticalIn * IN)
-    : new THREE.Vector3();
-  head.updateMatrix();
-  holder.updateMatrix();
-  const strikeOffset = strike.applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
+  // The ball touches the face at contact point P (model-local yards), at the ball's point nearest the face.
+  // P is in the model's own frame, so the handedness mirror and headScale reach it through the model and holder.
+  const headMesh = modelMesh(head, 'club-head');
   const touch = new THREE.Vector3(0, 0, ballR).addScaledVector(yAxis, -ballR);
-  holder.position.copy(touch).sub(strikeOffset);
-  // The club's pivot is identity at impact, so the holder's parent frame is the world there.
-  const minZ = lowestZ(head.getObjectByName('club-head') as THREE.Mesh, holder);
-  if (!pose.strike && zAxis.z >= MIN_SLIDE_UP_Z) {
-    // Without a measured strike the contact height is unknown, so the sole rests on the ground: slide the head along
-    // its own face-up axis (the ball keeps touching the face plane) until its lowest point is at z = 0.
-    holder.position.addScaledVector(zAxis, -minZ / zAxis.z);
-  } else if (minZ < 0) {
-    // A measured strike (or a nearly horizontal face) that would sink the head is teed up instead: the ground and
-    // target line drop to its lowest point, and the ball stays at the origin every angle line is drawn from.
+  head.updateMatrix();
+  /** Places the head so the ball touches the face at `p` and returns the head's lowest z. */
+  const placeAt = (p: THREE.Vector3) => {
+    const offset = p.clone().applyMatrix4(head.matrix).multiplyScalar(headScale).applyQuaternion(holder.quaternion);
+    holder.position.copy(touch).sub(offset);
+    // The club's pivot is identity at impact, so the holder's parent frame is the world there.
+    return lowestZ(headMesh, holder);
+  };
+  let contact: THREE.Vector3;
+  if (pose.strike) {
+    contact = new THREE.Vector3(pose.strike.lateralIn * IN, 0, pose.strike.verticalIn * IN); // never altered
+  } else {
+    // Unmeasured: centred heel to toe, at the height on the face that would rest the sole on the ground (sliding the
+    // head up its face by s lowers the contact by s), kept on the face.
+    const minZ0 = placeAt(new THREE.Vector3());
+    const ideal = zAxis.z > 1e-6 ? minZ0 / zAxis.z / headScale : 0;
+    const face = new THREE.Box3().setFromBufferAttribute(modelMesh(head, 'club-face').geometry.getAttribute('position') as THREE.BufferAttribute);
+    const margin = FACE_MARGIN_IN * IN;
+    contact = new THREE.Vector3(0, 0, THREE.MathUtils.clamp(ideal, face.min.z + margin, face.max.z - margin));
+  }
+  const minZ = placeAt(contact);
+  if (minZ < -TURF_IN * IN * headScale) {
+    // Deeper than a sole brushing the turf: tee the ball up instead. The ground and target line drop to the head's
+    // lowest point, and the ball stays at the origin every angle line is drawn from.
     ground.position.z = minZ;
     target.position.z = minZ;
     root.add(teeMesh(minZ, ballR));

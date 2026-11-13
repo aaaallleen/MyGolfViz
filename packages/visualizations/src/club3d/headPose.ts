@@ -10,7 +10,7 @@ export interface HeadPose {
   toeDir: Vec3;
   /** Measured contact point in inches from the face centre (toe +, high +); null unless both were measured. */
   strike: { lateralIn: number; verticalIn: number } | null;
-  /** True when dynamic loft was not measured: the head is drawn at its static loft, soled. */
+  /** True when dynamic loft was not measured: the head is drawn at its static loft. */
   flat: boolean;
 }
 
