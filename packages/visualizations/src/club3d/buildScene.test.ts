@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { clubCategory, type Handedness, type Measurements } from '@fsa/domain';
 import { annotations3D } from './annotations';
-import { buildClubScene, type ClubSceneInput } from './buildScene';
+import { buildClubScene, type ClubScene, type ClubSceneInput } from './buildScene';
+import type { ClubModelData } from './clubModel';
+import { HEAD_SPECS } from '../heads/specs';
 import { REF_M, mOf, sceneOf } from './testFixtures';
 
 const scene = sceneOf(REF_M);
@@ -42,15 +45,187 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test.each(['7 Iron', 'Driver', '4 Hybrid'])('%s at impact: the ball rests on the ground and the head sole sits on it', (club) => {
-    const s = buildClubScene(input({ club }));
-    s.setProgress(0.63);
+  const clubs = ['7 Iron', 'Driver', '3 Wood', '4 Hybrid'];
+  const NO_LOFT = mOf({ swingH: 6, swingV: 60, aoa: -2, clubPath: 2 });
+  const build = (club: string, m: Measurements, hand: Handedness = 'right', over: Partial<ClubSceneInput> = {}) => {
+    const sc = sceneOf(m, hand);
+    const s = buildClubScene(input({ club, m, scene: sc, annotations: [], ...over }));
+    s.setProgress(0.63); s.root.updateMatrixWorld(true);
+    return s;
+  };
+  const ballR = (s: ClubScene) => ((named(s.root, 'ball') as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius;
+  /** Lowest vertex of the head (precise: the bounding box of a tilted head reaches below its real sole). */
+  const headMinZ = (s: ClubScene) => new THREE.Box3().setFromObject(named(s.root, 'club-head')!, true).min.z;
+  /** World point where the ball touches the face: ball centre minus radius along the face normal. */
+  const touchInFace = (s: ClubScene) => {
+    const centre = named(s.root, 'club-face-centre')!;
+    const normal = new THREE.Vector3(0, 1, 0).transformDirection(centre.matrixWorld);
+    return centre.worldToLocal(worldOf(named(s.root, 'ball')!).addScaledVector(normal, -ballR(s)));
+  };
+  /** The ball touches the face plane, centred heel to toe, at least 0.1 in inside the face's top and bottom. */
+  const expectContactOnFace = (s: ClubScene) => {
+    const face = new THREE.Box3().setFromBufferAttribute((named(s.root, 'club-face') as THREE.Mesh).geometry.getAttribute('position') as THREE.BufferAttribute);
+    const p = touchInFace(s);
+    expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    expect(Math.abs(p.x) * 36).toBeLessThan(0.01);
+    expect(p.z * 36).toBeGreaterThanOrEqual(face.min.z * 36 + 0.1 - 1e-3);
+    expect(p.z * 36).toBeLessThanOrEqual(face.max.z * 36 - 0.1 + 1e-3);
+  };
+  /** Nothing adjusts for the ground: it and the target line stay at z = 0, and there is no tee. */
+  const expectGroundUntouched = (s: ClubScene) => {
+    expect(named(s.root, 'ground')!.position.z).toBe(0);
+    expect(named(s.root, 'target-line')!.position.z).toBe(0);
+    expect(named(s.root, 'tee')).toBeUndefined();
+  };
+
+  test.each(clubs)('%s, no strike measured: the ball stays on the origin and touches the face; the ground is untouched', (club) => {
+    const s = build(club, REF_M);
+    expect(worldOf(named(s.root, 'ball')!).z).toBeCloseTo(ballR(s), 6);
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test.each(clubs)('%s, no loft measured: the ball touches the face; the ground is untouched', (club) => {
+    const s = build(club, NO_LOFT);
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test('7 Iron at its static loft, no strike: the sole rests on the ground', () => {
+    const s = build('7 Iron', { ...REF_M, dynamicLoft: 33 });
+    expectGroundUntouched(s);
+    expect(headMinZ(s)).toBeCloseTo(0, 4);
+    s.dispose();
+  });
+
+  test('7 Iron at 40.9° loft, no strike: the sole rests on the ground, the contact on the face', () => {
+    const s = build('7 Iron', REF_M);
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
+    expect(headMinZ(s)).toBeCloseTo(0, 4);
+    s.dispose();
+  });
+
+  test('Driver at 35° loft, no strike: contact clamped on the face, the sole is left below the ground line', () => {
+    const s = build('Driver', { ...REF_M, dynamicLoft: 35 });
+    expectContactOnFace(s);
+    expectGroundUntouched(s);
+    expect(headMinZ(s)).toBeLessThan(0);
+    s.dispose();
+  });
+
+  test.each(['right', 'left'] as const)('Driver at 35° with a measured high-heel strike (%s): headBounds hold the whole head, below the ground too', (hand) => {
+    const s = build('Driver', { ...REF_M, dynamicLoft: 35, impactLateral: -0.5, impactVertical: 0.5 }, hand);
+    expectGroundUntouched(s);
+    expect(headMinZ(s)).toBeLessThan(0); // the case that clipped: the head reaches below the ground
+    const { min, max } = s.headBounds;
+    const head = new THREE.Box3().setFromObject(named(s.root, 'club-head')!, true);
+    for (let i = 0; i < 3; i++) {
+      expect(min[i]).toBeCloseTo(head.min.getComponent(i), 9);
+      expect(max[i]).toBeCloseTo(head.max.getComponent(i), 9);
+    }
+    s.dispose();
+  });
+
+  test('Driver with a measured centre strike: contact at the face centre; the sole is below the ground line and left there', () => {
+    const s = build('Driver', { ...REF_M, impactLateral: 0, impactVertical: 0 });
+    const p = touchInFace(s);
+    expect(p.x * 36).toBeCloseTo(0, 6);
+    expect(p.z * 36).toBeCloseTo(0, 6);
+    expect(headMinZ(s)).toBeLessThan(0);
+    expectGroundUntouched(s);
+    s.dispose();
+  });
+
+  const clubsByHand = clubs.flatMap((club) => (['right', 'left'] as const).map((hand) => [club, hand] as const));
+
+  test.each(clubsByHand)('%s, %s-handed: a measured strike puts the ball on that point of the face', (club, hand) => {
+    const s = build(club, { ...REF_M, impactLateral: 0.65, impactVertical: -0.3 }, hand);
+    const p = touchInFace(s); // model-local yards; the mirror is inside the model, so toe is +x for both hands
+    expect(p.x * 36).toBeCloseTo(0.65, 2);
+    expect(p.z * 36).toBeCloseTo(-0.3, 2);
+    expect(Math.abs(p.y)).toBeLessThan(1e-3);
+    expectGroundUntouched(s);
+    s.dispose();
+  });
+
+  /** The scene at impact as built (the pivot is identity there), without moving along the arc. */
+  const atImpact = (club: string, m: Measurements, hand: Handedness) => {
+    const s = buildClubScene(input({ club, m, scene: sceneOf(m, hand), annotations: [] }));
     s.root.updateMatrixWorld(true);
-    const ball = named(s.root, 'ball')!;
-    const r = ((ball as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius;
-    expect(worldOf(ball).z).toBeCloseTo(r, 6);
-    const head = new THREE.Box3().setFromObject(named(s.root, 'club-head')!);
-    expect(head.min.z).toBeCloseTo(0, 3);
+    return s;
+  };
+  /** World direction of the face normal: club-face-centre's world rotation applied to +y. */
+  const faceNormalWorld = (s: ClubScene) =>
+    new THREE.Vector3(0, 1, 0).applyQuaternion(named(s.root, 'club-face-centre')!.getWorldQuaternion(new THREE.Quaternion()));
+  /** World direction of the model's toe axis (model +x, through the left-handed mirror). */
+  const toeWorld = (s: ClubScene) => new THREE.Vector3(1, 0, 0).transformDirection(named(s.root, 'club-head-model')!.matrixWorld);
+  const expectOrientation = (s: ClubScene, fttDeg: number, loftDeg: number, hand: Handedness) => {
+    const f = (fttDeg * Math.PI) / 180, l = (loftDeg * Math.PI) / 180;
+    const want = [Math.sin(f) * Math.cos(l), Math.cos(f) * Math.cos(l), Math.sin(l)];
+    const n = faceNormalWorld(s);
+    for (let i = 0; i < 3; i++) expect(Math.abs(n.getComponent(i) - want[i]!), `normal[${i}]`).toBeLessThan(1e-6);
+    const toe = toeWorld(s);
+    expect(Math.abs(toe.z), 'level leading edge').toBeLessThan(1e-6);
+    expect(Math.sign(toe.x), 'toe away from the golfer').toBe(hand === 'right' ? 1 : -1);
+  };
+
+  test.each(clubsByHand)('%s, %s-handed: the face points along the measured face angle and loft; the toe is level and away from the golfer', (club, hand) => {
+    const s = atImpact(club, { ...REF_M, ftt: 11.8, dynamicLoft: 40.9 }, hand);
+    expectOrientation(s, 11.8, 40.9, hand);
+    s.dispose();
+  });
+
+  test.each(clubsByHand)('%s, %s-handed: with no face angle or loft measured the face is square at its static loft', (club, hand) => {
+    const s = atImpact(club, { ...REF_M, ftt: null, dynamicLoft: null }, hand);
+    expectOrientation(s, 0, HEAD_SPECS[clubCategory(club)].loftDeg, hand);
+    s.dispose();
+  });
+
+  test('left-handed toe strike moves the head the opposite way in the world', () => {
+    const x = (hand: Handedness) => {
+      const s = build('7 Iron', { ...REF_M, ftt: 0, impactLateral: 0.8, impactVertical: 0 }, hand);
+      const v = worldOf(named(s.root, 'club-face-centre')!).x;
+      s.dispose();
+      return v;
+    };
+    expect(Math.sign(x('right'))).toBe(-Math.sign(x('left')));
+  });
+
+  test('one impact value alone is treated as no strike', () => {
+    const none = build('7 Iron', REF_M);
+    const s = build('7 Iron', { ...REF_M, impactLateral: 0.65 });
+    expect(touchInFace(s).distanceTo(touchInFace(none))).toBeLessThan(1e-9);
+    expect(headMinZ(s)).toBeCloseTo(headMinZ(none), 9);
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
+    none.dispose(); s.dispose();
+  });
+
+  const expectFinite = (s: ClubScene) =>
+    s.root.traverse((o) => expect(o.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite)).toBe(true));
+
+  test.each([[-5, 0, 0], [75, 0, 0], [40.9, 2.5, 1.5]])('extreme input loft %s strike (%s, %s): finite, the ground untouched', (loft, lat, vert) => {
+    const s = build('Gap Wedge', { ...REF_M, dynamicLoft: loft, impactLateral: lat, impactVertical: vert });
+    expectFinite(s);
+    expectGroundUntouched(s);
+    s.dispose();
+  });
+
+  test.each([-5, 75, 85])('extreme input loft %s, no strike: finite, the ground untouched, contact on the face', (loft) => {
+    const s = build('Gap Wedge', { ...REF_M, dynamicLoft: loft });
+    expectFinite(s);
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
+    s.dispose();
+  });
+
+  test('2d (headScale 1), no strike: contact on the face, the ground untouched', () => {
+    const s = build('7 Iron', REF_M, 'right', { headScale: 1, mode: '2d' });
+    expectGroundUntouched(s);
+    expectContactOnFace(s);
     s.dispose();
   });
 
@@ -104,14 +279,38 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test('dispose() disposes every geometry it created', () => {
+  test('dispose() disposes every geometry it created and none of the shared head geometry', () => {
     const s = buildClubScene(input());
     const geoms = new Set<THREE.BufferGeometry>();
     s.root.traverse((o) => { const g = (o as THREE.Mesh).geometry; if (g) geoms.add(g); });
+    const shared = [...geoms].filter((g) => g.userData.shared);
+    expect(shared.length).toBeGreaterThan(0);
     const spy = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose');
     s.dispose();
     const disposed = new Set(spy.mock.contexts as THREE.BufferGeometry[]);
-    for (const g of geoms) expect(disposed.has(g)).toBe(true);
+    for (const g of geoms) expect(disposed.has(g), g.type).toBe(!g.userData.shared);
+  });
+
+  test('a second scene for the same club still renders its head after the first is disposed', () => {
+    const a = buildClubScene(input({ club: 'Driver' })); a.dispose();
+    const b = buildClubScene(input({ club: 'Driver' }));
+    const g = (named(b.root, 'club-head') as THREE.Mesh).geometry;
+    expect(g.getAttribute('position').count).toBeGreaterThan(100);
+    b.dispose();
+  });
+
+  test.each(['7 Iron', 'Driver', '3 Wood', '4 Hybrid'])('%s: hosel and shaft form one straight line from the hosel base', (club) => {
+    const s = buildClubScene(input({ club })); s.root.updateMatrixWorld(true);
+    const hosel = named(s.root, 'club-hosel')!, shaft = named(s.root, 'club-shaft')!;
+    const axis = (o: THREE.Object3D) => new THREE.Vector3(0, 1, 0).applyQuaternion(o.getWorldQuaternion(new THREE.Quaternion()));
+    expect(axis(hosel).angleTo(axis(shaft))).toBeLessThan(1e-6);
+    expect(worldOf(shaft).sub(worldOf(hosel)).normalize().angleTo(axis(shaft))).toBeLessThan(1e-4);
+    const model = named(s.root, 'club-head-model')!;
+    const hoselLength = ((hosel as THREE.Mesh).geometry as THREE.CylinderGeometry).parameters.height;
+    const lowerEnd = worldOf(hosel).addScaledVector(axis(hosel), -hoselLength / 2);
+    const base = model.localToWorld((model.userData as ClubModelData).hoselBase.clone());
+    expect(lowerEnd.distanceTo(base)).toBeLessThan(1e-6);
+    s.dispose();
   });
 
   test('missing plane (swingH null): no arc points, club at the ball, no throw', () => {

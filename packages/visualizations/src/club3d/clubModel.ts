@@ -1,85 +1,141 @@
 import * as THREE from 'three';
 import type { ClubCategory, Handedness } from '@fsa/domain';
-import { FACE_OUTLINES } from '../faceOutlines';
-import { parseOutline } from './headPose';
+import { HEAD_SPECS } from '../heads/specs';
+import { bodySurface, faceOutline, scoreLines } from '../heads/shape';
 
 const IN = 1 / 36; // yards per inch
-/** Front-to-back depth of the head, inches. */
-const DEPTH_IN: Record<ClubCategory, number> = { driver: 4.2, wood: 3.0, iron: 0.6 };
-const HEAD_COLOR = '#4A525B';
-const FACE_COLOR = '#8A939C';
-const HOSEL_COLOR = '#2B3036';
+/** Body mesh resolution (around × front to back) for the wood kinds; blades ignore it. */
+const BODY_NU = 48;
+const BODY_NV = 32;
+/** Body edges that turn by more than this stay hard (a blade's back and sole against its rim). The wood bodies
+ *  turn by up to about 47° between neighbouring triangles on their squared-off toe and heel and stay smooth. */
+const CREASE_RAD = (60 * Math.PI) / 180;
+/** The face plate and score lines sit just proud of the face so they draw over it. */
+const FACE_LIFT_IN = 0.002;
+const LINES_LIFT_IN = 0.004;
+
+/** What a club model carries in `userData`, so the scene can pose the head and draw its hosel and shaft. */
+export interface ClubModelData {
+  loftDeg: number;
+  lieDeg: number;
+  /** Where the hosel starts, in model-local yards, before the handedness mirror. */
+  hoselBase: THREE.Vector3;
+  hoselLengthYd: number;
+  hoselRadiusYd: number;
+  hoselColor: string;
+}
+
+interface HeadGeometry {
+  head: THREE.BufferGeometry;
+  face: THREE.BufferGeometry;
+  grooves: THREE.BufferGeometry;
+}
+
+/** Built once per club type and shared by every model; scenes must not dispose them (`userData.shared`). */
+const geometries = new Map<ClubCategory, HeadGeometry>();
 
 /**
- * Club head at true size in yards. Local frame: origin at the face centre, face normal +y,
- * toe +x (−x when left-handed), up +z. `userData.hoselTop` is the local point the shaft starts from.
+ * Club head at true size in yards.
+ * Contract: origin = face centre, +y = face normal, +x = toe (scale.x = −1 when left-handed), +z = up along the face.
+ * Children named club-head, club-face, club-grooves, club-face-centre. userData is ClubModelData.
+ * Geometries are cached per category and carry userData.shared = true. A loaded model must meet the same contract.
  */
 export function buildClubModel(category: ClubCategory, handedness: Handedness): THREE.Group {
-  const o = FACE_OUTLINES[category];
-  const k = (o.widthIn / o.frameWidth) * IN; // frame units to yards
-  // Frame coords are face-on for a right-hander (toe on the left, y down): local x = toe, local z = up.
-  const toLocal = ([fx, fy]: [number, number]) => new THREE.Vector2((o.centre.x - fx) * k, (o.centre.y - fy) * k);
-
-  const shape = new THREE.Shape();
-  for (const seg of parseOutline(o.d)) {
-    const p = seg.pts.map(toLocal);
-    if (seg.op === 'M') shape.moveTo(p[0]!.x, p[0]!.y);
-    else if (seg.op === 'L') shape.lineTo(p[0]!.x, p[0]!.y);
-    else if (seg.op === 'C') shape.bezierCurveTo(p[0]!.x, p[0]!.y, p[1]!.x, p[1]!.y, p[2]!.x, p[2]!.y);
-    else shape.closePath();
-  }
-  const depth = DEPTH_IN[category] * IN;
-  const bevel = Math.min(depth * 0.35, 0.12 * IN);
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 24,
-  });
-  geo.rotateX(Math.PI / 2); // shape y → up (+z), extrusion → back of the head (−y)
-  geo.translate(0, -bevel, 0); // face surface at y = 0
+  const spec = HEAD_SPECS[category];
+  const geo = headGeometry(category);
+  const { finish } = spec;
 
   const model = new THREE.Group();
   model.name = 'club-head-model';
-  const head = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: HEAD_COLOR, metalness: 0.35, roughness: 0.4 }));
+
+  const head = new THREE.Mesh(geo.head, new THREE.MeshStandardMaterial({ color: finish.body, metalness: finish.metalness, roughness: finish.roughness }));
   head.name = 'club-head';
   model.add(head);
 
-  // A lighter face plate, just proud of the face, so the face reads in every view.
-  const faceGeo = new THREE.ShapeGeometry(shape, 24);
-  faceGeo.rotateX(Math.PI / 2);
-  faceGeo.rotateZ(Math.PI); // ShapeGeometry faces +z before rotation; turn it to face +y
-  faceGeo.scale(-1, 1, 1);
-  faceGeo.translate(0, 0.002 * IN, 0);
-  const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({ color: FACE_COLOR, metalness: 0.2, roughness: 0.55, side: THREE.DoubleSide }));
+  const face = new THREE.Mesh(geo.face, new THREE.MeshStandardMaterial({ color: finish.face, metalness: 0.2, roughness: 0.55 }));
   face.name = 'club-face';
   model.add(face);
 
-  if (o.grooves) {
-    const pts: THREE.Vector3[] = [];
-    for (const y of o.grooves.ys) {
-      const a = toLocal([o.grooves.x1, y]), b = toLocal([o.grooves.x2, y]);
-      pts.push(new THREE.Vector3(a.x, 0.004 * IN, a.y), new THREE.Vector3(b.x, 0.004 * IN, b.y));
-    }
-    const grooves = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: HOSEL_COLOR }));
-    grooves.name = 'club-grooves';
-    model.add(grooves);
-  }
-
-  // Hosel: the iron outline has one; woods get a short neck at the heel.
-  const h = o.hosel ?? { x1: o.centre.x + o.frameWidth * 0.42, y1: o.centre.y - 20, x2: o.centre.x + o.frameWidth * 0.46, y2: o.centre.y - 70 };
-  const a2 = toLocal([h.x1, h.y1]), b2 = toLocal([h.x2, h.y2]);
-  const a = new THREE.Vector3(a2.x, -depth / 2, a2.y), b = new THREE.Vector3(b2.x, -depth / 2, b2.y);
-  const len = a.distanceTo(b);
-  const hoselGeo = new THREE.CylinderGeometry(0.2 * IN, 0.28 * IN, len, 16);
-  const hosel = new THREE.Mesh(hoselGeo, new THREE.MeshStandardMaterial({ color: HOSEL_COLOR, metalness: 0.4, roughness: 0.4 }));
-  hosel.name = 'club-hosel';
-  hosel.position.copy(a.clone().add(b).multiplyScalar(0.5));
-  hosel.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
-  model.add(hosel);
-  model.userData.hoselTop = b;
+  const grooves = new THREE.LineSegments(geo.grooves, new THREE.LineBasicMaterial({ color: finish.lines }));
+  grooves.name = 'club-grooves';
+  model.add(grooves);
 
   const centre = new THREE.Object3D();
   centre.name = 'club-face-centre';
   model.add(centre);
 
+  const data: ClubModelData = {
+    loftDeg: spec.loftDeg,
+    lieDeg: spec.lieDeg,
+    hoselBase: new THREE.Vector3(...spec.hosel.base).multiplyScalar(IN),
+    hoselLengthYd: spec.hosel.lengthIn * IN,
+    hoselRadiusYd: spec.hosel.radiusIn * IN,
+    hoselColor: finish.hosel,
+  };
+  model.userData = data;
+
   if (handedness === 'left') model.scale.x = -1;
   return model;
+}
+
+function headGeometry(category: ClubCategory): HeadGeometry {
+  const cached = geometries.get(category);
+  if (cached) return cached;
+  const spec = HEAD_SPECS[category];
+
+  const body = bodySurface(spec, BODY_NU, BODY_NV);
+  const head = splitAtCreases(body.positions.map((v) => v * IN), body.indices, CREASE_RAD);
+  head.computeVertexNormals();
+
+  // ShapeGeometry lies in its own (u, v) plane facing +w. The basis below sends u → −x, v → +z and w → +y
+  // (a proper rotation, so the winding still faces the normal); the shape is drawn at u = −x to undo the flip.
+  const shape = new THREE.Shape(faceOutline(spec).map(([x, z]) => new THREE.Vector2(-x * IN, z * IN)));
+  const face = new THREE.ShapeGeometry(shape);
+  face.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)));
+  face.translate(0, FACE_LIFT_IN * IN, 0);
+
+  const y = LINES_LIFT_IN * IN;
+  const grooves = new THREE.BufferGeometry().setFromPoints(
+    scoreLines(spec).flatMap(({ z, x1, x2 }) => [new THREE.Vector3(x1 * IN, y, z * IN), new THREE.Vector3(x2 * IN, y, z * IN)]),
+  );
+
+  const built = { head, face, grooves };
+  for (const g of Object.values(built)) g.userData.shared = true;
+  geometries.set(category, built);
+  return built;
+}
+
+/**
+ * An indexed geometry in which a vertex is shared only by triangles that are all on the face plane (y = 0) or all
+ * off it, and whose normals lie within `crease` of each other. `computeVertexNormals()` then shades the flat face
+ * flat, keeps sharp body edges hard and smooths the rest.
+ */
+function splitAtCreases(positions: Float32Array, indices: Uint32Array, crease: number): THREE.BufferGeometry {
+  const p = (v: number) => new THREE.Vector3(positions[3 * v], positions[3 * v + 1], positions[3 * v + 2]);
+  const triangles = Array.from({ length: indices.length / 3 }, (_, t) => {
+    const a = p(indices[3 * t]!), b = p(indices[3 * t + 1]!), c = p(indices[3 * t + 2]!);
+    const onFace = a.y === 0 && b.y === 0 && c.y === 0;
+    return { onFace, normal: new THREE.Vector3().crossVectors(b.sub(a), c.sub(a)).normalize() };
+  });
+  const cosCrease = Math.cos(crease);
+  // For every vertex, groups of its triangles that turn by less than the crease from the group's first one.
+  const groups = new Map<number, { onFace: boolean; seed: THREE.Vector3; copy: number }[]>();
+  const outPositions: number[] = [];
+  const outIndices = new Uint32Array(indices.length);
+  for (let k = 0; k < indices.length; k++) {
+    const v = indices[k]!, { onFace, normal } = triangles[Math.floor(k / 3)]!;
+    const list = groups.get(v) ?? [];
+    groups.set(v, list);
+    let group = list.find((g) => g.onFace === onFace && g.seed.dot(normal) >= cosCrease);
+    if (!group) {
+      group = { onFace, seed: normal, copy: outPositions.length / 3 };
+      outPositions.push(positions[3 * v]!, positions[3 * v + 1]!, positions[3 * v + 2]!);
+      list.push(group);
+    }
+    outIndices[k] = group.copy;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(outPositions, 3));
+  geo.setIndex(new THREE.BufferAttribute(outIndices, 1));
+  return geo;
 }
