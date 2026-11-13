@@ -7,7 +7,8 @@ import { ProvenanceTag } from '@fsa/ui';
 import { ReplayControls, useReplayClock } from '../ReplayControls';
 import { Banner } from '../SceneChrome';
 import { annotations3D, badges3D, type Annotation, type Badge } from './annotations';
-import { camera3D, screenBasis } from './cameras';
+import { camera3D } from './cameras';
+import { cameraState, orbitKey } from './orbit';
 import { frameCamera, toThreeCamera } from './renderer';
 import { VIEWS_3D, type View3D, type ViewCamera } from './types';
 import { useClubRender } from './useClubRender';
@@ -30,7 +31,6 @@ const META: Record<View3D, { name: string; hint: string }> = {
   overview: { name: '3/4 overview', hint: 'Everything in one picture' },
 };
 const PHASES = ['Downswing', 'Impact', 'Follow-through'];
-const OFF_PRESET_DEG = 0.5;
 const OFF_PRESET_NOTE = 'rotate back to read true';
 const FALLBACK_FRAME: Vec3[] = [[-0.6, -0.6, 0], [0.6, 0.6, 0.6]];
 
@@ -67,7 +67,8 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect }: ClubVie
 
   // Orbit state for the large view: its camera, preset and controls are rebuilt when the view, shot or size changes.
   const orbit = useRef<{ key: string; cam: THREE.Camera; preset: ViewCamera; controls: OrbitControls } | null>(null);
-  const [offPreset, setOffPreset] = useState(false);
+  const [offPreset, setOffPreset] = useState(false); // rotated: angles no longer read true
+  const [moved, setMoved] = useState(false); // rotated, zoomed or panned: Reset view has work to do
   const [orbitTick, setOrbitTick] = useState(0);
   const [resetTick, setResetTick] = useState(0);
   useEffect(() => () => { orbit.current?.controls.dispose(); orbit.current = null; }, []);
@@ -83,7 +84,7 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect }: ClubVie
       const aspect = canvas.clientWidth / canvas.clientHeight;
       let cam: THREE.Camera;
       if (v === large) {
-        const key = `${v}|${scene.shotId}|${canvas.clientWidth}x${canvas.clientHeight}|${resetTick}`;
+        const key = orbitKey(v, scene, canvas.clientWidth, canvas.clientHeight, resetTick);
         if (orbit.current?.key !== key || orbit.current.controls.domElement !== canvas) {
           orbit.current?.controls.dispose();
           const preset = camFor(v, aspect);
@@ -92,15 +93,15 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect }: ClubVie
           controls.target.set(...preset.target);
           controls.enableDamping = false;
           controls.addEventListener('change', () => {
-            const fwd = three.getWorldDirection(new THREE.Vector3());
-            const want = new THREE.Vector3(...screenBasis(preset).forward);
-            const off = (fwd.angleTo(want) * 180) / Math.PI > OFF_PRESET_DEG;
-            setOffPreset(off);
+            const st = cameraState(three, controls.target, preset);
+            setOffPreset(st.rotated);
+            setMoved(st.moved);
             setOrbitTick((n) => n + 1);
           });
           controls.update();
           orbit.current = { key, cam: three, preset, controls };
           setOffPreset(false);
+          setMoved(false);
           setOrbitTick((n) => n + 1);
         }
         cam = orbit.current.cam;
@@ -126,7 +127,7 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect }: ClubVie
           title={others.length === 0 ? 'No other shots with this club' : undefined}
           onChange={(e) => setShowOthers(e.target.checked)} />All shots
       </label>
-      <button type="button" className="view-gallery__reset" disabled={!offPreset} onClick={() => setResetTick((n) => n + 1)}>Reset view</button>
+      <button type="button" className="view-gallery__reset" disabled={!moved} onClick={() => setResetTick((n) => n + 1)}>Reset view</button>
     </>
   );
 

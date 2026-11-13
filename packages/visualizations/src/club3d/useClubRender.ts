@@ -9,15 +9,18 @@ type SceneSpec = Omit<ClubSceneInput, 'annotations'>;
  * Everything is disposed on unmount or when the scene inputs change.
  */
 export function useClubRender(spec: SceneSpec) {
-  const [webgl] = useState(() => webglAvailable());
+  const [webgl, setWebgl] = useState(() => webglAvailable());
   const renderer = useRef<SharedRenderer | null>(null);
   const canvases = useRef(new Map<string, HTMLCanvasElement>());
   const [size, setSize] = useState(0); // bumps on canvas resize so the owner redraws
 
   useEffect(() => {
     if (!webgl) return;
-    renderer.current = createSharedRenderer();
-    return () => { renderer.current?.dispose(); renderer.current = null; };
+    // No renderer (creation failed) or a lost context falls back to the no-WebGL message.
+    const r = createSharedRenderer(() => setWebgl(false));
+    if (!r) { setWebgl(false); return; }
+    renderer.current = r;
+    return () => { r.dispose(); renderer.current = null; };
   }, [webgl]);
 
   const { scene, m, club, others, headScale, mode } = spec;
@@ -30,7 +33,16 @@ export function useClubRender(spec: SceneSpec) {
   const observer = useRef<ResizeObserver | null>(null);
   useEffect(() => {
     if (!webgl || typeof ResizeObserver === 'undefined') return;
-    observer.current = new ResizeObserver(() => setSize((n) => n + 1));
+    // Redraw only when a canvas's size really changed; a fresh observe() always reports once.
+    const last = new WeakMap<Element, string>();
+    observer.current = new ResizeObserver((entries) => {
+      let changed = false;
+      for (const e of entries) {
+        const key = `${Math.round(e.contentRect.width)}x${Math.round(e.contentRect.height)}`;
+        if (last.get(e.target) !== key) { last.set(e.target, key); changed = true; }
+      }
+      if (changed) setSize((n) => n + 1);
+    });
     for (const c of canvases.current.values()) observer.current.observe(c);
     return () => { observer.current?.disconnect(); observer.current = null; };
   }, [webgl]);

@@ -84,3 +84,16 @@ describe('layoutLabels', () => {
     expect(out.map((x) => x.y)).toEqual([0.4, 0.41]);
   });
 });
+
+describe('ViewGallery canvas refs', () => {
+  test('re-rendering with the same views does not detach and re-attach canvases (no resize-observer loop)', () => {
+    const canvasRef = vi.fn();
+    const props = { label: '3D club views', views, large: 'a' as V, onSelect: () => {}, canvasRef, webgl: true };
+    const { rerender } = render(<ViewGallery<V> {...props} />);
+    const attached = canvasRef.mock.calls.length;
+    rerender(<ViewGallery<V> {...props} views={[...views]} />);
+    rerender(<ViewGallery<V> {...props} views={[...views]} />);
+    expect(canvasRef.mock.calls.filter(([, el]) => el === null)).toHaveLength(0);
+    expect(canvasRef.mock.calls.length).toBe(attached);
+  });
+});

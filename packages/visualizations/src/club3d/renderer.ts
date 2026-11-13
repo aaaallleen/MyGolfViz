@@ -8,12 +8,14 @@ import type { ViewCamera } from './types';
 const FILL = 0.9;
 const MAX_DPR = 2;
 
-/** True when the browser can create a WebGL context (false under jsdom). */
+/** True when the browser can create a WebGL 2 context (three r163+ dropped WebGL 1; false under jsdom). The probe context is released. */
 export function webglAvailable(): boolean {
   if (typeof window === 'undefined' || typeof WebGLRenderingContext === 'undefined') return false;
   try {
-    const c = document.createElement('canvas');
-    return !!(c.getContext('webgl2') ?? c.getContext('webgl'));
+    const ctx = document.createElement('canvas').getContext('webgl2') as WebGL2RenderingContext | null;
+    if (!ctx) return false;
+    ctx.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
   } catch {
     return false;
   }
@@ -57,8 +59,8 @@ export interface SharedRenderer {
   dispose(): void;
 }
 
-/** One WebGL context shared by every view slot of a tab; null when WebGL is unavailable. */
-export function createSharedRenderer(): SharedRenderer | null {
+/** One WebGL context shared by every view slot of a tab; null when WebGL is unavailable. `onLost` fires if the context is lost. */
+export function createSharedRenderer(onLost?: () => void): SharedRenderer | null {
   if (!webglAvailable()) return null;
   let renderer: THREE.WebGLRenderer;
   try {
@@ -66,6 +68,7 @@ export function createSharedRenderer(): SharedRenderer | null {
   } catch {
     return null;
   }
+  if (onLost) renderer.domElement.addEventListener('webglcontextlost', onLost);
   renderer.setClearColor(SURFACE);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return {
@@ -87,6 +90,7 @@ export function createSharedRenderer(): SharedRenderer | null {
       ctx.drawImage(renderer.domElement, 0, 0, pw, ph);
     },
     dispose() {
+      if (onLost) renderer.domElement.removeEventListener('webglcontextlost', onLost);
       renderer.dispose();
       renderer.forceContextLoss();
     },

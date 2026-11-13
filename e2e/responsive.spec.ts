@@ -268,6 +268,16 @@ test.describe('club views render @1280', () => {
       for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]!);
       return seen.size;
     }), { message: 'distinct colours in the large view' }).toBeGreaterThan(8);
+    // Idle, with Play paused: the gallery must not keep redrawing.
+    const idleDraws = await page.evaluate(async () => {
+      let n = 0;
+      const orig = CanvasRenderingContext2D.prototype.drawImage;
+      CanvasRenderingContext2D.prototype.drawImage = function (this: CanvasRenderingContext2D, ...args: Parameters<typeof orig>) { n++; return orig.apply(this, args); } as typeof orig;
+      await new Promise((r) => setTimeout(r, 1000));
+      CanvasRenderingContext2D.prototype.drawImage = orig;
+      return n;
+    });
+    expect(idleDraws, 'drawImage calls in 1 s of idle').toBeLessThan(5);
     await panel.getByRole('button', { name: 'Show Top view' }).click();
     await expect(name).toHaveText('Top');
     await expect(panel.getByRole('button', { name: 'Show Face-on view' })).toBeVisible();

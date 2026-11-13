@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import * as THREE from 'three';
 import { camera3D, projectOrtho } from './cameras';
 import { createSharedRenderer, frameCamera, toThreeCamera, webglAvailable } from './renderer';
@@ -40,5 +40,20 @@ describe('renderer', () => {
     const s = projectOrtho(cam, p, 1.6);
     expect((ndc.x + 1) / 2).toBeCloseTo(s.x, 6);
     expect((1 - ndc.y) / 2).toBeCloseTo(s.y, 6);
+  });
+});
+
+describe('webglAvailable on a WebGL 1-only browser', () => {
+  test('is false when only a "webgl" context exists (three r163+ needs WebGL 2), and releases the probe context', () => {
+    const lose = vi.fn();
+    vi.stubGlobal('WebGLRenderingContext', function WebGLRenderingContext() {});
+    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((kind: string) =>
+      kind === 'webgl' ? { getExtension: () => ({ loseContext: lose }) } : null) as never);
+    expect(webglAvailable()).toBe(false);
+    spy.mockImplementation(((kind: string) => (kind === 'webgl2' ? { getExtension: () => ({ loseContext: lose }) } : null)) as never);
+    expect(webglAvailable()).toBe(true);
+    expect(lose).toHaveBeenCalled();
+    spy.mockRestore();
+    vi.unstubAllGlobals();
   });
 });

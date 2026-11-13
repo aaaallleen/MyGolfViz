@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Missing } from '@fsa/ui';
 import type { Badge } from './annotations';
 
@@ -72,6 +72,15 @@ export function Badges({ badges }: { badges: Badge[] }) {
 
 /** One large view plus thumbnails; picking a thumbnail swaps it into the large slot. */
 export function ViewGallery<V extends string>({ label, views, large, onSelect, canvasRef, webgl, toolbar, largeOverlay }: ViewGalleryProps<V>) {
+  // Stable ref callbacks per view id: a new callback each render would detach and re-attach every canvas.
+  const latest = useRef(canvasRef);
+  latest.current = canvasRef;
+  const refs = useRef(new Map<V, (el: HTMLCanvasElement | null) => void>());
+  const refFor = (id: V) => {
+    let f = refs.current.get(id);
+    if (!f) { f = (el) => latest.current(id, el); refs.current.set(id, f); }
+    return f;
+  };
   const main = views.find((v) => v.id === large) ?? views[0]!;
   const thumbs = views.filter((v) => v.id !== main.id);
   return (
@@ -81,7 +90,7 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
         <div className="view-gallery__large">
           <div className="view-gallery__stage">
             {webgl ? (
-              <canvas key={main.id} ref={(el) => canvasRef(main.id, el)} role="img" aria-label={main.ariaLabel} className="view-gallery__canvas" />
+              <canvas key={main.id} ref={refFor(main.id)} role="img" aria-label={main.ariaLabel} className="view-gallery__canvas" />
             ) : (
               <p className="view-gallery__fallback" role="img" aria-label={main.ariaLabel}>
                 This view needs WebGL, which this browser doesn't provide. The numbers are below.
@@ -103,7 +112,7 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
             <button key={v.id} type="button" className="view-gallery__thumb" aria-label={`Show ${v.name} view`} onClick={() => onSelect(v.id)}>
               <span className="view-gallery__stage view-gallery__stage--thumb">
                 {webgl
-                  ? <canvas key={v.id} ref={(el) => canvasRef(v.id, el)} aria-hidden="true" className="view-gallery__canvas" />
+                  ? <canvas key={v.id} ref={refFor(v.id)} aria-hidden="true" className="view-gallery__canvas" />
                   : <span className="view-gallery__fallback view-gallery__fallback--thumb" aria-hidden="true">{v.name}</span>}
               </span>
               <span className="view-gallery__thumb-name">{v.name}</span>
