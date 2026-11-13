@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Shot } from '@fsa/domain';
 import { buildReplayScene } from '@fsa/analytics';
 import { BallFlight3D } from './BallFlight3D';
+import { BALL } from './theme';
 import { flightCamera, projectPoint } from './camera';
 
 const driver = {
@@ -62,6 +63,24 @@ test("'Show other shots' checked → 1 other-flight (null-flight skipped, opacit
   expect(Number(role(container, 'other-flight')!.getAttribute('opacity'))).toBeLessThanOrEqual(0.3);
   fireEvent.click(cb);
   expect(all(container, 'other-flight')).toHaveLength(0);
+});
+
+test('the selected flight stands out: other shots are a neutral colour, the selected one is the ball colour over a dark halo', () => {
+  const { container } = render(<BallFlight3D selected={sel} others={[wedgeScene]} />);
+  const selected = role(container, 'ball-flight')!;
+  const other = role(container, 'other-flight')!;
+  expect(selected.getAttribute('stroke')).toBe(BALL);
+  expect(other.getAttribute('stroke')).not.toBe(BALL);
+  const halo = role(container, 'ball-flight-halo')!;
+  expect(halo.getAttribute('d')).toBe(selected.getAttribute('d'));
+  expect(Number(halo.getAttribute('stroke-width'))).toBeGreaterThan(Number(selected.getAttribute('stroke-width')));
+  // Drawn after every other path, so nothing crosses over it.
+  const order = [...container.querySelectorAll('path[data-role]')].map((p) => p.getAttribute('data-role'));
+  expect(order.indexOf('ball-flight-halo')).toBeGreaterThan(order.lastIndexOf('other-flight'));
+  expect(order.indexOf('ball-flight')).toBeGreaterThan(order.indexOf('ball-flight-halo'));
+  // The selected landing ring matches its flight.
+  const rings = all(container, 'landing');
+  expect(rings[rings.length - 1]!.getAttribute('stroke')).toBe(BALL);
 });
 
 test("slider 0 → 'Launch', 50 → 'Ball flight', 100 → 'Landing' and ball sits at projected landing", () => {
