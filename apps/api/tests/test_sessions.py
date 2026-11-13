@@ -219,3 +219,35 @@ def test_delete_cleanup_failure_still_commits(client, settings, monkeypatch):
     monkeypatch.undo()
     assert client.get(f"/api/v1/sessions/{sid}").status_code == 404
     assert len(originals(settings)) == 1  # orphan left for the startup sweep
+
+
+def test_everything_survives_backend_restart(client, settings):
+    from fastapi.testclient import TestClient
+
+    from mygolfviz_api.app import create_app
+
+    sid = import_all(client).json()["session"]["id"]
+    a, b, c = _ids(client, sid)
+    shot = client.get(f"/api/v1/sessions/{sid}/shots").json()[0]["id"]
+    assert client.patch(f"/api/v1/sessions/{sid}/exclusions", json={"exclude": [shot]}).status_code == 200
+    assert client.patch(f"/api/v1/imports/{b}", json={"displayName": "Second"}).status_code == 200
+    assert client.patch(f"/api/v1/sessions/{sid}/imports/order", json={"importIds": [c, a, b]}).status_code == 200
+    details = {"name": "Range day, renamed", "date": "2022-09-21", "notes": "windy\nlate"}
+    assert client.patch(f"/api/v1/sessions/{sid}", json=details).status_code == 200
+    before = client.get(f"/api/v1/sessions/{sid}").json()
+    by_id = {i["id"]: i for i in before["imports"]}
+    names = {a: NAMES[0], b: NAMES[1], c: NAMES[2]}
+
+    with TestClient(create_app(settings), headers={"X-MyGolfViz-Token": "t"}) as fresh:
+        after = fresh.get(f"/api/v1/sessions/{sid}").json()
+        assert after == before
+        s = after["session"]
+        assert (s["name"], s["date"], s["notes"]) == (details["name"], details["date"], details["notes"])
+        assert [(i["id"], i["ordinal"]) for i in after["imports"]] == [(c, 1), (a, 2), (b, 3)]
+        assert by_id[b]["displayName"] == "Second"
+        shots = fresh.get(f"/api/v1/sessions/{sid}/shots").json()
+        assert [x["id"] for x in shots if x["excluded"]] == [shot]
+        assert fresh.patch(f"/api/v1/sessions/{sid}/exclusions", json={}).json() == {"excludedShotIds": [shot]}
+        for imp, name in names.items():
+            r = fresh.get(f"/api/v1/imports/{imp}/original")
+            assert r.status_code == 200 and r.content == csv_bytes(name)

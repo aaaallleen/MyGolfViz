@@ -1,6 +1,7 @@
 // The step 1 "done when" scenario of the Local App, against the real backend and a fresh data folder.
-// Restarting the backend is covered by pytest; here a full page reload, with only the cookie to go on, shows that
-// everything on the session page comes back from the server and not from the tab.
+// Restarting the backend is covered by pytest: apps/api/tests/test_sessions.py::test_everything_survives_backend_restart.
+// Here a full page reload, with only the cookie to go on, shows that everything on the session page comes back from
+// the server and not from the tab.
 import { expect, test, type Page } from '@playwright/test';
 import { cut, fileNames, FIXTURES, importInto, resultSummary, signIn } from './helpers';
 
