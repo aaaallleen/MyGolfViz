@@ -59,7 +59,8 @@ export function OverviewPage() {
     <section className="panel">
       <h2>Shots</h2>
       <p className="panel__note">Ordered by club within each file · the selected row, plot point and shot card stay in step</p>
-      <ShotTable shots={tableShots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null} />
+      <ShotTable shots={tableShots} files={workingSet.files} selectedId={selectedId} onSelect={ws.select} grouped={filters.club === null}
+        excludedIds={excludedIds} onSetExcluded={ws.setExcluded} onIncludeAll={() => includeAllWithUndo(ws.includeAll, 'filter')} />
       <p className="panel__note">{`${shots.length} used · ${excludedCount} excluded · “–” means the CSV held no value; it is never treated as zero`}</p>
     </section>
   );

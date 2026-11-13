@@ -305,3 +305,15 @@ textarea.field__input { padding: 10px 12px; }
 .file-badge--3 { background: #b79cf2; }
 .file-badge--4 { background: #7fd6a4; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Excluded shots and the Edit shots mode */
+.shots-table tr.is-excluded > * { background: var(--surface-sunken); color: var(--muted); }
+.shots-table tr.is-excluded .file-badge { opacity: 0.7; }
+.excluded-tag { display: inline-block; margin-inline-start: 6px; padding: 0 6px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 18px; color: var(--text); vertical-align: middle; }
+.shots-table__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.shots-table__editing-label { font-weight: 600; }
+.shots-table-wrap.is-editing { padding: 8px; border: 2px solid var(--club); border-radius: var(--radius-control); }
+.shots-table__use-head { display: block; padding: 0 10px; }
+.use-switch { width: 22px; height: 22px; margin: 0; accent-color: var(--club); cursor: pointer; }
+.shots-table td[data-col='use'] { text-align: center; }
+.shots-table th[data-col='use'] { text-align: center; }
