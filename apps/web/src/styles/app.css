@@ -321,3 +321,7 @@ textarea.field__input { padding: 10px 12px; }
 .shots-table td[data-col='use'], .shots-table th[data-col='use'] { text-align: center; }
 /* After the excluded rule so a selected excluded row still reads as selected. */
 .shots-table tr.is-excluded[aria-current='true'] > * { background: var(--surface-raised); }
+.excluded-menu__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.excluded-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.excluded-menu__pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: transparent; border: 0; border-radius: var(--radius-card); color: var(--text-2); font: inherit; font-size: 13px; text-align: start; cursor: pointer; }
+.excluded-menu__pick:hover { background: var(--surface); color: var(--text); }

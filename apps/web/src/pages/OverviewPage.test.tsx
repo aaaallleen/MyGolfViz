@@ -416,4 +416,46 @@ describe('OverviewPage', () => {
       expect(screen.getByRole('heading', { level: 2, name: new RegExp(`^Averages · ${club} · ${n} shots$`) })).toBeInTheDocument();
     });
   });
+
+  describe('filter bar and exclusions', () => {
+    const clubsOf = (r: ReturnType<typeof renderWithData>) => {
+      const by = new Map<string, string[]>();
+      for (const s of r.store().visibleShots) by.set(s.club, [...(by.get(s.club) ?? []), s.id]);
+      return by;
+    };
+
+    test('club chips count included shots; a club with every shot excluded keeps a 0 chip', () => {
+      const r = renderWithData([F1, F2]);
+      const by = clubsOf(r);
+      const total = r.store().visibleShots.length;
+      const [club, ids] = [...by].sort((a, b) => a[1].length - b[1].length)[0]!;
+      act(() => r.store().setExcluded(ids[0]!, true));
+      expect(chip('All').lastElementChild).toHaveTextContent(String(total - 1));
+      expect(chip(club).lastElementChild).toHaveTextContent(String(ids.length - 1));
+      act(() => { for (const id of ids) r.store().setExcluded(id, true); });
+      expect(chip(club).lastElementChild).toHaveTextContent('0');
+      expect(chip('All').lastElementChild).toHaveTextContent(String(total - ids.length));
+    });
+
+    test('the N excluded list: picking an entry outside the filter reveals it, Include brings one back, Include all brings back all', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const by = clubsOf(r);
+      const driver = by.get('Driver')![0]!;
+      const [otherClub, otherIds] = [...by].find(([c]) => c !== 'Driver')!;
+      act(() => { r.store().setExcluded(driver, true); r.store().setExcluded(otherIds[0]!, true); });
+      act(() => r.store().setClub(otherClub));
+      await user.click(screen.getByRole('button', { name: '2 excluded' }));
+      const popup = screen.getByRole('dialog');
+      await user.click(within(popup).getAllByRole('button').find((b) => b.textContent?.startsWith('Driver'))!);
+      expect(chip('Driver')).toHaveAttribute('aria-pressed', 'true');
+      expect(r.store().selectedId).toBe(driver);
+      expect(within(document.querySelector('.selected-card') as HTMLElement).getByText('Excluded')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: '2 excluded' }));
+      await user.click(screen.getByRole('button', { name: new RegExp(`^Include shot .*, ${otherClub}$`) }));
+      expect(screen.getByRole('button', { name: '1 excluded' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Include all' }));
+      expect(screen.queryByRole('button', { name: /\d+ excluded$/ })).toBeNull();
+    });
+  });
 });
