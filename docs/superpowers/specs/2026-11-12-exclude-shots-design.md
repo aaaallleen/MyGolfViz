@@ -114,8 +114,8 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
 
 - **Normal mode:** clicking a row selects it, as it does today. Excluded rows are greyed and carry
   a small "Excluded" tag by the shot number. Nothing in normal mode changes exclusions.
-- An **"Edit shots"** button sits in the table's tools row, next to the Columns menu. It turns on
-  edit mode:
+- An **"Edit shots"** button sits at the top right of the Shots panel, on the heading row, next to
+  the Columns menu. It turns on edit mode:
   - The table gets a visible edit-mode frame, and its title reads "Editing shots".
   - A pinned leading **Use** column holds a switch per row: on = included, off = excluded.
   - Only the switch changes exclusion. Row clicks still select.
@@ -124,9 +124,11 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
     which moves the selection on. *(My call.)*
   - The plot, averages and counts update immediately on each toggle. There is no separate
     "save".
-  - The tools row shows **"Include all"** and **"Done"**. Done leaves edit mode. This "Include
-    all" covers only the shots in the current club/file filter (what the table shows), and has
-    the undo notice. *(My call.)*
+  - The heading row shows **"Exclude all"**, **"Include all"** and **"Done"**. Done leaves edit
+    mode. Both bulk actions cover only the shots in the current club/file filter (what the table
+    shows), keep the selection where it is, and show an undo notice ("N shots excluded" /
+    "N shots included" · Undo). Each is disabled when there is nothing for it to do. *(Include
+    all: my call. Exclude all: added after the first build, at the user's request.)*
 - The table's footer note reads "N used · M excluded" for the current filter.
 - Sorting, column hiding and club grouping work the same in both modes.
 - *My call:* edit mode is a local UI state of the table. It is not kept when leaving the Overview.
@@ -147,11 +149,13 @@ hasn't changed since; a filter or selection change doesn't block it. *(My call.)
 
 ### Shot Inspector
 
-- The Inspector header has the same **"Exclude shot"** button as the selected-shot card, next to
-  the ‹ shot picker ›. It is styled as a secondary button. Excluding moves on to the next included
-  shot, exactly as the card does, and announces "Shot N excluded · M shots used". On an excluded
-  open shot the button reads **"Include shot"**. *(Added after the first build, at the user's
-  request.)*
+- The Inspector has the same **"Exclude shot"** button as the selected-shot card, on the title
+  row beside "Shot N · Club". It is styled as a secondary button. Excluding moves on to the next
+  included shot, exactly as the card does, and announces "Shot N excluded · M shots used". On an
+  excluded open shot the title row shows the **Excluded** tag instead, and the red banner's
+  **"Include it again"** is the one include action. The breadcrumb's session link (with a ←
+  arrow) is the way back to the Overview; there is no separate Back to overview button.
+  *(Added after the first build, at the user's request.)*
 - ‹ ›, the shot picker and the faint comparison shots (all shots / same-club shots behind the
   current one) use included shots only. They already read `visibleShots`, so they follow
   automatically.
