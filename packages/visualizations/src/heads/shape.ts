@@ -179,7 +179,8 @@ function woodSurface(spec: HeadSpec, nu: number, nv: number) {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Blade kind: a rounded trapezoid face, given thickness that tapers from the sole to the top line.
+// Blade kind: a rounded trapezoid face, given thickness (level backward at the static loft) that tapers from the
+// sole to the top line.
 
 function bladeOutline(spec: HeadSpec): Pt[] {
   const half = spec.faceWidthIn / 2, sole = -spec.faceHeightIn / 2;
@@ -216,12 +217,16 @@ function bladeSurface(spec: HeadSpec) {
     const f = Math.min(1, Math.max(0, (z - sole) / topAt(x)));
     return spec.headDepthIn + (spec.topLineIn! - spec.headDepthIn) * f;
   };
+  // The body runs back from the face level with the ground when the face is at its static loft, so the sole is flat
+  // when the head is soled: in the face frame, level-backward is (0, −cos L, sin L).
+  const L = (spec.loftDeg * Math.PI) / 180;
+  const backward: V3 = [0, -Math.cos(L), Math.sin(L)];
+  const along = (p: V3, d: number): V3 => [p[0], p[1] + backward[1] * d, p[2] + backward[2] * d];
   const m = outline.length;
   const front: V3[] = outline.map(([x, z]) => [x, 0, z]);
-  const back: V3[] = outline.map(([x, z]) => [x, -thickness(x, z), z]);
+  const back: V3[] = front.map((p) => along(p, thickness(p[0], p[2])));
   const mean = (pts: V3[]): V3 => [0, 1, 2].map((i) => pts.reduce((sum, p) => sum + p[i]!, 0) / pts.length) as V3;
-  const frontCentre = mean(front), backCentre = mean(back);
-  backCentre[1] += BLADE_BACK_RECESS_IN;
+  const frontCentre = mean(front), backCentre = along(mean(back), -BLADE_BACK_RECESS_IN);
   // vertices: front ring 0..m−1, back ring m..2m−1, front centre 2m, back centre 2m+1
   const positions = Float32Array.from([...front, ...back, frontCentre, backCentre].flat());
   const indices: number[] = [];

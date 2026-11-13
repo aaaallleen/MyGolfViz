@@ -107,12 +107,24 @@ test.each(cats)('%s body: flat face at y = 0, nothing in front of it, real size'
   const P = toPoints(positions);
   expect(Math.max(...P.map((p) => p[1]!))).toBeCloseTo(0, 5);
   expect(indices.length / 3).toBeLessThanOrEqual(6000);
-  // Woods: un-tilt by the static loft (rotate about x by +loftDeg) and measure the level bounding box.
-  // Blades are a slab behind the face, so they are measured in the face frame as they are.
-  const L = s.kind === 'wood' ? P.map((p) => rotX(p, s.loftDeg)) : P;
-  for (const [i, want] of [[0, s.headWidthIn], [1, s.headDepthIn], [2, s.headHeightIn]] as const) {
-    expect(span(L, i) / want, `axis ${i}`).toBeGreaterThan(0.9);
-    expect(span(L, i) / want, `axis ${i}`).toBeLessThan(1.1);
+  // Un-tilt by the static loft (rotate about x by +loftDeg): the head as it sits soled at address.
+  const L = P.map((p) => rotX(p, s.loftDeg));
+  if (s.kind === 'wood') {
+    // Woods: the level bounding box is the head's real size.
+    for (const [i, want] of [[0, s.headWidthIn], [1, s.headDepthIn], [2, s.headHeightIn]] as const) {
+      expect(span(L, i) / want, `axis ${i}`).toBeGreaterThan(0.9);
+      expect(span(L, i) / want, `axis ${i}`).toBeLessThan(1.1);
+    }
+  } else {
+    // Blades: real width, and a level sole as deep as specified that starts at the leading edge.
+    expect(span(P, 0) / s.headWidthIn).toBeGreaterThan(0.9);
+    expect(span(P, 0) / s.headWidthIn).toBeLessThan(1.1);
+    const minZ = Math.min(...L.map((p) => p[2]!));
+    const sole = P.filter((_, k) => L[k]![2]! - minZ < 0.02);
+    const soleDepth = span(sole.map((p) => rotX(p, s.loftDeg)), 1);
+    expect(soleDepth / s.headDepthIn).toBeGreaterThan(0.9);
+    expect(soleDepth / s.headDepthIn).toBeLessThan(1.1);
+    expect(sole.some((p) => Math.abs(p[1]!) < 1e-6), 'leading edge on the sole').toBe(true);
   }
   expect(P.every((p) => p.every(Number.isFinite))).toBe(true);
 });
