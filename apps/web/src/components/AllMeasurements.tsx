@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { spinComponents } from '@fsa/analytics';
 import { FIELD_DEFS, formatMeasurement, type FieldGroup, type QualityFlag, type Shot } from '@fsa/domain';
 import { Missing } from '@fsa/ui';
@@ -31,9 +32,19 @@ export function AllMeasurements({ shot }: { shot: Shot }) {
   const onlyEnvironment = FIELD_DEFS.filter((d) => d.group !== 'environment').every((d) => shot.m[d.key] === null);
   const { backspin, sidespin } = spinComponents(shot.m.spin, shot.m.spinAxis);
   const side = sidespin === null ? null : `${formatMeasurement('spin', Math.abs(sidespin))}${sidespin > 0.5 ? ' R' : sidespin < -0.5 ? ' L' : ''}`;
+  // Folded at first; the summary row carries a visible Show all / Hide cue so it reads as something to open.
+  const [open, setOpen] = useState(false);
   return (
-    <details className="panel all-measurements">
-      <summary>{`All measurements · ${available} of ${FIELD_DEFS.length} available`}</summary>
+    <details className="panel all-measurements" onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <span>{`All measurements · ${available} of ${FIELD_DEFS.length} available`}</span>
+        <span className="all-measurements__cue">
+          {open ? 'Hide' : 'Show all'}
+          <svg className="all-measurements__chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </summary>
       {onlyEnvironment && <p className="panel__note">No ball or club measurements in this row.</p>}
       {GROUPS.map(({ group, title }) => (
         <div key={group} className="all-measurements__group">

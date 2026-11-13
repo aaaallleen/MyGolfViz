@@ -293,6 +293,19 @@ describe('InspectorPage', () => {
     expect(d).not.toHaveTextContent(/\bTime\b/);
   });
 
+  test('All measurements starts folded with a visible "Show all" cue that turns into "Hide" when opened', async () => {
+    const user = userEvent.setup();
+    open();
+    const d = screen.getByText(/All measurements/).closest('details')!;
+    const summary = d.querySelector('summary')!;
+    expect(d.open).toBe(false);
+    expect(within(summary).getByText('Show all')).toBeInTheDocument();
+    await user.click(summary);
+    expect(d.open).toBe(true);
+    expect(within(summary).getByText('Hide')).toBeInTheDocument();
+    expect(within(summary).queryByText('Show all')).toBeNull();
+  });
+
   test('2D tab: clicking "Show Spin axis view" makes it large, and the choice survives Next shot', async () => {
     const user = userEvent.setup();
     const v = open();
