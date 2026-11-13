@@ -164,21 +164,22 @@ FTT, Dynamic Loft, Swing V, Swing H, AOA, Club Path, Low Point, Lateral Impact, 
 | Face to target | face turned by that angle | face square to the target line |
 | Dynamic loft | face tipped to that loft; the body tips with it by (dynamic − static), however large | face at the head's static loft, so the body is level on its sole |
 | Swing plane (Swing V, Swing H) | shaft lies in the plane, as today | shaft at the head's own lie angle (replaces the fixed 60°) |
-| Lateral and vertical impact | the head is shifted so the ball touches the face at that point (inches from face centre; toe and high positive, as the Face impact tab plots them) | ball on the face centre, as today |
+| Lateral and vertical impact | the head is shifted so the ball touches the face at that point (inches from face centre; toe and high positive, as the Face impact tab plots them) | the sole rests on the ground and the ball meets the face centred heel-to-toe, at whatever height that gives |
 | AOA, club path, low point | already drive the arc the head travels along; unchanged | unchanged |
 
-Both impact values are needed to shift the head; if either is missing the ball is on the face
-centre. A head with no face angle and no loft therefore lies flat, square, soled, at static loft:
+Both impact values are needed to shift the head; if either is missing the strike counts as
+unmeasured. (Forcing face-centre contact when the height is unknown would lift every iron onto a
+tee, because a ball on the ground meets a lofted face below its centre.) A head with no face angle and no loft therefore lies flat, square, soled, at static loft:
 the "lay it flat" case. Labels and badges still never show a value that was not measured.
 
-Ground and ball. The ball rests on the ground and the head is placed against it as above. If
-that puts any part of the head below the ground, the head and the ball sit that much higher
+Ground and ball. The ball rests on the ground and the head is placed against it as above. With
+no measured strike the head is slid up or down its own face until the sole touches the ground.
+With a measured strike, if that puts any part of the head below the ground, the head and the ball sit that much higher
 above the ground and a small tee is drawn under the ball; the head is never drawn sunk into the
 ground and the contact point is never falsified to avoid it. (In the scene this is done by
 lowering the ground and target line rather than moving the ball, so the ball stays at the
-origin every angle line is drawn from.) A head whose lowest point ends up
-above the ground is left there (it is not pulled down to the turf as it is today), except in
-the lie-flat case, where the sole rests on the ground.
+origin every angle line is drawn from.) With a measured strike, a head whose
+lowest point ends up above the ground is left there.
 
 Hosel and shaft. The shaft and hosel form one straight line: the hosel is aimed along the shaft
 direction from its base at the heel, rather than fixed at the spec's lie angle, so there is no
