@@ -32,7 +32,7 @@
     "e2e:desktop": "npm run desktop:prep && playwright test -c playwright.desktop.config.ts",
     "api:bin": "uv run --project apps/api --group build pyinstaller apps/api/packaging/mygolfviz-api.spec --noconfirm --distpath apps/api/dist --workpath apps/api/build",
     "desktop:icon": "node scripts/make-icon.mjs",
-    "desktop:dist": "npm run build:local && npm run api:bin && npm run build -w @fsa/desktop && electron-builder --mac dmg --arm64 --projectDir apps/desktop",
+    "desktop:dist": "rm -rf apps/desktop/dist apps/desktop/release && npm run build:local && npm run api:bin && npm run build -w @fsa/desktop && electron-builder --mac dmg --arm64 --projectDir apps/desktop",
     "e2e:desktop:packaged": "MYGOLFVIZ_DESKTOP_EXECUTABLE=apps/desktop/release/mac-arm64/MyGolfViz.app/Contents/MacOS/MyGolfViz playwright test -c playwright.desktop.config.ts"
   },
   "dependencies": {
