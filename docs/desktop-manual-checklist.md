@@ -5,12 +5,16 @@ the lifecycle; these items need a real Mac, a real display or a real person.
 
 - [ ] **Clean-Mac launch.** On a Mac with no Python or Node installed, install the app and open it.
   Expected: the splash "Starting MyGolfViz…" appears, then the viewer loads with an empty library.
-- [ ] **First-launch Gatekeeper flow.** Open the unsigned app for the first time.
+- [ ] **First-launch Gatekeeper flow.** Test with a quarantined copy of the dmg
+  (`xattr -w com.apple.quarantine "0081;00000000;Safari;" <copy of the dmg>`) or the CI artifact; a dmg built
+  on this Mac is not quarantined. Open the unsigned app for the first time.
   Expected: macOS 15 and later blocks it until System Settings → Privacy & Security → **Open Anyway**;
   earlier macOS opens it after right-click → Open. After that it opens normally.
 - [ ] **Import, quit, reopen.** Import a FlightScope CSV, quit with Cmd+Q, reopen.
   Expected: the session is in the library with the same shots and the original file is kept.
-- [ ] **Install a newer build over the old one.** Bump the version, rebuild, replace the app in Applications.
+- [ ] **Install a newer build over the old one.** Quit the running app first (the single-instance lock would only
+  focus the old window). Bump the version, rebuild, replace the app in Applications, open it, and confirm
+  **About MyGolfViz** shows the new version.
   Expected: all sessions are still there. If the schema changed, a new copy of the database appears in `backups/`.
 - [ ] **Backend crash recovery.** Find the `mygolfviz-api` process and kill it.
   Expected: the app shows the error screen with **Restart backend**, **Open logs** and **Quit**;

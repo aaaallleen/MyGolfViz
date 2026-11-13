@@ -124,8 +124,9 @@ comes from `apps/desktop/package.json`: bump it for each build you install over 
 
 ### Install and first launch
 
-Open the `.dmg` and drag MyGolfViz to Applications. The app is not signed, so macOS blocks the
-first launch:
+Open the `.dmg` and drag MyGolfViz to Applications. A dmg you build yourself on this Mac is not
+quarantined and opens directly. The app is not signed, so for a downloaded or copied dmg (for
+example the CI artifact) macOS blocks the first launch:
 
 - macOS 15 and later: open the app once, then go to System Settings → Privacy & Security and
   choose **Open Anyway**.
