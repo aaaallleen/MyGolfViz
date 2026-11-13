@@ -7,6 +7,8 @@ from fastapi import FastAPI
 
 from . import __version__
 from .config import Settings
+from .db import make_engine
+from .migrate import db_path, upgrade
 
 
 def attach_log_handler(settings: Settings) -> None:
@@ -36,10 +38,11 @@ def create_app(settings: Settings) -> FastAPI:
 
     app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None)
     app.state.settings = settings
+    app.state.schema_version = upgrade(settings)
+    app.state.engine = make_engine(db_path(settings))
 
     @app.get("/api/v1/health")
     def health() -> dict:
-        # schemaVersion is filled in once Alembic migrations exist.
-        return {"status": "ok", "appVersion": __version__, "schemaVersion": None}
+        return {"status": "ok", "appVersion": __version__, "schemaVersion": app.state.schema_version}
 
     return app
