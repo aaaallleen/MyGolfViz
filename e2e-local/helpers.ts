@@ -23,21 +23,31 @@ export function cut(from: CsvFile, rows: number, name: string): CsvFile {
   return { name: basename(name), mimeType: 'text/csv', buffer: Buffer.from(lines.slice(0, rows + 1).join('\n')) };
 }
 
-/** Records every Content-Security-Policy violation the page reports; read them with `cspViolations`. */
+const csp = new WeakMap<Page, string[]>();
+
+/**
+ * Records every Content-Security-Policy violation of the page, across navigations and reloads: the browser
+ * event is reported to Node through a binding, and console messages about the policy are collected too.
+ */
 export async function trackCspViolations(page: Page): Promise<void> {
+  const found: string[] = [];
+  csp.set(page, found);
+  await page.exposeBinding('__cspReport', (_source, report: string) => void found.push(report));
   await page.addInitScript(() => {
-    const w = window as unknown as { __csp: string[] };
-    w.__csp = [];
-    document.addEventListener('securitypolicyviolation', (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+    document.addEventListener('securitypolicyviolation', (e) =>
+      (window as unknown as { __cspReport: (r: string) => void }).__cspReport(`${e.violatedDirective} ${e.blockedURI}`),
+    );
+  });
+  page.on('console', (m) => {
+    if (/content security policy/i.test(m.text())) found.push(`console: ${m.text()}`);
   });
 }
 
-export const cspViolations = (page: Page): Promise<string[]> =>
-  page.evaluate(() => (window as unknown as { __csp: string[] }).__csp);
+/** The violations seen so far on `page`. */
+export const cspViolations = (page: Page): string[] => csp.get(page) ?? [];
 
 /** Signs in with the test token: the backend sets the cookie and sends the browser to the library. */
 export async function signIn(page: Page): Promise<void> {
-  await trackCspViolations(page);
   await page.goto('/?token=e2e');
   // An empty library shows its empty state in place of the Sessions heading.
   await expect(page.getByRole('heading', { name: /^(Sessions|No sessions yet)$/ })).toBeVisible();

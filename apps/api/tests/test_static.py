@@ -65,6 +65,7 @@ def test_index_has_csp(tmp_path):
     with _static_client(tmp_path) as c:
         assert c.get("/").headers["content-security-policy"] == CSP
         assert c.get("/some/route").headers["content-security-policy"] == CSP
+        assert c.get("/index.html").headers["content-security-policy"] == CSP
         assert "content-security-policy" not in c.get("/assets/a.js").headers
 
 

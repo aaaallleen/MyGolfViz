@@ -33,6 +33,8 @@ def install_static(app: FastAPI, static_dir: Path | None) -> None:
         if path:
             candidate = (root / path).resolve()
             if candidate.is_relative_to(root) and candidate.is_file():
+                if candidate.suffix.lower() in (".html", ".htm"):
+                    return FileResponse(candidate, headers=HTML_HEADERS)
                 return FileResponse(candidate)
             if path.startswith("assets/"):
                 return JSONResponse({"detail": "Not Found"}, status_code=404)

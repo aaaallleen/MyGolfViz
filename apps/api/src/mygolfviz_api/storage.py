@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import fcntl
 import logging
 import os
 import threading
@@ -13,6 +12,11 @@ from sqlalchemy.orm import Session as DbSession
 
 from . import models
 from .db import session_scope
+
+try:
+    import fcntl
+except ImportError:  # not available on every platform
+    fcntl = None  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +45,7 @@ class OriginalStore:
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
-                if hasattr(fcntl, "F_FULLFSYNC"):  # macOS: plain fsync does not reach the platter
+                if fcntl is not None and hasattr(fcntl, "F_FULLFSYNC"):  # macOS: plain fsync does not reach the platter
                     fcntl.fcntl(f.fileno(), fcntl.F_FULLFSYNC)
             if target.exists():
                 tmp.unlink()
