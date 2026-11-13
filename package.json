@@ -28,7 +28,8 @@
     "e2e:local": "playwright test -c playwright.local.config.ts",
     "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local",
     "desktop:prep": "npm run build:local && uv sync --project apps/api && npm run build -w @fsa/desktop",
-    "desktop:dev": "npm run desktop:prep && electron apps/desktop"
+    "desktop:dev": "npm run desktop:prep && electron apps/desktop",
+    "e2e:desktop": "npm run desktop:prep && playwright test -c playwright.desktop.config.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
