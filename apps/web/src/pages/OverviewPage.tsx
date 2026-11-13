@@ -93,7 +93,8 @@ export function OverviewPage() {
             <span>{`${workingSet.files.length} source files`}</span>
             <span>{`${workingSet.shots.length} shots`}</span>
             {modes.length > 0 && <span>{modes.join(', ')}</span>}
-            <span className="overview__chip">In this browser only</span>
+            {/* Local sessions are saved to disk; the chip is only true of the public build. */}
+            {import.meta.env.VITE_APP_MODE !== 'local' && <span className="overview__chip">In this browser only</span>}
           </div>
           {details.notes.trim() !== '' && <p className="overview__notes">{details.notes}</p>}
         </div>

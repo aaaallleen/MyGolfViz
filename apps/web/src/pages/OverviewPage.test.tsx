@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { FIELD_DEFS } from '@fsa/domain';
 import { renderWithData } from '../test/renderWithData';
 
@@ -508,5 +508,22 @@ describe('OverviewPage', () => {
       await user.click(screen.getByRole('button', { name: 'Include all' }));
       expect(screen.queryByRole('button', { name: /\d+ excluded$/ })).toBeNull();
     });
+  });
+});
+
+describe('OverviewPage chip by mode', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  test("public: 'In this browser only' is shown", () => {
+    vi.stubEnv('VITE_APP_MODE', 'public');
+    renderWithData([F1]);
+    expect(screen.getByText('In this browser only')).toBeInTheDocument();
+  });
+
+  test("local: the session is saved to disk, so 'In this browser only' is not shown", () => {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    renderWithData([F1]);
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText('In this browser only')).toBeNull();
   });
 });
