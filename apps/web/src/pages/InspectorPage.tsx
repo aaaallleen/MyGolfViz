@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { Link } from 'react-router';
 import { buildReplayScene } from '@fsa/analytics';
 import { Button, EmptyState, ProvenanceLegend, TabList, TabPanel, Tabs } from '@fsa/ui';
 import { AllMeasurements } from '../components/AllMeasurements';
@@ -7,6 +8,7 @@ import { Club2DTab } from '../components/Club2DTab';
 import { Club3DTab } from '../components/Club3DTab';
 import { HeadTiles } from '../components/HeadTiles';
 import { ImpactTab } from '../components/ImpactTab';
+import { includeAllWithUndo } from '../components/includeAllWithUndo';
 import { ShotHeader } from '../components/ShotHeader';
 import { usePhone } from '../components/usePhone';
 import { useWorkingSet, type InspectorTab } from '../state/store';
@@ -20,19 +22,25 @@ const TABS: { id: InspectorTab; label: string; short: string }[] = [
 export function InspectorPage() {
   const ws = useWorkingSet();
   const phone = usePhone();
-  const { workingSet, details, visibleShots, selectedId, inspectorTab } = ws;
+  const { workingSet, details, visibleShots, tableShots, excludedIds, selectedId, inspectorTab } = ws;
   const handedness = details.handedness;
 
-  // Rebuilt only when the visible shots (by identity of ids) or handedness change, not on unrelated UI state.
-  const idKey = visibleShots.map((s) => s.id).join('|');
+  // The inspector shows an included shot, or an excluded one the user opened on purpose. With nothing
+  // selected (or a selection outside the filter) it opens the first included shot and selects it.
+  const inTable = tableShots.find((s) => s.id === selectedId);
+  const selected = visibleShots.find((s) => s.id === selectedId) ?? (inTable && excludedIds.has(inTable.id) ? inTable : undefined);
+  const shot = selected ?? visibleShots[0];
+  const excluded = shot !== undefined && excludedIds.has(shot.id);
+
+  // Rebuilt only when the shots drawn (by identity of ids) or handedness change, not on unrelated UI state.
+  // An excluded current shot needs a scene too, though it never joins the comparison lists.
+  const sceneShots = excluded ? [...visibleShots, shot] : visibleShots;
+  const idKey = sceneShots.map((s) => s.id).join('|');
   const scenes = useMemo(
-    () => new Map(visibleShots.map((s) => [s.id, buildReplayScene(s, handedness)] as const)),
+    () => new Map(sceneShots.map((s) => [s.id, buildReplayScene(s, handedness)] as const)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [workingSet, idKey, handedness],
   );
-  // The inspector always shows a shot: with none selected it opens the first visible one and selects it.
-  const selected = visibleShots.find((s) => s.id === selectedId);
-  const shot = selected ?? visibleShots[0];
   const others = useMemo(
     () => visibleShots.filter((s) => s.id !== shot?.id).map((s) => scenes.get(s.id)!),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,9 +55,23 @@ export function InspectorPage() {
 
   const { select } = ws;
   useEffect(() => {
-    if (!selected && shot) select(shot.id);
-  }, [selected, shot, select]);
+    if (!inTable && shot) select(shot.id);
+  }, [inTable, shot, select]);
   if (!workingSet) return null;
+  if (!shot && tableShots.length > 0) {
+    return (
+      <EmptyState
+        title={`All ${tableShots.length} shots here are excluded`}
+        body="Include them again to open a shot."
+        action={(
+          <>
+            <Button variant="primary" onClick={() => includeAllWithUndo(ws.includeAll, 'filter')}>Include all</Button>
+            <Link className="fsa-btn fsa-touch link-button" to="/overview">Back to overview</Link>
+          </>
+        )}
+      />
+    );
+  }
   if (!shot) {
     return (
       <EmptyState
@@ -63,8 +85,14 @@ export function InspectorPage() {
 
   return (
     <div className="inspector">
-      <ShotHeader shot={shot} shots={visibleShots} files={workingSet.files} details={details}
+      <ShotHeader shot={shot} shots={visibleShots} excluded={excluded} files={workingSet.files} details={details}
         onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })} />
+      {excluded && (
+        <div className="excluded-banner" role="status">
+          <p>This shot is excluded. It isn't in your averages or comparisons.</p>
+          <Button onClick={() => ws.setExcluded(shot.id, false)}>Include it again</Button>
+        </div>
+      )}
       <HeadTiles shot={shot} />
       <BallDataPanel shot={shot} scene={scene} others={others} />
       <Tabs<InspectorTab> value={inspectorTab} onChange={ws.setInspectorTab}

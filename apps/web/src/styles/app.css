@@ -325,3 +325,5 @@ textarea.field__input { padding: 10px 12px; }
 .excluded-menu__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .excluded-menu__pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: transparent; border: 0; border-radius: var(--radius-card); color: var(--text-2); font: inherit; font-size: 13px; text-align: start; cursor: pointer; }
 .excluded-menu__pick:hover { background: var(--surface); color: var(--text); }
+.excluded-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface-sunken); color: var(--text-2); font-size: 14px; }
+.excluded-banner p { margin: 0; }

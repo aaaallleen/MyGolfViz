@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test } from 'vitest';
 import { summarize } from '@fsa/analytics';
 import { formatMeasurement } from '@fsa/domain';
+import { shotOptionLabel } from '../components/shotLabel';
 import { renderWithData } from '../test/renderWithData';
 
 const F1 = 'FlightScope Golf Session Sept 19 2022.csv';
@@ -303,5 +304,61 @@ describe('InspectorPage', () => {
   test('legend and provenance copy are present', () => {
     open();
     expect(screen.getByLabelText('Value provenance')).toBeInTheDocument();
+  });
+
+  describe('excluded shots', () => {
+    const BANNER = "This shot is excluded. It isn't in your averages or comparisons.";
+
+    test('an excluded selected shot opens with the excluded banner; ‹ › skip excluded shots', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[3]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      expect(screen.getByText(BANNER)).toBeInTheDocument();
+      expect(screen.getByText('Excluded')).toBeInTheDocument();
+      expect(v.store().selectedId).toBe(target.id);
+      await user.click(screen.getByRole('button', { name: 'Next shot' }));
+      expect(v.store().excludedIds.has(v.store().selectedId!)).toBe(false);
+      expect(screen.queryByText(BANNER)).toBeNull();
+      for (let i = 0; i < 6; i++) {
+        await user.click(screen.getByRole('button', { name: 'Previous shot' }));
+        expect(v.store().selectedId).not.toBe(target.id);
+      }
+    });
+
+    test('Include it again removes the banner', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
+      expect(screen.queryByText(BANNER)).toBeNull();
+      expect(v.store().selectedId).toBe(target.id);
+      expect(v.store().excludedIds.has(target.id)).toBe(false);
+    });
+
+    test('with an included shot open, the picker does not list excluded shots', () => {
+      const v = open();
+      const [x, y] = [v.store().visibleShots[1]!, v.store().visibleShots[2]!];
+      act(() => { v.store().setExcluded(x.id, true); v.store().select(y.id); });
+      const files = v.store().workingSet!.files;
+      const names = within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent);
+      expect(names).not.toContain(shotOptionLabel(x, files));
+      expect(names).toContain(shotOptionLabel(y, files));
+      expect(screen.queryByText(BANNER)).toBeNull();
+    });
+
+    test('all shots in the filter excluded: all-excluded empty state with Include all', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      act(() => v.store().setClub('Driver'));
+      const ids = v.store().tableShots.map((s) => s.id);
+      act(() => { for (const id of ids) v.store().setExcluded(id, true); v.store().select(null); });
+      expect(screen.getByRole('heading', { name: `All ${ids.length} shots here are excluded` })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Back to overview' })).toHaveAttribute('href', '/overview');
+      await user.click(screen.getByRole('button', { name: 'Include all' }));
+      expect(v.store().visibleShots).toHaveLength(ids.length);
+      expect(screen.queryByText(/are excluded/)).toBeNull();
+    });
   });
 });

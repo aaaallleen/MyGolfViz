@@ -5,9 +5,11 @@ import { shotOptionLabel } from './shotLabel';
 
 const HANDEDNESS: Handedness[] = ['right', 'left'];
 
-export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHandedness }: {
+export function ShotHeader({ shot, shots, excluded, files, details, onSelect, onStep, onHandedness }: {
   shot: Shot;
+  /** The included shots, in display order. */
   shots: readonly Shot[];
+  excluded: boolean;
   files: readonly SourceFile[];
   details: SessionDetails;
   onSelect(id: string): void;
@@ -16,7 +18,8 @@ export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHa
 }) {
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
-  const pos = selectionPosition(shot.id, shots);
+  const pos = excluded ? null : selectionPosition(shot.id, shots);
+  const options = excluded ? [...shots, shot] : shots;
   return (
     <section className="inspector-head">
       <div className="inspector-head__title">
@@ -40,11 +43,12 @@ export function ShotHeader({ shot, shots, files, details, onSelect, onStep, onHa
       <div className="inspector-head__nav">
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>
         <select className="fsa-select fsa-touch" aria-label="Choose shot" value={shot.id} onChange={(e) => onSelect(e.target.value)}>
-          {shots.map((s) => (
+          {options.map((s) => (
             <option key={s.id} value={s.id}>{shotOptionLabel(s, files)}</option>
           ))}
         </select>
         <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch selected-card__step" aria-label="Next shot" onClick={() => onStep(1)}>›</button>
+        {excluded && <span className="selected-card__tag">Excluded</span>}
         {pos && <span className="panel__note">{`${pos.index} of ${pos.total}`}</span>}
         <Link className="fsa-btn fsa-touch link-button" to="/overview">Back to overview</Link>
       </div>
