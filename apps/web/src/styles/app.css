@@ -141,7 +141,9 @@ textarea.field__input { padding: 10px 12px; }
 .selected-card__step { width: 44px; flex-shrink: 0; padding: 0; cursor: pointer; }
 .selected-card__foot { padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; }
 .selected-card__foot > * { flex: 1 1 auto; justify-content: center; }
-.excluded-tag { display: inline-block; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 20px; color: var(--muted); border: 1px solid var(--border); }
+/* "Excluded" marker: a short coloured pill (card, Inspector header, table). It never stretches to its container's width. */
+.excluded-tag { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: var(--radius-pill); border: 1px solid rgba(255, 154, 138, 0.45); background: rgba(255, 154, 138, 0.14); color: var(--danger); font-size: 12px; font-weight: 600; line-height: 20px; letter-spacing: 0.02em; white-space: nowrap; vertical-align: middle; }
+.excluded-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .selected-card__inspect { justify-content: center; box-sizing: border-box; }
 .link-button { display: inline-flex; align-items: center; text-decoration: none; padding: 0 16px; }
 .shots-table { max-height: min(70vh, 720px); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-control); }
@@ -313,7 +315,9 @@ textarea.field__input { padding: 10px 12px; }
 .shot-cell { white-space: normal; }
 .shot-cell__id { white-space: nowrap; }
 .shot-cell__tag { margin-top: 2px; }
-.excluded-tag { display: inline-block; max-width: 100%; box-sizing: border-box; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 10px; font-weight: 600; line-height: 16px; letter-spacing: 0; color: var(--text); vertical-align: middle; }
+/* The table's Shot column is narrow (68px on phones), so its tag is smaller and drops the dot. */
+.shot-cell__tag .excluded-tag { padding: 0 4px; font-size: 10px; line-height: 16px; letter-spacing: 0; }
+.shot-cell__tag .excluded-tag::before { display: none; }
 .shots-table__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .shots-table-wrap.is-editing { padding: 8px; border: 2px solid var(--club); border-radius: var(--radius-control); }
 .shots-table__use-head { display: block; padding: 0 10px; }
