@@ -40,6 +40,7 @@ export interface ClubScene {
 const SHAFT_YD = 1.0;
 const GRIP_YD = 0.3;
 const ANNOTATION_ORDER = 10;
+const IN = 1 / 36; // yards per inch
 
 const v3 = (p: Vec3) => new THREE.Vector3(p[0], p[1], p[2]);
 
@@ -92,6 +93,29 @@ function annotationObject(a: Annotation, dash: number): THREE.Object3D | null {
     : wedgeMesh(a);
   o.name = a.id;
   return o;
+}
+
+/** Lowest z of the mesh's vertices in the frame `top` sits in (`top` is the mesh or one of its ancestors). */
+function lowestZ(mesh: THREE.Mesh, top: THREE.Object3D): number {
+  const toFrame = new THREE.Matrix4();
+  for (let o: THREE.Object3D | null = mesh; o; o = o === top ? null : o.parent) {
+    o.updateMatrix();
+    toFrame.premultiply(o.matrix);
+  }
+  const pos = mesh.geometry.getAttribute('position');
+  const v = new THREE.Vector3();
+  let min = Infinity;
+  for (let i = 0; i < pos.count; i++) min = Math.min(min, v.fromBufferAttribute(pos, i).applyMatrix4(toFrame).z);
+  return min;
+}
+
+/** A thin tee from the lowered ground up to the bottom of the ball. */
+function teeMesh(groundZ: number, ballR: number): THREE.Mesh {
+  const tee = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * ballR, 0.12 * ballR, -groundZ, 16), new THREE.MeshStandardMaterial({ color: '#C9D3CD', roughness: 0.6 }));
+  tee.name = 'tee';
+  tee.rotation.x = Math.PI / 2; // CylinderGeometry stands along y; the tee stands along z
+  tee.position.z = groundZ / 2;
+  return tee;
 }
 
 /** Disposes the GPU resources under `o`, except geometry shared between scenes (club heads). */
@@ -158,7 +182,9 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   root.add(plane);
 
   // Club: pivot at the arc centre so the club swings around it; at impact the pivot is identity.
-  const pose = headPose(m, scene);
+  const head = buildClubModel(clubCategory(input.club), scene.handedness);
+  const model = head.userData as ClubModelData;
+  const pose = headPose(m, scene, model);
   const g = scene.handedness === 'right' ? 1 : -1;
   const centre = scene.clubArc ? v3(arcCenter(scene.clubArc)) : new THREE.Vector3();
   const pivot = new THREE.Group();
@@ -170,24 +196,37 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   pivot.add(club);
 
   const ballR = BALL_RADIUS_YD * headScale;
-  const head = buildClubModel(clubCategory(input.club), scene.handedness);
   const holder = new THREE.Group();
   const xAxis = v3(pose.toeDir).multiplyScalar(g);
   const yAxis = v3(pose.faceNormal);
   const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis).normalize();
   holder.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis));
   holder.scale.setScalar(headScale);
-  holder.position.copy(yAxis).multiplyScalar(-ballR); // face touches the back of the ball
   holder.add(head);
   club.add(holder);
-  // Sit the sole on the ground: lift the head so its lowest point is at z = 0.
-  holder.updateMatrixWorld(true);
-  const bottom = new THREE.Box3().setFromObject(head.getObjectByName('club-head')!).min.z;
-  holder.position.z -= bottom;
+  // The ball touches the face at the measured strike point (the face centre when it was not measured). The point is
+  // in the model's own frame, so the handedness mirror and headScale reach it through the model and holder.
+  const strike = pose.strike
+    ? new THREE.Vector3(pose.strike.lateralIn * IN, 0, pose.strike.verticalIn * IN)
+    : new THREE.Vector3();
+  head.updateMatrix();
+  holder.updateMatrix();
+  const strikeOffset = strike.applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
+  const touch = new THREE.Vector3(0, 0, ballR).addScaledVector(yAxis, -ballR);
+  holder.position.copy(touch).sub(strikeOffset);
+  // A head that would sink into the ground is teed up instead: the ground and target line drop to its lowest point
+  // (the ball stays at the origin every angle line is drawn from). A soled, unmeasured head rests on the ground.
+  // The club's pivot is identity at impact, so the holder's parent frame is the world there.
+  const minZ = lowestZ(head.getObjectByName('club-head') as THREE.Mesh, holder);
+  if (minZ < 0) {
+    ground.position.z = minZ;
+    target.position.z = minZ;
+    root.add(teeMesh(minZ, ballR));
+  } else if (pose.flat && pose.strike === null) {
+    holder.position.z -= minZ;
+  }
 
   holder.updateMatrix();
-  head.updateMatrix();
-  const model = head.userData as ClubModelData;
   const hoselBase = model.hoselBase.clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
   const shaftDir = v3(pose.shaftDir);
   const shaftR = 0.0045 * Math.max(1, headScale * 0.6);

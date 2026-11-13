@@ -2,12 +2,16 @@ import type { Measurements, Vec3 } from '@fsa/domain';
 import type { ReplayScene } from '@fsa/analytics';
 
 export interface HeadPose {
-  /** Unit normal out of the face (toward the target, tilted up by dynamic loft). */
+  /** Unit normal out of the face (toward the target, tilted up by the loft). */
   faceNormal: Vec3;
   /** Unit direction up the shaft from the hosel. */
   shaftDir: Vec3;
   /** Unit direction from heel to toe, in the face plane, pointing away from the golfer. */
   toeDir: Vec3;
+  /** Measured contact point in inches from the face centre (toe +, high +); null unless both were measured. */
+  strike: { lateralIn: number; verticalIn: number } | null;
+  /** True when dynamic loft was not measured: the head is drawn at its static loft, soled. */
+  flat: boolean;
 }
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -18,24 +22,26 @@ const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const normalize = (a: Vec3): Vec3 => scale(a, 1 / (Math.hypot(a[0], a[1], a[2]) || 1));
 
-const DEFAULT_LIE = 60;
-
-/** Club head orientation at impact from the measurements; a missing angle is neutral (0), never invented in a label. */
-export function headPose(m: Measurements, scene: ReplayScene): HeadPose {
+/**
+ * Club head orientation and contact point at impact from the measurements. A missing face angle is square, a
+ * missing loft is the head's static loft and a missing plane is the head's lie; none of these is shown in a label.
+ */
+export function headPose(m: Measurements, scene: ReplayScene, head: { loftDeg: number; lieDeg: number }): HeadPose {
   const g = scene.handedness === 'right' ? 1 : -1;
-  const ftt = rad(m.ftt ?? 0), loft = rad(m.dynamicLoft ?? 0);
-  const faceNormal: Vec3 = m.ftt === null && m.dynamicLoft === null
-    ? [0, 1, 0]
-    : [Math.sin(ftt) * Math.cos(loft), Math.cos(ftt) * Math.cos(loft), Math.sin(loft)];
-  // Without a full plane, still honour a measured V-plane (as the Down the line wedge does) before the default lie.
-  const lie = rad(m.swingV ?? DEFAULT_LIE);
+  const ftt = rad(m.ftt ?? 0), loft = rad(m.dynamicLoft ?? head.loftDeg);
+  const faceNormal: Vec3 = [Math.sin(ftt) * Math.cos(loft), Math.cos(ftt) * Math.cos(loft), Math.sin(loft)];
+  // Without a full plane, still honour a measured V-plane (as the Down the line wedge does) before the head's lie.
+  const lie = rad(m.swingV ?? head.lieDeg);
   const shaftDir: Vec3 = scene.plane
     ? normalize(scene.plane.w)
     : [-g * Math.cos(lie), 0, Math.sin(lie)];
   // Heel-to-toe is the face's horizontal leading edge (sole level), pointing away from the golfer.
   let toe = normalize(cross(faceNormal, [0, 0, 1]));
   if (dot(toe, [g, 0, 0]) < 0) toe = scale(toe, -1);
-  return { faceNormal, shaftDir, toeDir: toe };
+  const strike = m.impactLateral !== null && m.impactVertical !== null
+    ? { lateralIn: m.impactLateral, verticalIn: m.impactVertical }
+    : null;
+  return { faceNormal, shaftDir, toeDir: toe, strike, flat: m.dynamicLoft === null };
 }
 
 /** Centre of the circle through the arc (circumcentre of its first, middle and last points). */
