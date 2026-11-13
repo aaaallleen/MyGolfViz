@@ -11,6 +11,8 @@ from .config import Settings
 from .db import make_engine, session_scope
 from .migrate import db_path, upgrade
 from .routers import imports as imports_router
+from .routers import sessions as sessions_router
+from .routers import shots as shots_router
 from .security import SecurityMiddleware
 from .storage import OriginalStore
 
@@ -72,14 +74,11 @@ def create_app(settings: Settings) -> FastAPI:
     )
 
     app.include_router(imports_router.router)
+    app.include_router(sessions_router.router)
+    app.include_router(shots_router.router)
 
     @app.get("/api/v1/health")
     def health() -> dict:
         return {"status": "ok", "appVersion": __version__, "schemaVersion": app.state.schema_version}
-
-    # TEMPORARY stub; Task 5 replaces it with the real sessions router.
-    @app.get("/api/v1/sessions")
-    def _sessions_stub() -> list:
-        return []
 
     return app

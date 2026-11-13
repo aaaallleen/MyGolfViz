@@ -83,6 +83,58 @@ class SessionRow(CamelModel):
     clubs: list[ClubCount]
 
 
+class ImportRow(CamelModel):
+    id: str
+    session_id: str
+    original_filename: str
+    display_name: str | None
+    sha256: str
+    byte_length: int
+    ordinal: int
+    parser_version: str
+    shot_count: int
+    summary_row_count: int
+    warnings: list[dict]
+    imported_at: str
+
+
+class SessionDetail(CamelModel):
+    session: SessionRow
+    imports: list[ImportRow]
+
+
+class ShotOut(CamelModel):
+    id: str
+    import_id: str
+    source_row: int
+    shot_label: str | None
+    club: str | None
+    shot_type: str | None
+    mode: str | None
+    location: str | None
+    m: dict
+    raw: dict
+    flags: list[str]
+    excluded: bool
+
+
+class ImportOrderIn(CamelModel):
+    import_ids: list[str]
+
+
+class ImportPatch(CamelModel):
+    display_name: str | None = None
+
+
+class ExclusionsIn(CamelModel):
+    exclude: list[str] = []
+    include: list[str] = []
+
+
+class ExclusionsOut(CamelModel):
+    excluded_shot_ids: list[str]
+
+
 # --- import payload -------------------------------------------------------
 
 Num = Annotated[float | None, Field(strict=True, allow_inf_nan=False)]
