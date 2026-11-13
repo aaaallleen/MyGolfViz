@@ -52,4 +52,27 @@ describe('openDesktopLog', () => {
     await log.close();
     expect(() => log.write('late')).not.toThrow();
   });
+
+  it('rotates a log over 1 MB to .1 on open, replacing an older .1', async () => {
+    const file = path.join(dir, 'mygolfviz-desktop.log');
+    fs.writeFileSync(file, 'x'.repeat(1024 * 1024 + 1));
+    fs.writeFileSync(`${file}.1`, 'old');
+    const log = openDesktopLog(file);
+    log.write('fresh');
+    await log.close();
+    expect(fs.statSync(`${file}.1`).size).toBe(1024 * 1024 + 1);
+    const text = fs.readFileSync(file, 'utf8');
+    expect(text).toMatch(/ fresh\n$/);
+    expect(text.length).toBeLessThan(100);
+  });
+
+  it('appends to a log under 1 MB without rotating', async () => {
+    const file = path.join(dir, 'mygolfviz-desktop.log');
+    fs.writeFileSync(file, 'small\n');
+    const log = openDesktopLog(file);
+    log.write('more');
+    await log.close();
+    expect(fs.existsSync(`${file}.1`)).toBe(false);
+    expect(fs.readFileSync(file, 'utf8')).toMatch(/^small\n.* more\n$/);
+  });
 });

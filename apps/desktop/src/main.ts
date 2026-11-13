@@ -7,7 +7,7 @@ import { backendCommand } from './backend/command';
 import { resolveDataDir } from './dataDir';
 import { openDesktopLog, type DesktopLog } from './desktopLog';
 import { buildMenuTemplate } from './menu';
-import { classifyNavigation, isTrustedPage } from './navigation';
+import { allowedChannels, classifyNavigation } from './navigation';
 import { startupErrorCopy, type StartupErrorKind } from './startupError';
 import { clampToDisplays, loadWindowState, saveWindowState } from './windowState';
 
@@ -20,6 +20,7 @@ const APP_NAME = 'MyGolfViz';
 const DEFAULT_SIZE = { width: 1200, height: 800 };
 const STOP_TIMEOUT_MS = 5000;
 const DETAIL_LINES = 20;
+const CRASH_RELOAD_INTERVAL_MS = 10_000;
 const BACKGROUND = '#0d1210';
 
 const staticDir = path.join(__dirname, '..', 'static');
@@ -38,6 +39,7 @@ let appOrigin: string | null = null;
 /** Bumped by every start, restart and quit; a start whose generation is stale is ignored. */
 let generation = 0;
 let restarting: Promise<void> | null = null;
+let lastCrashReload = 0;
 let quitState: 'running' | 'stopping' | 'done' = 'running';
 
 app.setName(APP_NAME);
@@ -237,7 +239,19 @@ function run(log: DesktopLog): void {
       return { action: 'deny' };
     });
     w.webContents.on('did-navigate', (_event, url) => log.write(`window loaded ${describeUrl(url)}`));
-    w.webContents.on('render-process-gone', (_event, details) => log.write(`renderer gone: ${details.reason}`));
+    w.webContents.on('render-process-gone', (_event, details) => {
+      log.write(`renderer gone: ${details.reason}`);
+      if (details.reason === 'clean-exit' || quitState !== 'running') return;
+      const now = Date.now();
+      if (now - lastCrashReload < CRASH_RELOAD_INTERVAL_MS) {
+        // Crashing again right after a reload: do not loop, show the error page instead.
+        if (page.kind === 'error' && page.query.kind === 'crashed') return;
+        showError('crashed');
+        return;
+      }
+      lastCrashReload = now;
+      show(page);
+    });
     w.on('close', () => {
       try {
         saveWindowState(windowStateFile, w.getNormalBounds());
@@ -253,26 +267,26 @@ function run(log: DesktopLog): void {
     return w;
   }
 
-  function isTrustedSender(event: IpcMainInvokeEvent): boolean {
+  function isAllowedSender(event: IpcMainInvokeEvent, channel: string): boolean {
     const frame = event.senderFrame;
     if (!win || win.isDestroyed() || event.sender !== win.webContents || !frame || frame.parent !== null) return false;
-    return isTrustedPage(frame.url, appOrigin, [splashFile, errorFile]);
+    return allowedChannels(frame.url, appOrigin, [splashFile, errorFile]).includes(channel);
   }
 
   function handle(channel: string, action: () => unknown): void {
-    ipcMain.handle(channel, async (event) => {
-      if (!isTrustedSender(event)) {
-        log.write(`rejected ${channel} from an untrusted page`);
+    ipcMain.handle(`mygolfviz:${channel}`, async (event) => {
+      if (!isAllowedSender(event, channel)) {
+        log.write(`rejected ${channel} from a page that may not use it`);
         throw new Error('Not allowed');
       }
       await action();
     });
   }
 
-  handle('mygolfviz:open-data-folder', openDataFolder);
-  handle('mygolfviz:open-logs', openLogs);
-  handle('mygolfviz:restart-backend', restartBackend);
-  handle('mygolfviz:quit', () => app.quit());
+  handle('open-data-folder', openDataFolder);
+  handle('open-logs', openLogs);
+  handle('restart-backend', restartBackend);
+  handle('quit', () => app.quit());
 
   app.on('second-instance', () => {
     if (!app.isReady() || quitState !== 'running') return;

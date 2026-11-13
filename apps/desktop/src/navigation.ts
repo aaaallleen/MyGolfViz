@@ -43,3 +43,15 @@ export function isTrustedPage(frameUrl: string, appOrigin: string | null, localP
   }
   return appOrigin !== null && (url.protocol === 'http:' || url.protocol === 'https:') && url.origin === appOrigin;
 }
+
+const APP_CHANNELS = ['open-data-folder', 'open-logs'];
+const LOCAL_CHANNELS = [...APP_CHANNELS, 'restart-backend', 'quit'];
+
+/**
+ * The IPC channels a frame may call. The bundled splash and error pages may use all of them; the app
+ * page (backend origin) may only open the data folder and the logs, never restart the backend or quit.
+ */
+export function allowedChannels(frameUrl: string, appOrigin: string | null, localPages: string[]): string[] {
+  if (!isTrustedPage(frameUrl, appOrigin, localPages)) return [];
+  return new URL(frameUrl).protocol === 'file:' ? LOCAL_CHANNELS : APP_CHANNELS;
+}

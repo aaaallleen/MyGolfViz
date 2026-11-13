@@ -85,7 +85,8 @@ describe('BackendProcess', () => {
     expect(bp.stderrTail.length).toBeLessThanOrEqual(50);
     expect(bp.stderrTail.length).toBeGreaterThan(0);
     expect(logs.some((l) => l.startsWith('[api] x'))).toBe(true);
-    expect(logs.some((l) => l.startsWith('x'))).toBe(true);
+    // stdout after the port line is drained but never logged (the API has its own access log).
+    expect(logs.some((l) => l.startsWith('x'))).toBe(false);
   });
 
   it('maps exit 3 to already-running', async () => {

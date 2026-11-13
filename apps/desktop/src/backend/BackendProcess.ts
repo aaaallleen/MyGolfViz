@@ -87,15 +87,15 @@ export class BackendProcess {
     let gotPort = false;
 
     lineReader(child.stdout!, (line) => {
-      if (!gotPort) {
-        const parsed = parsePortLine(line);
-        if (parsed) {
-          gotPort = true;
-          onPort(parsed);
-          return;
-        }
+      // After the port line stdout is only drained: the API's access log is in its own rotating log file.
+      if (gotPort) return;
+      const parsed = parsePortLine(line);
+      if (parsed) {
+        gotPort = true;
+        onPort(parsed);
+      } else {
+        onLog?.(line);
       }
-      onLog?.(line);
     });
     lineReader(child.stderr!, (line) => {
       this.stderrTail.push(line);

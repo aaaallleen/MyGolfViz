@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyNavigation, isTrustedPage } from './navigation';
+import { allowedChannels, classifyNavigation, isTrustedPage } from './navigation';
 
 const origin = 'http://127.0.0.1:50123';
 
@@ -57,5 +57,23 @@ describe('isTrustedPage', () => {
   it('trusts only the local pages while the app origin is unknown', () => {
     expect(isTrustedPage('http://127.0.0.1:50123/', null, pages)).toBe(false);
     expect(isTrustedPage('file:///app/static/error.html', null, pages)).toBe(true);
+  });
+});
+
+describe('allowedChannels', () => {
+  const pages = ['/app/static/splash.html', '/app/static/error.html'];
+  const all = ['open-data-folder', 'open-logs', 'restart-backend', 'quit'];
+
+  it('gives the local pages every channel', () => {
+    expect(allowedChannels('file:///app/static/error.html?kind=crashed', origin, pages)).toEqual(all);
+    expect(allowedChannels('file:///app/static/splash.html', null, pages)).toEqual(all);
+  });
+
+  it('keeps restart-backend and quit away from the app page', () => {
+    expect(allowedChannels('http://127.0.0.1:50123/#/x', origin, pages)).toEqual(['open-data-folder', 'open-logs']);
+  });
+
+  it.each(['http://127.0.0.1:50124/', 'file:///etc/hosts', 'about:blank', 'not a url'])('gives %s nothing', (url) => {
+    expect(allowedChannels(url, origin, pages)).toEqual([]);
   });
 });

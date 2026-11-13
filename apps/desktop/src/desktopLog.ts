@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const MAX_BYTES = 1024 * 1024;
 const TOKEN_RE = /(token=)[^&\s"'#]+/g;
 
 export interface DesktopLog {
@@ -13,6 +14,11 @@ export interface DesktopLog {
 /** Appends lifecycle events and backend output to `<dataDir>/logs/mygolfviz-desktop.log`. */
 export function openDesktopLog(file: string): DesktopLog {
   fs.mkdirSync(path.dirname(file), { recursive: true });
+  try {
+    if (fs.statSync(file).size > MAX_BYTES) fs.renameSync(file, `${file}.1`);
+  } catch {
+    /* no log yet, or it cannot be rotated: append as before */
+  }
   const stream = fs.createWriteStream(file, { flags: 'a' });
   stream.on('error', () => {});
   let closed = false;

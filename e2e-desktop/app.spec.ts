@@ -134,4 +134,38 @@ test('navigation stays inside the app', async () => {
   await expect.poll(openedExternally).toEqual(['https://example.com/']);
   expect(app.windows()).toHaveLength(1);
   expect(await page.evaluate(() => location.origin)).toBe(origin);
+
+  // The app page may not quit the app or restart its backend; the app keeps running.
+  const pid = await backendPid(app);
+  const outcomes = await page.evaluate(async () => {
+    const api = (window as unknown as { mygolfviz: { quit(): Promise<void>; restartBackend(): Promise<void> } }).mygolfviz;
+    const outcome = (call: () => Promise<void>) => call().then(() => 'allowed', () => 'rejected');
+    return [await outcome(() => api.quit()), await outcome(() => api.restartBackend())];
+  });
+  expect(outcomes).toEqual(['rejected', 'rejected']);
+  await page.waitForTimeout(500);
+  expect(await backendPid(app)).toBe(pid);
+  expect(await library.isVisible()).toBe(true);
+});
+
+test('a crashed renderer is reloaded', async () => {
+  const { app, page } = await launch();
+  await expectLibrary(page);
+  const origin = await appOrigin(app);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.forcefullyCrashRenderer());
+  // Playwright keeps a crashed page handle crashed for good, so ask the window itself whether the library is back.
+  const libraryShown = (): Promise<{ origin: string; text: string } | null> =>
+    app.evaluate(({ BrowserWindow }) => {
+      const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+      if (contents.isCrashed()) return null;
+      return contents
+        .executeJavaScript(`({ origin: location.origin, text: document.body.innerText })`)
+        .catch(() => null);
+    }) as Promise<{ origin: string; text: string } | null>;
+  await expect
+    .poll(async () => {
+      const state = await libraryShown();
+      return state?.origin === origin && /Sessions|No sessions yet/.test(state.text);
+    }, { timeout: 15000 })
+    .toBe(true);
 });
