@@ -137,8 +137,10 @@ textarea.field__input { padding: 10px 12px; }
 .selected-card__steps .selected-card__step + .selected-card__step { border-left: 1px solid var(--border-strong); }
 .selected-card__steps .selected-card__step:focus-visible { outline: 2px solid var(--club); outline-offset: -2px; }
 .selected-card__step { width: 44px; flex-shrink: 0; padding: 0; cursor: pointer; }
-.selected-card__foot { padding-top: 16px; border-top: 1px solid var(--border); }
-.selected-card__inspect { justify-content: center; width: 100%; box-sizing: border-box; }
+.selected-card__foot { padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px; }
+.selected-card__foot > * { flex: 1 1 auto; justify-content: center; }
+.selected-card__tag { display: inline-block; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 20px; color: var(--muted); border: 1px solid var(--border); }
+.selected-card__inspect { justify-content: center; box-sizing: border-box; }
 .link-button { display: inline-flex; align-items: center; text-decoration: none; padding: 0 16px; }
 .shots-table { max-height: min(70vh, 720px); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-control); }
 .shots-table:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }

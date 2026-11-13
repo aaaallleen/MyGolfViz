@@ -1,8 +1,9 @@
 import { Link } from 'react-router';
 import { selectionPosition } from '@fsa/analytics';
-import { formatImpact, formatMeasurement, MISSING_MARK, type MeasurementKey, type Shot } from '@fsa/domain';
-import { Missing } from '@fsa/ui';
-import { shotLabel } from './shotLabel';
+import { formatImpact, formatMeasurement, type MeasurementKey, type Shot, type SourceFile } from '@fsa/domain';
+import { Button, Missing } from '@fsa/ui';
+import { FileBadge } from './FileBadge';
+import { shotLabel, shotOptionLabel } from './shotLabel';
 
 const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] = [
   { key: 'carry', label: 'Carry', accent: 'ball' },
@@ -14,16 +15,23 @@ const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] 
   { key: 'aoa', label: 'Attack angle', accent: 'club' },
 ];
 
-export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }: {
+export function SelectedShotCard({ shots, selected, excluded, files, onSelect, onStep, onExclude, onInclude, color }: {
+  /** The included shots, in display order. */
   shots: readonly Shot[];
-  selectedId: string | null;
+  /** The selected shot. When excluded it is not in `shots`. */
+  selected: Shot | undefined;
+  excluded: boolean;
+  files: readonly SourceFile[];
   onSelect(id: string): void;
   onStep(delta: 1 | -1): void;
+  onExclude(id: string): void;
+  onInclude(id: string): void;
   /** The selected shot's club colour, matching the plots and the Clubs table. */
   color?: string;
 }) {
-  const shot = shots.find((s) => s.id === selectedId);
-  const pos = selectionPosition(selectedId, shots);
+  const shot = selected;
+  const pos = shot && !excluded ? selectionPosition(shot.id, shots) : null;
+  const options = shot && excluded ? [...shots, shot] : shots;
   return (
     <div className="panel selected-card">
       <div className="selected-card__head">
@@ -34,6 +42,8 @@ export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }:
               {shot && color && <span className="selected-card__dot" style={{ background: color }} />}
               <span>
                 {shot && `${shot.club} · `}
+                {shot && <FileBadge shot={shot} files={files} />}
+                {shot && files.length >= 2 && ' '}
                 <span className="selected-card__nowrap">
                   {shot ? shotLabel(shot) : 'Choose a shot'}
                   <svg className="selected-card__chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
@@ -44,12 +54,14 @@ export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }:
             </h3>
             <select className="selected-card__select" aria-label="Choose shot" value={shot?.id ?? ''} onChange={(e) => onSelect(e.target.value)}>
               {!shot && <option value="" disabled>Choose a shot</option>}
-              {shots.map((s) => (
-                <option key={s.id} value={s.id}>{`${s.club} · shot ${s.shotLabel ?? s.sourceRow} · ${s.m.carry === null ? MISSING_MARK : formatMeasurement('carry', s.m.carry)}`}</option>
+              {options.map((s) => (
+                <option key={s.id} value={s.id}>{shotOptionLabel(s, files)}</option>
               ))}
             </select>
           </div>
-          <span className="panel__note">{pos ? `${pos.index} of ${pos.total}` : `No shot selected · ${shots.length} shots`}</span>
+          {shot && excluded
+            ? <span className="selected-card__tag">Excluded</span>
+            : <span className="panel__note">{pos ? `${pos.index} of ${pos.total}` : `No shot selected · ${shots.length} shots`}</span>}
         </div>
         <div className="selected-card__steps" role="group" aria-label="Step through shots">
           <button type="button" className="fsa-touch selected-card__step" aria-label="Previous shot" onClick={() => onStep(-1)}>‹</button>
@@ -71,6 +83,9 @@ export function SelectedShotCard({ shots, selectedId, onSelect, onStep, color }:
             </div>
           </dl>
           <div className="selected-card__foot">
+            {excluded
+              ? <Button onClick={() => onInclude(shot.id)}>Include shot</Button>
+              : <Button onClick={() => onExclude(shot.id)}>Exclude shot</Button>}
             <Link className="fsa-btn fsa-btn--primary fsa-touch link-button selected-card__inspect" to="/inspect">Open shot inspector →</Link>
           </div>
         </>
