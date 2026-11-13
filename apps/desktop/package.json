@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "npm run build && electron .",
-    "dist": "echo 'dist: implemented in Task 5' && exit 1"
+    "dist": "electron-builder --mac dmg --arm64"
   },
   "devDependencies": {
     "electron": "45.2.0",

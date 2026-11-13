@@ -19,6 +19,7 @@ mygolfviz-api = "mygolfviz_api.__main__:main"
 
 [dependency-groups]
 dev = ["pytest", "httpx"]
+build = ["pyinstaller==6.22.3"]
 
 [build-system]
 requires = ["hatchling"]

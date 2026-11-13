@@ -1,0 +1,33 @@
+# Packages the Mac app: `npm run desktop:dist` from the repo root builds the web app, the frozen backend and the main
+# process first, then runs electron-builder here. Output: release/MyGolfViz-<version>-arm64.dmg and
+# release/mac-arm64/MyGolfViz.app.
+appId: io.github.aaaallleen.mygolfviz
+productName: MyGolfViz
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - static/**
+  - package.json
+  # The main process uses only Electron and Node built-ins. Without this, electron-builder copies the workspace root's
+  # runtime dependencies (the web app's React, fonts, ...) into app.asar.
+  - "!node_modules{,/**/*}"
+extraResources:
+  # The backend's packaged location, <resourcesPath>/api/mygolfviz-api/mygolfviz-api (src/backend/command.ts).
+  - from: ../api/dist/mygolfviz-api
+    to: api/mygolfviz-api
+  - from: ../web/dist-local
+    to: web
+asar: true
+npmRebuild: false
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+  category: public.app-category.sports
+  # Ad-hoc signature: not signed for distribution, but a valid signature, which arm64 requires to run.
+  identity: "-"
+  hardenedRuntime: false
+dmg:
+  artifactName: "MyGolfViz-${version}-arm64.${ext}"
