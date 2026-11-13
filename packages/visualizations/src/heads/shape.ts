@@ -17,8 +17,10 @@ const OUTLINE_POINTS = 64;
 const DEG = Math.PI / 180;
 
 /**
- * The face as a closed loop in the face plane: counter-clockwise in (x, z) (positive shoelace area),
- * 64 points, first point not repeated, exactly `faceWidthIn` wide.
+ * The face as a closed loop of 64 (x, z) points in the face plane, first point not repeated, exactly
+ * `faceWidthIn` wide. The loop has positive shoelace area in (x, z): it runs counter-clockwise when drawn
+ * with +x to the right and +z up, which is the view from behind the face. Seen from in front of the face
+ * (from +y), +x (the toe) points to the viewer's left and the loop runs clockwise.
  */
 export function faceOutline(spec: HeadSpec): Pt[] {
   return spec.kind === 'blade' ? bladeOutline(spec) : woodOutline(spec);
@@ -56,15 +58,10 @@ export function bodySurface(spec: HeadSpec, nu: number, nv: number): { positions
 /** Face-on outline of the body (its convex hull in x, z), counter-clockwise; null for blades. */
 export function bodySilhouette(spec: HeadSpec): Pt[] | null {
   if (spec.kind === 'blade') return null;
+  // the mesh's first ring is the exact edge of the flat face, so the hull holds the face outline
   const { positions } = woodSurface(spec, 96, 64);
   const pts: Pt[] = [];
   for (let i = 0; i < positions.length; i += 3) pts.push([positions[i]!, positions[i + 2]!]);
-  // the exact edge of the flat face, so the hull holds the face outline however coarse the grid
-  const w = woodBody(spec);
-  for (let k = 0; k < 128; k++) {
-    const phi = (2 * Math.PI * k) / 128, rho = w.edgeRadius(w.centreZ, phi);
-    pts.push([rho * Math.cos(phi), rho * Math.sin(phi)]);
-  }
   return convexHull(pts);
 }
 
@@ -73,17 +70,17 @@ export function bodySilhouette(spec: HeadSpec): Pt[] | null {
 //
 // The level frame is the head sitting soled (X toe, Y forward, Z up). Body maths uses face-aligned axes
 // about the body centre: x toward the toe, y along the face normal, z up the face; a face-aligned vector q
-// is (x, y cos L − z sin L, y sin L + z cos L) in the level frame. The face plane is y = dist; points
-// beyond it are clipped back to it along their ray from the body centre, which leaves exactly the body
-// behind the plane. The face centre is (0, dist, centreZ), the middle of the flat region's height.
+// is (x, y cos L − z sin L, y sin L + z cos L) in the level frame. The face plane is y = dist and the body
+// is the part of the superellipsoid behind it. The face centre is (0, dist, centreZ), the middle of the
+// flat region's height.
 
 interface WoodBody {
   dist: number;
   centreZ: number;
   /** Superellipsoid radius along a face-aligned unit direction. */
   radius(d: V3): number;
-  /** Distance from (0, dist, z0) along the in-plane angle `phi` to the edge of the flat region. */
-  edgeRadius(z0: number, phi: number): number;
+  /** Distance from the face centre along the in-plane angle `phi` to the edge of the flat region. */
+  edgeRadius(phi: number): number;
 }
 
 const woodCache = new WeakMap<HeadSpec, WoodBody>();
@@ -121,7 +118,7 @@ function woodBody(spec: HeadSpec): WoodBody {
   const dist = bisect(0, radius([0, 1, 0]), (d) => flatWidth(d) > spec.faceWidthIn + FACE_MARGIN_IN);
   const zs = angles.map((phi) => edgeAt(dist, 0, phi) * Math.sin(phi));
   const centreZ = (Math.max(...zs) + Math.min(...zs)) / 2;
-  const body: WoodBody = { dist, centreZ, radius, edgeRadius: (z0, phi) => edgeAt(dist, z0, phi) };
+  const body: WoodBody = { dist, centreZ, radius, edgeRadius: (phi) => edgeAt(dist, centreZ, phi) };
   woodCache.set(spec, body);
   return body;
 }
@@ -129,7 +126,7 @@ function woodBody(spec: HeadSpec): WoodBody {
 function woodOutline(spec: HeadSpec): Pt[] {
   const w = woodBody(spec);
   const edge: Pt[] = Array.from({ length: OUTLINE_POINTS }, (_, k) => {
-    const phi = (2 * Math.PI * k) / OUTLINE_POINTS, rho = w.edgeRadius(w.centreZ, phi);
+    const phi = (2 * Math.PI * k) / OUTLINE_POINTS, rho = w.edgeRadius(phi);
     return [rho * Math.cos(phi), rho * Math.sin(phi)];
   });
   const inset = offsetInward(edge, FACE_INSET_IN);
@@ -141,24 +138,32 @@ function woodOutline(spec: HeadSpec): Pt[] {
 
 function woodSurface(spec: HeadSpec, nu: number, nv: number) {
   const w = woodBody(spec);
-  // the pole axis is the face normal, so the front pole sits on the flat face
+  // Vertex 0 is the face centre. Ring 1 is the exact edge of the flat face, one point per in-plane angle
+  // around the face centre, so the face is a flat fan with an exact crease at its rim. Rings 2 … nv − 1
+  // run over the body from that edge to the back pole: each keeps its edge point's azimuth about the face
+  // normal and steps its polar angle evenly from the edge's to π.
   const positions = new Float32Array((nu * (nv - 1) + 2) * 3);
   let n = 0;
-  const put = (d: V3) => {
-    const r = Math.min(w.radius(d), d[1] > 0 ? w.dist / d[1] : Infinity);
-    positions[n++] = r * d[0];
-    positions[n++] = r * d[1] - w.dist;
-    positions[n++] = r * d[2] - w.centreZ;
+  const put = (x: number, y: number, z: number) => {
+    positions[n++] = x;
+    positions[n++] = y - w.dist;
+    positions[n++] = z - w.centreZ;
   };
-  put([0, 1, 0]);
-  for (let j = 1; j < nv; j++) {
-    const theta = (Math.PI * j) / nv;
-    for (let i = 0; i < nu; i++) {
-      const phi = (2 * Math.PI * i) / nu;
-      put([Math.sin(theta) * Math.cos(phi), Math.cos(theta), Math.sin(theta) * Math.sin(phi)]);
+  put(0, w.dist, w.centreZ);
+  const edges = Array.from({ length: nu }, (_, i) => {
+    const phi = (2 * Math.PI * i) / nu, rho = w.edgeRadius(phi);
+    const x = rho * Math.cos(phi), z = w.centreZ + rho * Math.sin(phi);
+    return { x, z, polar: Math.atan2(Math.hypot(x, z), w.dist), azimuth: Math.atan2(z, x) };
+  });
+  for (const e of edges) put(e.x, w.dist, e.z);
+  for (let j = 2; j < nv; j++)
+    for (const { polar, azimuth } of edges) {
+      const theta = polar + ((Math.PI - polar) * (j - 1)) / (nv - 1);
+      const d: V3 = [Math.sin(theta) * Math.cos(azimuth), Math.cos(theta), Math.sin(theta) * Math.sin(azimuth)];
+      const r = w.radius(d);
+      put(r * d[0], r * d[1], r * d[2]);
     }
-  }
-  put([0, -1, 0]);
+  put(0, -w.radius([0, -1, 0]), 0);
   const front = 0, back = nu * (nv - 1) + 1;
   const ring = (j: number, i: number) => 1 + (j - 1) * nu + (i % nu);
   const indices: number[] = [];

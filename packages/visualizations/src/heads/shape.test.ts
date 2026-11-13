@@ -139,6 +139,24 @@ test.each(cats)('%s body is a closed, outward-wound mesh holding the hosel base'
   expect(insideMesh(s.hosel.base, P, indices)).toBe(true);
 });
 
+/** True when (x, z) lies within a mesh triangle whose three corners all sit on y = 0 (within 1e-4 in). */
+function onFlatFace([x, z]: readonly number[], P: number[][], indices: Uint32Array): boolean {
+  for (let t = 0; t < indices.length; t += 3) {
+    const [a, b, c] = [P[indices[t]!]!, P[indices[t + 1]!]!, P[indices[t + 2]!]!];
+    if (![a, b, c].every((p) => Math.abs(p[1]!) < 1e-4)) continue;
+    const area = (p: number[], q: number[], px: number, pz: number) => (q[0]! - p[0]!) * (pz - p[2]!) - (q[2]! - p[2]!) * (px - p[0]!);
+    const s1 = area(a, b, x!, z!), s2 = area(b, c, x!, z!), s3 = area(c, a, x!, z!);
+    if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) return true;
+  }
+  return false;
+}
+
+test.each(['driver', 'wood', 'hybrid'] as const)('%s flat face holds the whole face outline and every score line', (c) => {
+  const s = HEAD_SPECS[c], { positions, indices } = bodySurface(s, 48, 32), P = toPoints(positions);
+  const points = [...faceOutline(s), ...scoreLines(s).flatMap((l) => [[l.x1, l.z], [l.x2, l.z]])];
+  for (const p of points) expect(onFlatFace(p, P, indices), `(${p[0]}, ${p[1]})`).toBe(true);
+});
+
 test.each(['driver', 'wood', 'hybrid'] as const)('%s silhouette contains the face outline', (c) => {
   const s = HEAD_SPECS[c], sil = bodySilhouette(s)!;
   expect(sil).not.toBeNull();
