@@ -72,11 +72,15 @@ matches its number.
 All four views show the same scene: ground grid, dashed target line, the club arc for the shot
 (from `buildReplayScene`), a shaded club model at its replay position, and the ball.
 
-**Orientation (user's decision): match FlightScope and mirror for left-handers.** The Top,
-Face-on and 2D views are seen as a coach facing the golfer sees them:
-- **Right-hander:** the golfer is at the bottom of the screen and the target is on the **left**.
-- **Left-hander:** the image is mirrored, with the target on the **right**.
-- **Down the line:** for both, the camera is behind the ball looking at the target.
+**Orientation (user's decision): match FlightScope and mirror for left-handers.** FlightScope's
+screenshots fix the orientation of each view for a right-hander. For a left-hander, every view
+except Down the line and Spin axis is mirrored.
+
+| View | Right-hander | Mirrored for a left-hander? |
+|---|---|---|
+| 3D Top; 2D Face to target and Face to path (IMG_5879, 5891) | Golfer at the bottom of the screen, target on the **left** (looking down over the golfer's shoulder) | Yes |
+| 3D Face-on; 2D Dynamic loft (IMG_5893) | Camera faces the golfer, target on the **right** | Yes |
+| 3D Down the line; 2D Spin axis (IMG_5881, 5894) | Camera behind the ball looking at the target; golfer on the left | The golfer moves to the right; the camera itself doesn't change |
 
 This applies to the 2D tab too. `Club2DTab` needs the handedness passed in, which it doesn't have
 today. L/R in labels and badges always comes from the measurements, never from screen direction.
