@@ -64,16 +64,12 @@ const faceToTarget = (m: Measurements): Vec3 | null => (m.ftt === null ? null : 
 const faceFromPath = (m: Measurements): Vec3 | null =>
   m.clubPath === null || m.ftp === null ? null : heading(m.clubPath + m.ftp);
 
-const targetLine = (len = 3): Annotation =>
-  ({ kind: 'line', id: 'target-line', color: MUTED, a: [0, -len, 0], b: [0, len, 0], dashed: true });
-
 export function annotations3D(view: View3D, scene: ReplayScene, m: Measurements): Annotation[] {
   const out: Annotation[] = [];
   const { u, s, w } = planeVectors(m, scene.handedness);
   const path = m.clubPath === null ? null : heading(m.clubPath);
   switch (view) {
     case 'top': {
-      out.push(targetLine());
       if (m.swingH !== null) {
         out.push({ kind: 'line', id: 'hplane-line', color: PLANE, a: scale(u, -1.6), b: scale(u, 1.6), dashed: true });
         out.push(...wedgeWithLabel('hplane', 'swingH', m, TARGET, u, 1.4));
@@ -108,7 +104,6 @@ export function annotations3D(view: View3D, scene: ReplayScene, m: Measurements)
       break;
     }
     case 'overview': {
-      out.push(targetLine());
       const arc = scene.clubArc;
       if (arc && m.swingV !== null) {
         const top = arc.reduce((a, b) => (b[2] > a[2] ? b : a));
@@ -130,7 +125,6 @@ export function annotations2D(view: View2D, m: Measurements): Annotation[] {
   switch (view) {
     case 'ftt':
     case 'ftp': {
-      out.push(targetLine(0.5));
       const face = view === 'ftt' ? faceToTarget(m) : faceFromPath(m) ?? faceToTarget(m);
       if (face) {
         const edge: Vec3 = [face[1], -face[0], 0]; // along the leading edge, perpendicular to the face normal
