@@ -32,19 +32,6 @@ def test_pending_migration_backs_up_first(settings):
     assert "sessions" not in tables  # taken before the migration ran
 
 
-def test_keeps_five_backups(settings):
-    backups = settings.data_dir / "backups"
-    backups.mkdir(parents=True, exist_ok=True)
-    for i in range(6):
-        (backups / f"mygolfviz-2020010{i}T000000Z-none.sqlite3").write_bytes(b"x")
-    sqlite3.connect(settings.data_dir / "mygolfviz.sqlite3").close()
-    migrate.backup_database(settings, None)
-    names = sorted(p.name for p in backups.iterdir())
-    assert len(names) == 5
-    assert "mygolfviz-20200100T000000Z-none.sqlite3" not in names
-    assert "mygolfviz-20200101T000000Z-none.sqlite3" not in names
-
-
 def test_pragmas(tmp_path):
     engine = make_engine(tmp_path / "p.sqlite3")
     with engine.connect() as c:

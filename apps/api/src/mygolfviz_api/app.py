@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
@@ -75,7 +76,7 @@ def attach_log_handler(settings: Settings) -> None:
             logger.setLevel(logging.INFO)
 
 
-def create_app(settings: Settings) -> FastAPI:
+def create_app(settings: Settings, on_migrating: Callable[[], None] | None = None) -> FastAPI:
     for sub in ("originals", "backups", "logs"):
         (settings.data_dir / sub).mkdir(parents=True, exist_ok=True)
     attach_log_handler(settings)
@@ -92,7 +93,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     app = FastAPI(title="MyGolfViz API", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.settings = settings
-    app.state.schema_version = upgrade(settings)
+    app.state.schema_version = upgrade(settings, on_migrating)
     app.state.engine = make_engine(db_path(settings))
     app.state.originals = OriginalStore(settings.data_dir)
     with session_scope(app.state.engine) as db:
