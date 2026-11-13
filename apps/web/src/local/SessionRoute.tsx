@@ -4,6 +4,7 @@ import { EmptyState } from '@fsa/ui';
 import { InspectorPage, OverviewPage } from '../routes';
 import { useWorkingSet } from '../state/store';
 import { ApiError, getSession, getShots } from './api';
+import { EmptySession } from './EmptySession';
 import { sessionToWorkingSet } from './sessionToWorkingSet';
 
 export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
@@ -41,6 +42,6 @@ export function SessionRoute({ page }: { page: 'overview' | 'inspect' }) {
     }
     return <p role="status">Loading session…</p>;
   }
-  if (!ws.workingSet || ws.workingSet.shots.length === 0) return <h1>{ws.details.name}</h1>;
+  if (!ws.workingSet || ws.workingSet.shots.length === 0) return <EmptySession />;
   return page === 'overview' ? <OverviewPage /> : <InspectorPage />;
 }
