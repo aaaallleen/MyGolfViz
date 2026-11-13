@@ -1,0 +1,1244 @@
+{
+  "components": {
+    "schemas": {
+      "CheckRequest": {
+        "properties": {
+          "sessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sessionid"
+          },
+          "sha256S": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sha256S",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sha256S"
+        ],
+        "title": "CheckRequest",
+        "type": "object"
+      },
+      "CheckResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "CheckResponse",
+        "type": "object"
+      },
+      "CheckResult": {
+        "properties": {
+          "inDestination": {
+            "title": "Indestination",
+            "type": "boolean"
+          },
+          "otherSessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionRef"
+            },
+            "title": "Othersessions",
+            "type": "array"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256",
+          "inDestination",
+          "otherSessions"
+        ],
+        "title": "CheckResult",
+        "type": "object"
+      },
+      "ClubCount": {
+        "properties": {
+          "club": {
+            "title": "Club",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "club",
+          "count"
+        ],
+        "title": "ClubCount",
+        "type": "object"
+      },
+      "ExclusionsIn": {
+        "properties": {
+          "exclude": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Exclude",
+            "type": "array"
+          },
+          "include": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Include",
+            "type": "array"
+          }
+        },
+        "title": "ExclusionsIn",
+        "type": "object"
+      },
+      "ExclusionsOut": {
+        "properties": {
+          "excludedShotIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Excludedshotids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "excludedShotIds"
+        ],
+        "title": "ExclusionsOut",
+        "type": "object"
+      },
+      "FileResult": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "importId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Importid"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "shotCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shotcount"
+          },
+          "status": {
+            "enum": [
+              "imported",
+              "skipped_duplicate",
+              "invalid"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "field",
+          "name",
+          "status"
+        ],
+        "title": "FileResult",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportOrderIn": {
+        "properties": {
+          "importIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Importids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "importIds"
+        ],
+        "title": "ImportOrderIn",
+        "type": "object"
+      },
+      "ImportPatch": {
+        "properties": {
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          }
+        },
+        "title": "ImportPatch",
+        "type": "object"
+      },
+      "ImportResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/FileResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionRow"
+          }
+        },
+        "required": [
+          "session",
+          "results"
+        ],
+        "title": "ImportResponse",
+        "type": "object"
+      },
+      "ImportRow": {
+        "properties": {
+          "byteLength": {
+            "title": "Bytelength",
+            "type": "integer"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "importedAt": {
+            "title": "Importedat",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "originalFilename": {
+            "title": "Originalfilename",
+            "type": "string"
+          },
+          "parserVersion": {
+            "title": "Parserversion",
+            "type": "string"
+          },
+          "sessionId": {
+            "title": "Sessionid",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "shotCount": {
+            "title": "Shotcount",
+            "type": "integer"
+          },
+          "summaryRowCount": {
+            "title": "Summaryrowcount",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "sessionId",
+          "originalFilename",
+          "displayName",
+          "sha256",
+          "byteLength",
+          "ordinal",
+          "parserVersion",
+          "shotCount",
+          "summaryRowCount",
+          "warnings",
+          "importedAt"
+        ],
+        "title": "ImportRow",
+        "type": "object"
+      },
+      "SessionDetail": {
+        "properties": {
+          "imports": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRow"
+            },
+            "title": "Imports",
+            "type": "array"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionRow"
+          }
+        },
+        "required": [
+          "session",
+          "imports"
+        ],
+        "title": "SessionDetail",
+        "type": "object"
+      },
+      "SessionIn": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "handedness": {
+            "default": "right",
+            "enum": [
+              "right",
+              "left"
+            ],
+            "title": "Handedness",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "date"
+        ],
+        "title": "SessionIn",
+        "type": "object"
+      },
+      "SessionPatch": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "handedness": {
+            "anyOf": [
+              {
+                "enum": [
+                  "right",
+                  "left"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handedness"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "title": "SessionPatch",
+        "type": "object"
+      },
+      "SessionRef": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "SessionRef",
+        "type": "object"
+      },
+      "SessionRow": {
+        "properties": {
+          "clubs": {
+            "items": {
+              "$ref": "#/components/schemas/ClubCount"
+            },
+            "title": "Clubs",
+            "type": "array"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "fileCount": {
+            "title": "Filecount",
+            "type": "integer"
+          },
+          "handedness": {
+            "enum": [
+              "right",
+              "left"
+            ],
+            "title": "Handedness",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "shotCount": {
+            "title": "Shotcount",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "date",
+          "notes",
+          "handedness",
+          "createdAt",
+          "updatedAt",
+          "shotCount",
+          "fileCount",
+          "clubs"
+        ],
+        "title": "SessionRow",
+        "type": "object"
+      },
+      "ShotOut": {
+        "properties": {
+          "club": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club"
+          },
+          "excluded": {
+            "title": "Excluded",
+            "type": "boolean"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "importId": {
+            "title": "Importid",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "m": {
+            "additionalProperties": true,
+            "title": "M",
+            "type": "object"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "title": "Raw",
+            "type": "object"
+          },
+          "shotLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shotlabel"
+          },
+          "shotType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shottype"
+          },
+          "sourceRow": {
+            "title": "Sourcerow",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "importId",
+          "sourceRow",
+          "shotLabel",
+          "club",
+          "shotType",
+          "mode",
+          "location",
+          "m",
+          "raw",
+          "flags",
+          "excluded"
+        ],
+        "title": "ShotOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "MyGolfViz API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Api V1 Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/v1/imports": {
+      "post": {
+        "operationId": "commit_imports_api_v1_imports_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Commit Imports"
+      }
+    },
+    "/api/v1/imports/check": {
+      "post": {
+        "operationId": "check_imports_api_v1_imports_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Imports"
+      }
+    },
+    "/api/v1/imports/{import_id}": {
+      "delete": {
+        "operationId": "delete_import_api_v1_imports__import_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Import"
+      },
+      "patch": {
+        "operationId": "patch_import_api_v1_imports__import_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Import"
+      }
+    },
+    "/api/v1/imports/{import_id}/original": {
+      "get": {
+        "operationId": "download_original_api_v1_imports__import_id__original_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Original"
+      }
+    },
+    "/api/v1/sessions": {
+      "get": {
+        "operationId": "list_sessions_api_v1_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionRow"
+                  },
+                  "title": "Response List Sessions Api V1 Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Sessions"
+      },
+      "post": {
+        "operationId": "create_session_api_v1_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session"
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "delete": {
+        "operationId": "delete_session_api_v1_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Session"
+      },
+      "get": {
+        "operationId": "get_session_api_v1_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session"
+      },
+      "patch": {
+        "operationId": "patch_session_api_v1_sessions__session_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Session"
+      }
+    },
+    "/api/v1/sessions/{session_id}/exclusions": {
+      "patch": {
+        "operationId": "patch_exclusions_api_v1_sessions__session_id__exclusions_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExclusionsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Exclusions"
+      }
+    },
+    "/api/v1/sessions/{session_id}/imports": {
+      "get": {
+        "operationId": "list_imports_api_v1_sessions__session_id__imports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImportRow"
+                  },
+                  "title": "Response List Imports Api V1 Sessions  Session Id  Imports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Imports"
+      }
+    },
+    "/api/v1/sessions/{session_id}/imports/order": {
+      "patch": {
+        "operationId": "reorder_imports_api_v1_sessions__session_id__imports_order_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportOrderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImportRow"
+                  },
+                  "title": "Response Reorder Imports Api V1 Sessions  Session Id  Imports Order Patch",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reorder Imports"
+      }
+    },
+    "/api/v1/sessions/{session_id}/shots": {
+      "get": {
+        "operationId": "list_shots_api_v1_sessions__session_id__shots_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShotOut"
+                  },
+                  "title": "Response List Shots Api V1 Sessions  Session Id  Shots Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Shots"
+      }
+    }
+  }
+}

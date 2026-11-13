@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import { useAppPaths } from '../paths';
 import { buildReplayScene } from '@fsa/analytics';
 import { Button, EmptyState, ProvenanceLegend, TabList, TabPanel, Tabs } from '@fsa/ui';
 import { AllMeasurements } from '../components/AllMeasurements';
@@ -22,6 +23,7 @@ const TABS: { id: InspectorTab; label: string; short: string }[] = [
 
 export function InspectorPage() {
   const ws = useWorkingSet();
+  const paths = useAppPaths();
   const phone = usePhone();
   const { workingSet, details, visibleShots, tableShots, excludedIds, selectedId, inspectorTab } = ws;
   const handedness = details.handedness;
@@ -68,7 +70,7 @@ export function InspectorPage() {
         action={(
           <>
             <Button variant="primary" onClick={() => includeAllWithUndo(ws.includeAll, 'filter')}>Include all</Button>
-            <Link className="fsa-btn fsa-touch link-button" to="/overview">Back to overview</Link>
+            <Link className="fsa-btn fsa-touch link-button" to={paths.overview}>Back to overview</Link>
           </>
         )}
       />

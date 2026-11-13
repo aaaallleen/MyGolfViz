@@ -1,7 +1,7 @@
 name: CI
 
-# Runs the full public check suite on every pull request, so problems show up before merge.
-# Pushes to main are covered by pages.yml, which runs the same suite before it deploys.
+# Runs the public check suite and the Local App suite on every pull request, so problems show up before merge.
+# Pushes to main are covered by pages.yml, which runs the public suite before it deploys.
 on:
   pull_request:
   workflow_dispatch:
@@ -34,6 +34,33 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  local:
+    name: Local App - backend tests, local build, local e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # pytest, local build, verify:local, Playwright e2e against the real backend on a fresh data folder
+      - run: npm run ci:local
+      - name: Upload local e2e screenshots and failure traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results-local
           path: test-results/
           retention-days: 7
           if-no-files-found: ignore

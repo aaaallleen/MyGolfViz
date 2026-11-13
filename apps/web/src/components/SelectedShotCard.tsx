@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useAppPaths } from '../paths';
 import { selectionPosition } from '@fsa/analytics';
 import { formatImpact, formatMeasurement, type MeasurementKey, type Shot, type SourceFile } from '@fsa/domain';
 import { Button, Missing } from '@fsa/ui';
@@ -32,6 +33,7 @@ export function SelectedShotCard({ shots, ordered, excludedIds, selected, exclud
   /** The selected shot's club colour, matching the plots and the Clubs table. */
   color?: string;
 }) {
+  const paths = useAppPaths();
   const shot = selected;
   // Position in the same list the picker and ‹ › walk: every shot in the filter.
   const pos = shot && !excluded ? selectionPosition(shot.id, ordered) : null;
@@ -89,7 +91,7 @@ export function SelectedShotCard({ shots, ordered, excludedIds, selected, exclud
             {excluded
               ? <Button onClick={() => onInclude(shot.id)}>Include shot</Button>
               : <Button onClick={() => onExclude(shot.id)}>Exclude shot</Button>}
-            <Link className="fsa-btn fsa-btn--primary fsa-touch link-button selected-card__inspect" to="/inspect">Open shot inspector →</Link>
+            <Link className="fsa-btn fsa-btn--primary fsa-touch link-button selected-card__inspect" to={paths.inspect}>Open shot inspector →</Link>
           </div>
         </>
       ) : (

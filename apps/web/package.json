@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --mode public",
     "build:public": "vite build --mode public",
+    "build:local": "vite build --mode localapp --outDir dist-local",
+    "dev:local": "vite --mode localapp",
     "preview": "vite preview --mode public"
   },
   "dependencies": {

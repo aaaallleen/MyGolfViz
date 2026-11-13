@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { dispersionByClub } from '@fsa/analytics';
 import { formatSessionDate, sessionTitle } from '@fsa/domain';
 import { Button, EmptyState } from '@fsa/ui';
@@ -13,6 +13,11 @@ import { shotLabel } from '../components/shotLabel';
 import { ShotTable } from '../components/ShotTable';
 import { ShotPatternPanel } from '../components/ShotPatternPanel';
 import { useWorkingSet } from '../state/store';
+
+// Local-only code is reached through this inline comparison so the public build drops it entirely.
+const ImportsPanel = import.meta.env.VITE_APP_MODE === 'local'
+  ? lazy(() => import('../local/ImportsPanel').then((m) => ({ default: m.ImportsPanel })))
+  : null;
 
 export function OverviewPage() {
   const ws = useWorkingSet();
@@ -88,13 +93,14 @@ export function OverviewPage() {
             <span>{`${workingSet.files.length} source files`}</span>
             <span>{`${workingSet.shots.length} shots`}</span>
             {modes.length > 0 && <span>{modes.join(', ')}</span>}
-            <span className="overview__chip">In this browser only</span>
+            {/* Local sessions are saved to disk; the chip is only true of the public build. */}
+            {import.meta.env.VITE_APP_MODE !== 'local' && <span className="overview__chip">In this browser only</span>}
           </div>
           {details.notes.trim() !== '' && <p className="overview__notes">{details.notes}</p>}
         </div>
         <Button onClick={() => setEditing((e) => !e)} aria-expanded={editing}>{editing ? 'Done' : 'Edit details'}</Button>
       </section>
-      {editing && <SessionDetailsForm value={details} onChange={ws.setDetails} />}
+      {editing && <SessionDetailsForm value={details} onChange={ws.setDetails} required={import.meta.env.VITE_APP_MODE === 'local'} />}
 
       <FilterBar />
 
@@ -135,6 +141,7 @@ export function OverviewPage() {
           {shotsPanel}
         </>
       )}
+      {ImportsPanel && <Suspense fallback={null}><ImportsPanel /></Suspense>}
     </div>
   );
 }

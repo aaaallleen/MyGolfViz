@@ -20,12 +20,13 @@ export function sessionTitle(d: SessionDetails): string {
 
 const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-export function formatSessionDate(date: string | null): string {
+export function formatSessionDate(date: string | null, opts: { setByYou?: boolean } = {}): string {
   if (date === null) return 'No date set';
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) return 'No date set';
   const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return `${DATE_FORMAT.format(new Date(ms))} (set by you)`;
+  const text = DATE_FORMAT.format(new Date(ms));
+  return opts.setByYou === false ? text : `${text} (set by you)`;
 }
 
 export function handednessLabel(h: Handedness): string {

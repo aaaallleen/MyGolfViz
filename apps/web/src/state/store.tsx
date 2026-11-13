@@ -4,7 +4,7 @@ import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser'
 import type { LandingMode } from '@fsa/analytics';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import { excludedShotIds } from '@fsa/analytics';
-import { initialState, reducer, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
+import { initialState, reducer, type Action, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';
 
@@ -34,6 +34,8 @@ export interface WorkingSetApi extends StoreState {
   select(id: string | null): void;
   step(delta: 1 | -1): void;
   setExcluded(id: string, excluded: boolean): void;
+  /** Replaces the whole exclusion set (used to roll back a failed save). */
+  setExcludedKeys(keys: ReadonlySet<string>): void;
   /** Excludes the shot; when it is the selected one, the selection moves to the next included shot. */
   excludeAndAdvance(id: string): void;
   /** Widens the filter just enough to show the shot, then selects it. */
@@ -50,6 +52,12 @@ export interface WorkingSetApi extends StoreState {
   setClubView3D(v: View3D): void;
   setClubView2D(v: View2D): void;
   setClubMode3D(m: Mode3D): void;
+  /** Opens a saved session (local build); leaves the staged import files alone. */
+  loadSession(args: Omit<Extract<Action, { type: 'loadSession' }>, 'type'>): void;
+  /** Empties the staged import files only. */
+  clearStaged(): void;
+  /** The original File behind each staged key (local build uploads the original bytes). */
+  filesByKey: ReadonlyMap<string, File>;
 }
 
 const Ctx = createContext<WorkingSetApi | null>(null);
@@ -75,21 +83,30 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
   // Bumped by clear(): in-flight addFiles calls from an older generation drop their results.
   const generation = useRef(0);
   const [pending, setPending] = useState(0);
+  const filesByKey = useRef(new Map<string, File>());
 
   const addFiles = useCallback(async (files: readonly File[]) => {
     const gen = generation.current;
     setPending((n) => n + 1);
     const incoming: IncomingFile[] = [];
+    const sources: File[] = [];
     const failed: string[] = [];
     try {
       for (const f of files) {
         try {
           incoming.push(await readIncoming(f));
+          sources.push(f);
         } catch {
           failed.push(f.name);
         }
       }
-      if (gen === generation.current && incoming.length > 0) dispatch({ type: 'stage', incoming, makeKey: () => `f${++counter.current}` });
+      if (gen === generation.current && incoming.length > 0) {
+        // Keys are fixed up front so each File can be filed under its key. The reducer may run twice (StrictMode), hence the wrap-around cursor.
+        const keys = incoming.map(() => `f${++counter.current}`);
+        keys.forEach((k, i) => filesByKey.current.set(k, sources[i]!));
+        let at = 0;
+        dispatch({ type: 'stage', incoming, makeKey: () => keys[at++ % keys.length]! });
+      }
     } finally {
       if (gen === generation.current) setPending((n) => n - 1);
     }
@@ -99,13 +116,18 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
 
   const clear = useCallback(() => {
     const before = latest.current;
+    const filesBefore = new Map(filesByKey.current);
+    filesByKey.current.clear();
     generation.current += 1;
     setPending(0);
     dispatch({ type: 'clear' });
     if (before === initialState) return null;
     // 'clear' yields the initialState object itself, and every later action yields a new object.
     return () => {
-      if (latest.current === initialState) dispatch({ type: 'restore', state: before });
+      if (latest.current === initialState) {
+        filesBefore.forEach((f, k) => filesByKey.current.set(k, f));
+        dispatch({ type: 'restore', state: before });
+      }
     };
   }, []);
 
@@ -144,7 +166,10 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       excludedIds,
       addFiles,
       setInclude: (key, include) => dispatch({ type: 'setInclude', key, include }),
-      removeStaged: (key) => dispatch({ type: 'removeStaged', key }),
+      removeStaged: (key) => {
+        filesByKey.current.delete(key);
+        dispatch({ type: 'removeStaged', key });
+      },
       analyze: () => dispatch({ type: 'analyze' }),
       clear,
       setDetails: (patch) => dispatch({ type: 'setDetails', patch }),
@@ -153,6 +178,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       select: (id) => dispatch({ type: 'select', id }),
       step: (delta) => dispatch({ type: 'step', delta }),
       setExcluded: (id, excl) => dispatch({ type: 'setExcluded', id, excluded: excl }),
+      setExcludedKeys: (keys) => dispatch({ type: 'setExcludedKeys', excluded: keys }),
       excludeAndAdvance: (id) => dispatch({ type: 'excludeAndAdvance', id }),
       reveal: (id) => dispatch({ type: 'reveal', id }),
       includeAll,
@@ -162,6 +188,12 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),
       setClubMode3D: (mode) => dispatch({ type: 'setClubMode3D', mode }),
+      loadSession: (args) => dispatch({ type: 'loadSession', ...args }),
+      clearStaged: () => {
+        filesByKey.current.clear();
+        dispatch({ type: 'clearStaged' });
+      },
+      filesByKey: filesByKey.current,
     }),
     [state, visibleShots, tableShots, excludedIds, pending, addFiles, clear, includeAll, excludeAll],
   );

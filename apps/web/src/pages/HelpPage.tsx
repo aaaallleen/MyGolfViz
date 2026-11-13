@@ -5,11 +5,17 @@ export function HelpPage() {
   return (
     <article className="help">
       <h1>Help / Get Local Version</h1>
-      <PrivacyNotice />
-      <p>This viewer is stateless: it keeps no copy of your files once the page is refreshed or closed. While the page is open, the data lives only in this tab's memory.</p>
-      <p>
-        <a href={`${REPO_URL}#local-app`}>Want saved history? Run Local App</a>
-      </p>
+      {import.meta.env.VITE_APP_MODE === 'local' ? (
+        <p>Your sessions and the original CSV files are saved on this computer in the MyGolfViz data folder.</p>
+      ) : (
+        <>
+          <PrivacyNotice />
+          <p>This viewer is stateless: it keeps no copy of your files once the page is refreshed or closed. While the page is open, the data lives only in this tab's memory.</p>
+          <p>
+            <a href={`${REPO_URL}#local-app`}>Want saved history? Run Local App</a>
+          </p>
+        </>
+      )}
 
       <h2>What the CSV columns mean</h2>
       <p>Each row is one shot from a FlightScope Mevo export. Ball columns (speed, launch angle, spin, carry, total, lateral landing) describe the ball. Club columns (club speed, attack angle, path, face angle, dynamic loft, low point, impact location) describe the club at impact. A blank, "-" or "N/A" cell means the value was not measured: the app shows it as a dash (–), never as zero, and hovering the dash or using a screen reader gives "Not measured". "Time (s)" is ball flight duration, not a timestamp.</p>

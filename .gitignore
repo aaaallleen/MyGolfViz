@@ -7,3 +7,7 @@ playwright-report/
 Demo_csv/
 *.docx
 FlightScope Analytics UI Claude Code.html
+dist-local/
+apps/api/.venv/
+__pycache__/
+.pytest_cache/

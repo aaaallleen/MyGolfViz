@@ -41,14 +41,20 @@ export function BallFlight3D({ selected, others }: BallFlight3DProps) {
           {targetP && <text x={f1(targetP.x + 8)} y={f1(targetP.y)} fill={MUTED} {...text}>Target line</text>}
         </g>
         {otherScenes.map((s) => (
-          <path key={s.shotId} data-role="other-flight" d={pathOf(s.ballFlight!)} fill="none" stroke={BALL} strokeWidth={2} strokeLinecap="round" opacity={0.25} />
+          <path key={s.shotId} data-role="other-flight" d={pathOf(s.ballFlight!)} fill="none" stroke={MUTED} strokeWidth={2} strokeLinecap="round" opacity={0.3} />
         ))}
         {landings.map((l, i) => {
           const p = proj(l);
           const isSel = selected.ballFlight !== null && i === landings.length - 1;
-          return p && <circle key={i} data-role="landing" cx={f1(p.x)} cy={f1(p.y)} r={isSel ? 6 : 4} fill="none" stroke={isSel ? SOFT : MUTED} strokeWidth={2} opacity={isSel ? 1 : 0.3} />;
+          return p && <circle key={i} data-role="landing" cx={f1(p.x)} cy={f1(p.y)} r={isSel ? 6 : 4} fill="none" stroke={isSel ? BALL : MUTED} strokeWidth={2} opacity={isSel ? 1 : 0.3} />;
         })}
-        {selected.ballFlight && <path data-role="ball-flight" d={pathOf(selected.ballFlight)} fill="none" stroke={BALL} strokeWidth={3.5} strokeLinecap="round" />}
+        {selected.ballFlight && (
+          <>
+            {/* A dark halo keeps the selected flight readable where it crosses other shots. */}
+            <path data-role="ball-flight-halo" d={pathOf(selected.ballFlight)} fill="none" stroke={SURFACE} strokeWidth={8} strokeLinecap="round" />
+            <path data-role="ball-flight" d={pathOf(selected.ballFlight)} fill="none" stroke={BALL} strokeWidth={3.5} strokeLinecap="round" />
+          </>
+        )}
       </>
     );
     return { proj, scene, label, text };

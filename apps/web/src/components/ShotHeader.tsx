@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useAppPaths } from '../paths';
 import { selectionPosition } from '@fsa/analytics';
 import { Button } from '@fsa/ui';
 import { handednessLabel, sessionTitle, type Handedness, type SessionDetails, type Shot, type SourceFile } from '@fsa/domain';
@@ -22,6 +23,7 @@ export function ShotHeader({ shot, shots, ordered, excludedIds, excluded, files,
   /** Excludes the open shot; the caller moves on to the next included shot, as the Overview card does. */
   onExclude(): void;
 }) {
+  const paths = useAppPaths();
   const file = files.find((f) => f.id === shot.fileId);
   const label = shot.shotLabel ?? shot.sourceRow;
   // Position in the same list the picker and ‹ › walk: every shot in the filter.
@@ -31,7 +33,7 @@ export function ShotHeader({ shot, shots, ordered, excludedIds, excluded, files,
       <div className="inspector-head__title">
         {/* The breadcrumb's session link is the way back to the Overview. */}
         <nav aria-label="Breadcrumb" className="inspector-head__crumb">
-          <Link to="/overview"><span className="inspector-head__back" aria-hidden="true">←</span>{sessionTitle(details)}</Link>{' / '}Shot {label}
+          <Link to={paths.overview}><span className="inspector-head__back" aria-hidden="true">←</span>{sessionTitle(details)}</Link>{' / '}Shot {label}
         </nav>
         {/* An excluded shot shows its tag here; the banner below holds the one Include action. */}
         <div className="inspector-head__title-row">
