@@ -119,7 +119,7 @@ def delete_import(import_id: str, request: Request) -> None:
             renumber(db, session_id)
             touch(db, session_id)
             db.flush()
-            store.delete_if_unreferenced(db, sha)
+        store.delete_unreferenced_after_commit(request.app.state.engine, {sha})
 
 
 @router.get("/imports/{import_id}/original")

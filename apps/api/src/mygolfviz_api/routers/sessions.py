@@ -84,8 +84,7 @@ def delete_session(session_id: str, request: Request) -> None:
             )
             db.delete(s)
             db.flush()
-            for sha in shas:
-                store.delete_if_unreferenced(db, sha)
+        store.delete_unreferenced_after_commit(request.app.state.engine, shas)
 
 
 @router.get("/sessions/{session_id}/imports", response_model=list[ImportRow])

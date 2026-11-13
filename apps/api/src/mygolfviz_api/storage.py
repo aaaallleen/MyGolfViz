@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import threading
 import uuid
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session as DbSession
 
 from . import models
+from .db import session_scope
+
+log = logging.getLogger(__name__)
 
 
 # One process-wide lock: the backend is single-user and single-process. Held by the import
@@ -57,6 +61,20 @@ class OriginalStore:
                 return False
             self.path(sha).unlink(missing_ok=True)
             return True
+
+    def delete_unreferenced_after_commit(self, engine: Engine, shas: set[str]) -> None:
+        """Call after the transaction that dropped the references has committed.
+
+        Deleting before the commit could leave a DB row pointing at a missing file if the
+        commit failed. A failure here only leaves an orphan, which the startup sweep removes.
+        """
+        with STORE_LOCK:
+            try:
+                with session_scope(engine) as db:
+                    for sha in shas:
+                        self.delete_if_unreferenced(db, sha)
+            except Exception:
+                log.exception("could not delete unreferenced originals; startup sweep will retry")
 
     def sweep(self, db: DbSession) -> int:
         with STORE_LOCK:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from urllib.parse import unquote
 
+import pytest
+
 from test_imports import NAMES, NEW_SESSION, csv_bytes, entry, expected, import_all, originals, post_import
 
 
@@ -164,3 +166,56 @@ def test_delete_session_gcs_originals(client, settings):
     assert client.get(f"/api/v1/sessions/{shared}").json()["session"]["fileCount"] == 1
     assert client.delete(f"/api/v1/sessions/{shared}").status_code == 204
     assert originals(settings) == []
+
+
+def _fail_commits(monkeypatch):
+    from sqlalchemy.orm import Session as OrmSession
+
+    def boom(self):
+        raise RuntimeError("commit failed")
+
+    monkeypatch.setattr(OrmSession, "commit", boom)
+
+
+def test_remove_import_commit_failure_keeps_original(client, settings, monkeypatch):
+    sid = post_import(client, NEW_SESSION, [entry(NAMES[2], "a")]).json()["session"]["id"]
+    imp = _ids(client, sid)[0]
+    before = originals(settings)
+    assert len(before) == 1
+    with monkeypatch.context() as m:
+        _fail_commits(m)
+        with pytest.raises(RuntimeError):
+            client.delete(f"/api/v1/imports/{imp}")
+    assert originals(settings) == before
+    assert _ids(client, sid) == [imp]
+    r = client.get(f"/api/v1/imports/{imp}/original")
+    assert r.status_code == 200 and r.content == csv_bytes(NAMES[2])
+
+
+def test_delete_session_commit_failure_keeps_originals(client, settings, monkeypatch):
+    sid = import_all(client).json()["session"]["id"]
+    before = originals(settings)
+    assert len(before) == 3
+    with monkeypatch.context() as m:
+        _fail_commits(m)
+        with pytest.raises(RuntimeError):
+            client.delete(f"/api/v1/sessions/{sid}")
+    assert originals(settings) == before
+    assert client.get(f"/api/v1/sessions/{sid}").json()["session"]["fileCount"] == 3
+    for imp in _ids(client, sid):
+        assert client.get(f"/api/v1/imports/{imp}/original").status_code == 200
+
+
+def test_delete_cleanup_failure_still_commits(client, settings, monkeypatch):
+    from mygolfviz_api.storage import OriginalStore
+
+    sid = post_import(client, NEW_SESSION, [entry(NAMES[2], "a")]).json()["session"]["id"]
+
+    def boom(self, sha):
+        raise OSError("unlink failed")
+
+    monkeypatch.setattr(OriginalStore, "path", boom)
+    assert client.delete(f"/api/v1/sessions/{sid}").status_code == 204
+    monkeypatch.undo()
+    assert client.get(f"/api/v1/sessions/{sid}").status_code == 404
+    assert len(originals(settings)) == 1  # orphan left for the startup sweep
