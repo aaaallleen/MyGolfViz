@@ -2,8 +2,10 @@ import { expect, test } from 'vitest';
 import { clubCategory, compareClubs } from './index';
 
 test.each([
-  ['Driver', 'driver'], ['3 Wood', 'wood'], ['4 Hybrid', 'wood'], ['5W', 'wood'], ['7 Iron', 'iron'],
-  ['Pitching Wedge', 'iron'], ['Gap Wedge', 'iron'], ['Unknown club', 'iron'],
+  ['Driver', 'driver'], ['1W', 'driver'], ['3 Wood', 'wood'], ['5W', 'wood'],
+  ['4 Hybrid', 'hybrid'], ['4h', 'hybrid'], ['Hybrid 4', 'hybrid'], ['3 Rescue', 'hybrid'],
+  ['7 Iron', 'iron'], ['2 Utility Iron', 'iron'], ['Pitching Wedge', 'iron'], ['Gap Wedge', 'iron'],
+  ['Unknown club', 'iron'], ['', 'iron'],
 ] as const)('clubCategory(%s)', (club, cat) => {
   expect(clubCategory(club)).toBe(cat);
 });

@@ -1,8 +1,9 @@
-export type ClubCategory = 'driver' | 'wood' | 'iron';
+export type ClubCategory = 'driver' | 'wood' | 'hybrid' | 'iron';
 
 export function clubCategory(club: string): ClubCategory {
   if (/driver|\b1w\b/i.test(club)) return 'driver';
-  if (/wood|hybrid|\b\d+\s?[wh]\b/i.test(club)) return 'wood';
+  if (/hybrid|rescue|\b\d+\s?h\b/i.test(club)) return 'hybrid';
+  if (/wood|\b\d+\s?w\b/i.test(club)) return 'wood';
   return 'iron';
 }
 

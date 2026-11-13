@@ -28,6 +28,12 @@ export const FACE_OUTLINES: Record<ClubCategory, FaceOutline> = {
     frameWidth: 284,
     widthIn: 4.0,
   },
+  hybrid: {
+    d: 'M60 150 C60 112 100 96 200 94 C300 96 342 114 344 150 C342 186 296 204 200 206 C104 204 60 188 60 150 Z',
+    centre: { x: 202, y: 150 },
+    frameWidth: 284,
+    widthIn: 4.0,
+  },
   iron: {
     d: 'M60 215 L50 95 C52 70 85 62 110 70 L320 120 C335 124 340 140 336 160 L328 215 C326 228 315 232 300 232 L85 232 C70 232 62 226 60 215 Z',
     centre: { x: 205, y: 165 },

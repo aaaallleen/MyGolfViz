@@ -13,7 +13,7 @@ export interface FaceImpactDiagramProps {
 const PX_PER_IN = 40;
 const GRID_IN = 0.5;
 const W = 400, H = 280, CX = W / 2, CY = H / 2;
-const CATEGORY_NAME: Record<ClubCategory, string> = { driver: 'Driver', wood: 'Wood or hybrid', iron: 'Iron' };
+const CATEGORY_NAME: Record<ClubCategory, string> = { driver: 'Driver', wood: 'Wood', hybrid: 'Hybrid', iron: 'Iron' };
 
 /** Face-on view. Right-handed: toe on the viewer's left, so +lateral (toe) plots left. Left-handed mirrors. */
 export function FaceImpactDiagram({ category, handedness, selected, others, showOthers }: FaceImpactDiagramProps) {

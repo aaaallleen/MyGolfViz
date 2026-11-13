@@ -5,7 +5,7 @@ import { Missing } from '@fsa/ui';
 import { FaceImpactDiagram } from '@fsa/visualizations';
 import { ValueTag } from './ValueTag';
 
-const NAME: Record<ClubCategory, string> = { driver: 'Driver', wood: 'Wood/hybrid', iron: 'Iron' };
+const NAME: Record<ClubCategory, string> = { driver: 'Driver', wood: 'Wood', hybrid: 'Hybrid', iron: 'Iron' };
 const hasImpact = (s: Shot) => s.m.impactLateral !== null && s.m.impactVertical !== null;
 
 export function ImpactTab({ shot, visibleShots, handedness }: { shot: Shot; visibleShots: readonly Shot[]; handedness: Handedness }) {

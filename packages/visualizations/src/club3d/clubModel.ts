@@ -5,7 +5,7 @@ import { parseOutline } from './headPose';
 
 const IN = 1 / 36; // yards per inch
 /** Front-to-back depth of the head, inches. */
-const DEPTH_IN: Record<ClubCategory, number> = { driver: 4.2, wood: 3.0, iron: 0.6 };
+const DEPTH_IN: Record<ClubCategory, number> = { driver: 4.2, wood: 3.0, hybrid: 2.3, iron: 0.6 };
 const HEAD_COLOR = '#4A525B';
 const FACE_COLOR = '#8A939C';
 const HOSEL_COLOR = '#2B3036';
