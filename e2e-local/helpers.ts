@@ -23,8 +23,21 @@ export function cut(from: CsvFile, rows: number, name: string): CsvFile {
   return { name: basename(name), mimeType: 'text/csv', buffer: Buffer.from(lines.slice(0, rows + 1).join('\n')) };
 }
 
+/** Records every Content-Security-Policy violation the page reports; read them with `cspViolations`. */
+export async function trackCspViolations(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __csp: string[] };
+    w.__csp = [];
+    document.addEventListener('securitypolicyviolation', (e) => w.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+  });
+}
+
+export const cspViolations = (page: Page): Promise<string[]> =>
+  page.evaluate(() => (window as unknown as { __csp: string[] }).__csp);
+
 /** Signs in with the test token: the backend sets the cookie and sends the browser to the library. */
 export async function signIn(page: Page): Promise<void> {
+  await trackCspViolations(page);
   await page.goto('/?token=e2e');
   // An empty library shows its empty state in place of the Sessions heading.
   await expect(page.getByRole('heading', { name: /^(Sessions|No sessions yet)$/ })).toBeVisible();

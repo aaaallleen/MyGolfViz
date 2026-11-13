@@ -36,3 +36,43 @@ def test_wrong_host(anon):
 
 def test_health_open(anon):
     assert anon.get("/api/v1/health").status_code == 200
+
+
+def _asgi_scope(kind: str) -> dict:
+    return {"type": kind, "path": "/api/v1/sessions", "headers": [(b"host", b"testserver")]}
+
+
+def test_websocket_scope_rejected():
+    import asyncio
+
+    from mygolfviz_api.security import SecurityMiddleware
+
+    async def inner(scope, receive, send):
+        raise AssertionError("inner app must not be reached")
+
+    sent: list[dict] = []
+
+    async def receive():
+        return {"type": "websocket.connect"}
+
+    async def send(message):
+        sent.append(message)
+
+    mw = SecurityMiddleware(inner, "t", ("testserver",))
+    asyncio.run(mw(_asgi_scope("websocket"), receive, send))
+    assert sent == [{"type": "websocket.close", "code": 1008}]
+
+
+def test_lifespan_scope_passes_through():
+    import asyncio
+
+    from mygolfviz_api.security import SecurityMiddleware
+
+    seen: list[str] = []
+
+    async def inner(scope, receive, send):
+        seen.append(scope["type"])
+
+    mw = SecurityMiddleware(inner, "t", ("testserver",))
+    asyncio.run(mw({"type": "lifespan"}, None, None))
+    assert seen == ["lifespan"]

@@ -3,7 +3,7 @@
 // Here a full page reload, with only the cookie to go on, shows that everything on the session page comes back from
 // the server and not from the tab.
 import { expect, test, type Page } from '@playwright/test';
-import { cut, fileNames, FIXTURES, importInto, resultSummary, signIn } from './helpers';
+import { cspViolations, cut, fileNames, FIXTURES, importInto, resultSummary, signIn } from './helpers';
 
 const filesPanel = (page: Page) => page.getByRole('region', { name: 'Files' });
 
@@ -83,6 +83,9 @@ test('create, append, remove, exclude, restart-proof', async ({ page }) => {
   const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: 'Range A', exact: true }) });
   await expect(row).toContainText('1 Nov 2026');
   await expect(row.getByRole('cell').nth(3)).toHaveText('4');
+
+  // The backend's Content-Security-Policy never blocked anything the app does.
+  expect(await cspViolations(page)).toEqual([]);
 });
 
 test('library calendar shows the session on its date', async ({ page }) => {

@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from mygolfviz_api.app import create_app
 from mygolfviz_api.config import Settings
+from mygolfviz_api.static import CSP
 
 
 def _static_client(tmp_path):
@@ -58,3 +59,20 @@ def test_placeholder_without_static_dir(anon):
     r = anon.get("/")
     assert r.status_code == 200
     assert "npm run build:local" in r.text
+
+
+def test_index_has_csp(tmp_path):
+    with _static_client(tmp_path) as c:
+        assert c.get("/").headers["content-security-policy"] == CSP
+        assert c.get("/some/route").headers["content-security-policy"] == CSP
+        assert "content-security-policy" not in c.get("/assets/a.js").headers
+
+
+def test_placeholder_has_csp(tmp_path):
+    settings = Settings(
+        data_dir=tmp_path / "data", token="t", allowed_hosts=("testserver",), static_dir=None
+    )
+    with TestClient(create_app(settings)) as c:
+        r = c.get("/")
+        assert "frontend isn't built" in r.text
+        assert r.headers["content-security-policy"] == CSP
