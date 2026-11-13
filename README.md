@@ -51,7 +51,7 @@ A local version (FastAPI + SQLite via Docker Compose) is planned and is not in t
 
 ## Known limitations
 
-- The CSV header map has only been validated against the 2022 Mevo Gen 2 exports in
+- The CSV header map has only been validated against the Mevo Gen 2 exports in
   `fixtures/flightscope/`.
 - The 3D views (ball flight and club) and the trajectory are illustrative geometry drawn from
   measurements, not captured motion.
