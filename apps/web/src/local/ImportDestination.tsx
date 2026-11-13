@@ -81,7 +81,8 @@ export function ImportDestination({ staged, value, onChange }: {
     const next = { ...value.newSession, ...patch } as SessionDetails;
     onChange({ newSession: { name: next.name, date: next.date ?? '', notes: next.notes, handedness: next.handedness }, accept: value.accept });
   };
-  const chooseNew = () => onChange({ newSession: draft.current, accept: value.accept });
+  // The draft may come from LoadPage's initial value (date '') when the page opened on ?session: a session date is required.
+  const chooseNew = () => onChange({ newSession: { ...draft.current, date: draft.current.date || todayLocal() }, accept: value.accept });
   const chooseExisting = () => onChange({ sessionId: lastId.current, accept: value.accept });
   const existing = isExisting(value);
 
@@ -153,6 +154,7 @@ export function ImportActions({ dest, shotCount }: { dest: ImportDestinationValu
   const { commit, busy } = useImportCommit();
   const { open, setOpen } = useOpenSession();
   const blankName = !isExisting(dest) && dest.newSession.name.trim() === '';
+  const blankDate = !isExisting(dest) && dest.newSession.date === '';
   const noTarget = isExisting(dest) && dest.sessionId === '';
   const run = async () => {
     try {
@@ -169,7 +171,7 @@ export function ImportActions({ dest, shotCount }: { dest: ImportDestinationValu
   return (
     <>
       <Button onClick={ws.clearStaged}>Clear files</Button>
-      <Button variant="primary" disabled={shotCount === 0 || blankName || noTarget || busy} onClick={() => void run()}>
+      <Button variant="primary" disabled={shotCount === 0 || blankName || blankDate || noTarget || busy} onClick={() => void run()}>
         Import files
       </Button>
     </>

@@ -8,8 +8,10 @@ import type { ImportResponse, SessionRow } from './api';
 
 vi.mock('./api', () => ({ listSessions: vi.fn(), checkImports: vi.fn() }));
 import * as api from './api';
-import { ImportDestination, type ImportDestinationValue } from './ImportDestination';
+import { WorkingSetProvider } from '../state/store';
+import { ImportActions, ImportDestination, type ImportDestinationValue } from './ImportDestination';
 import { ImportResultPage } from './ImportResultPage';
+import { OpenSessionProvider } from './OpenSession';
 
 const row = (o: Partial<SessionRow> & { id: string }): SessionRow =>
   ({ name: o.id, date: '2026-11-01', notes: '', handedness: 'right', createdAt: '2026-11-01T10:00:00Z', updatedAt: '', shotCount: 10, fileCount: 1, clubs: [], ...o }) as SessionRow;
@@ -84,6 +86,16 @@ describe('ImportDestination', () => {
     expect(Array.from(select.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['Choose a session', 'Driver range', 'Wedges']);
   });
 
+  test('from ?session, switching to New session fills the date with the local calendar date', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 12, 21, 0) });
+    const user = userEvent.setup();
+    renderIt([], '/import?session=s1');
+    expect(await screen.findByRole('radio', { name: 'Existing session' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'New session' }));
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-11-12');
+    expect(latest).toMatchObject({ newSession: { date: '2026-11-12' } });
+  });
+
   test('duplicate statuses render and ticking Import anyway sets accept', async () => {
     const user = userEvent.setup();
     vi.mocked(api.checkImports).mockResolvedValue({
@@ -98,6 +110,29 @@ describe('ImportDestination', () => {
     expect(api.checkImports).toHaveBeenLastCalledWith(['a', 'b'], 's1');
     await user.click(screen.getByRole('checkbox', { name: 'Import anyway' }));
     expect(latest!.accept).toEqual({ b: true });
+  });
+});
+
+describe('ImportActions', () => {
+  const show = (date: string) =>
+    render(
+      <MemoryRouter>
+        <WorkingSetProvider>
+          <OpenSessionProvider>
+            <ImportActions dest={{ newSession: { name: 'Range day', date, notes: '', handedness: 'right' }, accept: {} }} shotCount={16} />
+          </OpenSessionProvider>
+        </WorkingSetProvider>
+      </MemoryRouter>,
+    );
+
+  test('Import files is disabled while the new-session date is blank', () => {
+    show('');
+    expect(screen.getByRole('button', { name: 'Import files' })).toBeDisabled();
+  });
+
+  test('Import files is enabled with a name and a date', () => {
+    show('2026-11-12');
+    expect(screen.getByRole('button', { name: 'Import files' })).toBeEnabled();
   });
 });
 
