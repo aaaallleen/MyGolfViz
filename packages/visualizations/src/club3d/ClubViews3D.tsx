@@ -138,8 +138,14 @@ export function ClubViews3D({ scene, m, club, others, large, onSelect }: ClubVie
         canvasRef={r.setCanvas} webgl={r.webgl} toolbar={toolbar}
         largeOverlay={offPreset && large !== 'overview' ? <p className="view-gallery__note">Rotated off the preset: Reset view to read angles true</p> : null} />
       <ReplayControls clock={clock} phases={PHASES} active={clubPhase(clock.progress)} />
-      {!scene.plane && <p className="club-views__note">Club delivery not measured for this shot</p>}
-      <p className="club-views__prov"><ProvenanceTag kind="illustrative" /> <span>Club head drawn 3× life size so it reads; angles are true</span></p>
+      {!scene.plane && (
+        <p className="club-views__note">
+          {m.swingH === null && m.swingV === null
+            ? 'Club delivery not measured for this shot'
+            : 'Swing arc not drawn: it needs both H-plane and V-plane'}
+        </p>
+      )}
+      <p className="club-views__prov"><ProvenanceTag kind="illustrative" /> <span>Club head and ball drawn 3× life size so they read; angles are true</span></p>
     </div>
   );
 }

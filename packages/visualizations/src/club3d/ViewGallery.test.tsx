@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { ViewGallery, layoutLabels, type GalleryView } from './ViewGallery';
 
@@ -7,7 +8,7 @@ type V = 'a' | 'b' | 'c' | 'd';
 const views: GalleryView<V>[] = [
   { id: 'a', name: 'Top', hint: 'Path, H-plane, face to path', ariaLabel: 'Top: Club path 8.3° R', badges: [{ id: 'clubPath', label: 'Club path', text: '8.3° R', color: '#62B6F7' }], labels: [{ id: 'l1', text: 'Club path 8.3° R', color: '#62B6F7', x: 1.4, y: -0.2 }] },
   { id: 'b', name: 'Face-on', hint: 'Attack angle, low point', ariaLabel: 'Face-on', badges: [{ id: 'aoa', label: 'Attack angle', text: null, color: '#62B6F7' }] },
-  { id: 'c', name: 'Down the line', hint: 'Swing plane steepness', ariaLabel: 'Down the line', badges: [{ id: 'spinLoft', label: 'Spin loft', text: '44.9°', color: '#E66767', note: 'as reported' }] },
+  { id: 'c', name: 'Down the line', hint: 'Swing plane steepness', ariaLabel: 'Down the line', badges: [{ id: 'spinLoft', label: 'Spin loft', text: '44.9°', color: '#E5484D', note: 'as reported' }] },
   { id: 'd', name: '3/4 overview', hint: 'Everything in one picture', ariaLabel: '3/4 overview', badges: [] },
 ];
 const setup = (over: Partial<Parameters<typeof ViewGallery<V>>[0]> = {}) => {
@@ -95,5 +96,42 @@ describe('ViewGallery canvas refs', () => {
     rerender(<ViewGallery<V> {...props} views={[...views]} />);
     expect(canvasRef.mock.calls.filter(([, el]) => el === null)).toHaveLength(0);
     expect(canvasRef.mock.calls.length).toBe(attached);
+  });
+});
+
+describe('ViewGallery minor fixes', () => {
+  test('labels pushed apart near the bottom stay inside the slot', () => {
+    const l = (id: string, x: number, y: number) => ({ id, text: id, color: '#fff', x, y });
+    const out = layoutLabels([l('a', 0.5, 0.95), l('b', 0.52, 0.96), l('c', 0.48, 0.97)]);
+    const ys = out.map((x) => x.y).sort((p, q) => p - q);
+    expect(Math.max(...ys)).toBeLessThanOrEqual(0.96 + 1e-9);
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0.04 - 1e-9);
+    expect(ys[1]! - ys[0]!).toBeGreaterThanOrEqual(0.06 - 1e-9);
+    expect(ys[2]! - ys[1]!).toBeGreaterThanOrEqual(0.06 - 1e-9);
+  });
+
+  test('label overlays are hidden from screen readers (the canvas aria-label already says them)', () => {
+    const { region } = setup();
+    const label = within(region).getByText('Club path 8.3° R', { selector: '.view-gallery__label' });
+    expect(label).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  test('after picking a thumbnail, keyboard focus moves to the new large view', async () => {
+    function Harness() {
+      const [large, setLarge] = useState<V>('a');
+      return <ViewGallery<V> label="3D club views" views={views} large={large} onSelect={setLarge} canvasRef={() => {}} webgl />;
+    }
+    render(<Harness />);
+    const user = userEvent.setup();
+    screen.getByRole('button', { name: 'Show Down the line view' }).focus();
+    await user.keyboard('{Enter}');
+    expect(document.activeElement).toBe(screen.getByRole('img', { name: 'Down the line' }));
+  });
+
+  test('focus is not moved when the large view changes for another reason (e.g. a new shot)', () => {
+    const props = { label: '3D club views', views, onSelect: () => {}, canvasRef: () => {}, webgl: true };
+    const { rerender } = render(<ViewGallery<V> {...props} large="a" />);
+    rerender(<ViewGallery<V> {...props} large="c" />);
+    expect(document.activeElement).toBe(document.body);
   });
 });

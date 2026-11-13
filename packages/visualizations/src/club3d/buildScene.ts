@@ -227,6 +227,7 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
   setAnnotations(input.annotations);
 
   const impact = new THREE.Vector3(0, 0, 0).sub(centre).normalize();
+  let clubAlpha = 1;
   return {
     root,
     setProgress(p) {
@@ -238,6 +239,8 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
     setShowOthers(on) { others.visible = on && !is2D; },
     setPlaneVisible(on) { plane.visible = on && !is2D; },
     setClubOpacity(alpha) {
+      if (alpha === clubAlpha) return; // flipping `transparent` recompiles shaders; only do it on a real change
+      clubAlpha = alpha;
       club.traverse((o) => {
         const mat = (o as THREE.Mesh).material as THREE.Material | undefined;
         if (!mat) return;

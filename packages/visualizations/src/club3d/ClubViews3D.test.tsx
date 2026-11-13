@@ -47,12 +47,19 @@ describe('ClubViews3D', () => {
     setup();
     expect(screen.getByText('Illustrative reconstruction')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play replay' })).toBeInTheDocument();
-    expect(screen.getByText('Club head drawn 3× life size so it reads; angles are true')).toBeInTheDocument();
+    expect(screen.getByText('Club head and ball drawn 3× life size so they read; angles are true')).toBeInTheDocument();
   });
 
   test('Reset view is disabled while the camera is on its preset', () => {
     setup();
     expect(screen.getByRole('button', { name: 'Reset view' })).toBeDisabled();
+  });
+
+  test('a shot with only one of H-plane / V-plane says why the arc is missing, not that nothing was measured', () => {
+    const m = mOf({ swingV: 60, aoa: -2 });
+    setup({ scene: sceneOf(m), m });
+    expect(screen.getByText('Swing arc not drawn: it needs both H-plane and V-plane')).toBeInTheDocument();
+    expect(screen.queryByText('Club delivery not measured for this shot')).toBeNull();
   });
 
   test('a shot without swing plane data says club delivery was not measured', () => {

@@ -27,9 +27,11 @@ export function headPose(m: Measurements, scene: ReplayScene): HeadPose {
   const faceNormal: Vec3 = m.ftt === null && m.dynamicLoft === null
     ? [0, 1, 0]
     : [Math.sin(ftt) * Math.cos(loft), Math.cos(ftt) * Math.cos(loft), Math.sin(loft)];
+  // Without a full plane, still honour a measured V-plane (as the Down the line wedge does) before the default lie.
+  const lie = rad(m.swingV ?? DEFAULT_LIE);
   const shaftDir: Vec3 = scene.plane
     ? normalize(scene.plane.w)
-    : [-g * Math.cos(rad(DEFAULT_LIE)), 0, Math.sin(rad(DEFAULT_LIE))];
+    : [-g * Math.cos(lie), 0, Math.sin(lie)];
   // Heel-to-toe is the face's horizontal leading edge (sole level), pointing away from the golfer.
   let toe = normalize(cross(faceNormal, [0, 0, 1]));
   if (dot(toe, [g, 0, 0]) < 0) toe = scale(toe, -1);

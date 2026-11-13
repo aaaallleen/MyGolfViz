@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import * as THREE from 'three';
 import { camera3D, projectOrtho } from './cameras';
-import { createSharedRenderer, frameCamera, toThreeCamera, webglAvailable } from './renderer';
+import { createSharedRenderer, frameCamera, planBuffer, toThreeCamera, webglAvailable } from './renderer';
 import { REF_M, sceneOf } from './testFixtures';
 
 const scene = sceneOf(REF_M);
@@ -55,5 +55,23 @@ describe('webglAvailable on a WebGL 1-only browser', () => {
     expect(lose).toHaveBeenCalled();
     spy.mockRestore();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('planBuffer', () => {
+  test('grows to the largest slot once, then reuses it for smaller slots without resizing', () => {
+    let st = planBuffer(null, 800, 500, 2);
+    expect(st).toMatchObject({ resize: true, w: 800, h: 500, dpr: 2 });
+    st = planBuffer(st, 300, 188, 2);
+    expect(st).toMatchObject({ resize: false, w: 800, h: 500 });
+    st = planBuffer(st, 800, 500, 2);
+    expect(st.resize).toBe(false);
+    st = planBuffer(st, 900, 400, 2);
+    expect(st).toMatchObject({ resize: true, w: 900, h: 500 });
+  });
+
+  test('a device pixel ratio change resizes', () => {
+    const st = planBuffer(planBuffer(null, 800, 500, 2), 800, 500, 1);
+    expect(st).toMatchObject({ resize: true, dpr: 1 });
   });
 });

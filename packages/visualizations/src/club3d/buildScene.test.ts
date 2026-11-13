@@ -141,6 +141,17 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
+  test('setClubOpacity with an unchanged alpha does not touch the materials (no shader re-check per draw)', () => {
+    const s = buildClubScene(input());
+    const mats: THREE.Material[] = [];
+    named(s.root, 'club')!.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) mats.push(m as THREE.Material); });
+    s.setClubOpacity(0.3);
+    const v = mats.map((m) => m.version);
+    s.setClubOpacity(0.3);
+    expect(mats.map((m) => m.version)).toEqual(v);
+    s.dispose();
+  });
+
   test('driver and left-handed builds do not throw', () => {
     expect(() => buildClubScene(input({ club: 'Driver', scene: sceneOf(REF_M, 'left') })).dispose()).not.toThrow();
     expect(() => buildClubScene(input({ club: '4 Hybrid' })).dispose()).not.toThrow();

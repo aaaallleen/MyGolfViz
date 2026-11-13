@@ -138,11 +138,19 @@ matches its line. *My call*, built from the existing tokens and the club palette
 | Measurement | Color |
 |---|---|
 | Club path, swing arc, attack angle | `CLUB` `#62B6F7` |
-| H-plane, V-plane, swing plane | green `#3FBF8A` (validate it against `SURFACE` the way the dataviz palette is validated) |
-| Face to target, face to path, dynamic loft | red `#E66767` |
+| H-plane, V-plane, swing plane | green `#3FBF8A` |
+| Face to target, face to path, dynamic loft | red `#E5484D` |
 | Launch direction, launch angle | `BALL` `#F5A742` |
 | Spin axis | `INK` `#EAF0EC` |
 | Target line, ground, level | `MUTED` `#9BA9A1` |
+
+Validated with the dataviz palette script against `SURFACE` `#101714`, comparing every pair:
+- Red and green, the pair that shares the Top view, separate by ΔE 9.0 for deutan viewers.
+- The worst pair is orange (launch) and green at ΔE 8.0 for protan viewers. That's a WARN, allowed because every
+  line also has a text label and badge, and those two colors never share a view.
+- Contrast passes for all four.
+- The lightness band flags the existing app tokens `CLUB` and `BALL` (and the green). These are thin lines on a dark
+  surface, where being lighter helps legibility. Changing the app-wide tokens is out of scope.
 
 ## Club model
 

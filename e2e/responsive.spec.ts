@@ -137,6 +137,18 @@ test.describe('phone 390', () => {
     await shot(page, 'inspector-2d-layout', 390);
   });
 
+  test('touch: only the orbiting 3D large view captures swipes; thumbnails and 2D views let the page scroll', async ({ page }) => {
+    await loadAndAnalyze(page);
+    await goInspector(page);
+    const touch = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).touchAction);
+    await openTab(page, '3d');
+    expect(await touch('.club-data .view-gallery__large canvas')).toBe('none');
+    expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
+    await openTab(page, '2d');
+    expect(await touch('.club-data .view-gallery__large canvas')).not.toBe('none');
+    expect(await touch('.club-data .view-gallery__thumbs canvas')).not.toBe('none');
+  });
+
   test('touch: tapping a table row selects it; tapping Next shot advances the position text', async ({ page }) => {
     await loadAndAnalyze(page);
     const rows = page.locator('.shots-table tr[data-shot-id]');

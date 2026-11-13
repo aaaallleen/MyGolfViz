@@ -13,7 +13,7 @@
     "@fsa/analytics": "*",
     "@fsa/domain": "*",
     "@fsa/ui": "*",
-    "three": "^0.187.0"
+    "three": "0.187.0"
   },
   "peerDependencies": {
     "react": "^19.0.0"

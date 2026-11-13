@@ -31,6 +31,15 @@ describe('headPose', () => {
   });
 });
 
+describe('headPose with only V-plane measured', () => {
+  test('the shaft rises at the measured V-plane, matching the Down the line wedge, not the default lie', () => {
+    const m = mOf({ swingV: 70 });
+    const p = headPose(m, sceneOf(m));
+    expect(Math.asin(p.shaftDir[2]) * 180 / Math.PI).toBeCloseTo(70, 6);
+    expect(p.shaftDir[0]).toBeLessThan(0);
+  });
+});
+
 describe('arcCenter', () => {
   test('is the swing radius away from every arc point', () => {
     const arc = sceneOf(REF_M).clubArc!;

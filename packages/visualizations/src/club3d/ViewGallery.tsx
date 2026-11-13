@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Missing } from '@fsa/ui';
 import type { Badge } from './annotations';
 
@@ -49,6 +49,15 @@ export function layoutLabels(labels: GalleryLabel[]): PlacedLabel[] {
       if (Math.abs(a.x - b.x) < NEAR_X && b.y - a.y < MIN_GAP_Y) b.y = a.y + MIN_GAP_Y;
     }
   }
+  // Anything pushed past the bottom edge is pulled back up, pushing its neighbours up in turn.
+  for (let i = byY.length - 1; i >= 0; i--) {
+    const b = byY[i]!;
+    if (b.y > 0.96) b.y = 0.96;
+    for (let j = i + 1; j < byY.length; j++) {
+      const a = byY[j]!;
+      if (Math.abs(a.x - b.x) < NEAR_X && a.y - b.y < MIN_GAP_Y) b.y = Math.max(0.04, a.y - MIN_GAP_Y);
+    }
+  }
   return placed;
 }
 
@@ -82,22 +91,30 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
     return f;
   };
   const main = views.find((v) => v.id === large) ?? views[0]!;
+  // A thumbnail unmounts when it becomes the large view; move keyboard focus to the new large view instead of losing it.
+  const stage = useRef<HTMLDivElement>(null);
+  const focusAfterSwap = useRef(false);
+  useEffect(() => {
+    if (!focusAfterSwap.current) return;
+    focusAfterSwap.current = false;
+    stage.current?.querySelector<HTMLElement>('[role="img"]')?.focus();
+  }, [main.id]);
   const thumbs = views.filter((v) => v.id !== main.id);
   return (
     <section className="view-gallery" aria-label={label}>
       {toolbar && <div className="view-gallery__toolbar">{toolbar}</div>}
       <div className="view-gallery__grid">
         <div className="view-gallery__large">
-          <div className="view-gallery__stage">
+          <div className="view-gallery__stage" ref={stage}>
             {webgl ? (
-              <canvas key={main.id} ref={refFor(main.id)} role="img" aria-label={main.ariaLabel} className="view-gallery__canvas" />
+              <canvas key={main.id} ref={refFor(main.id)} role="img" tabIndex={-1} aria-label={main.ariaLabel} className="view-gallery__canvas" />
             ) : (
-              <p className="view-gallery__fallback" role="img" aria-label={main.ariaLabel}>
+              <p className="view-gallery__fallback" role="img" tabIndex={-1} aria-label={main.ariaLabel}>
                 This view needs WebGL, which this browser doesn't provide. The numbers are below.
               </p>
             )}
             {webgl && layoutLabels(main.labels ?? []).map((l) => (
-              <span key={l.id} className="view-gallery__label" style={{ left: pct(l.x), top: pct(l.y), color: l.color, transform: TRANSFORM[l.anchor] }}>{l.text}</span>
+              <span key={l.id} className="view-gallery__label" aria-hidden="true" style={{ left: pct(l.x), top: pct(l.y), color: l.color, transform: TRANSFORM[l.anchor] }}>{l.text}</span>
             ))}
             {largeOverlay}
           </div>
@@ -109,7 +126,7 @@ export function ViewGallery<V extends string>({ label, views, large, onSelect, c
         </div>
         <div className="view-gallery__thumbs">
           {thumbs.map((v) => (
-            <button key={v.id} type="button" className="view-gallery__thumb" aria-label={`Show ${v.name} view`} onClick={() => onSelect(v.id)}>
+            <button key={v.id} type="button" className="view-gallery__thumb" aria-label={`Show ${v.name} view`} onClick={() => { focusAfterSwap.current = true; onSelect(v.id); }}>
               <span className="view-gallery__stage view-gallery__stage--thumb">
                 {webgl
                   ? <canvas key={v.id} ref={refFor(v.id)} aria-hidden="true" className="view-gallery__canvas" />
