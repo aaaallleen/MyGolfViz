@@ -51,7 +51,7 @@ export function OverviewPage() {
   };
   const excludedCount = tableShots.length - shots.length;
   const card = (
-    <SelectedShotCard shots={shots} selected={selected} excluded={selected !== undefined && excludedIds.has(selected.id)}
+    <SelectedShotCard shots={shots} ordered={tableShots} selected={selected} excluded={selected !== undefined && excludedIds.has(selected.id)}
       files={workingSet.files} onSelect={ws.select} onStep={ws.step} onExclude={exclude} onInclude={include}
       color={colors.get(selected?.club ?? '')} />
   );
@@ -67,8 +67,8 @@ export function OverviewPage() {
   const groups = dispersionByClub(shots, ws.landingMode).map((g) => ({ ...g, color: colors.get(g.club) ?? '#9BA9A1' }));
 
   const modes = [...new Set(workingSet.shots.map((s) => s.mode).filter((m): m is string => m !== null))];
-  const fileOrdinal = workingSet.files.find((f) => f.id === filters.fileId)?.ordinal;
-  const heading = `Averages · ${filters.club ?? 'All clubs'}${fileOrdinal !== undefined ? ` · File ${fileOrdinal}` : ''} · ${shots.length} shots`;
+  const filterOrdinal = workingSet.files.find((f) => f.id === filters.fileId)?.ordinal;
+  const heading = `Averages · ${filters.club ?? 'All clubs'}${filterOrdinal !== undefined ? ` · File ${filterOrdinal}` : ''} · ${shots.length} shots`;
 
   return (
     <div className="overview">
@@ -98,27 +98,29 @@ export function OverviewPage() {
           body="Try a different club or source file."
           action={<Button variant="primary" onClick={() => ws.setClub(null)}>Show all clubs</Button>}
         />
-      ) : shots.length === 0 ? (
-        <>
-          <EmptyState
-            title={`All ${tableShots.length} shots here are excluded`}
-            body="Include them again to see averages and plots."
-            action={<Button variant="primary" onClick={() => includeAllWithUndo(ws.includeAll, 'filter')}>Include all</Button>}
-          />
-          {card}
-          {shotsPanel}
-        </>
       ) : (
         <>
-          <section aria-label="Session averages" className="overview__averages">
-            <h2>{heading}</h2>
-            <KpiGrid shots={shots} />
-          </section>
+          {shots.length === 0 ? (
+            <EmptyState
+              title={`All ${tableShots.length} shots here are excluded`}
+              body="Include them again to see averages and plots."
+              action={<Button variant="primary" onClick={() => includeAllWithUndo(ws.includeAll, 'filter')}>Include all</Button>}
+            />
+          ) : (
+            <section aria-label="Session averages" className="overview__averages">
+              <h2>{heading}</h2>
+              <KpiGrid shots={shots} />
+            </section>
+          )}
+          {/* The card and the shots table sit at fixed positions, so the table keeps its edit mode, sort and
+              columns when the averages and plots swap with the all-excluded state. */}
           <section className="overview__panels">
-            <ShotPatternPanel shots={shots} groups={groups} mode={ws.landingMode} onMode={ws.setLandingMode}
-              selectedId={selectedId} onSelect={ws.select} highlightClub={highlightClub} />
+            {shots.length > 0 && (
+              <ShotPatternPanel shots={shots} groups={groups} mode={ws.landingMode} onMode={ws.setLandingMode}
+                selectedId={selectedId} onSelect={ws.select} highlightClub={highlightClub} />
+            )}
             <div className="overview__side">
-              <ClubTable groups={groups} mode={ws.landingMode} highlightClub={highlightClub} onHighlight={highlight} />
+              {shots.length > 0 && <ClubTable groups={groups} mode={ws.landingMode} highlightClub={highlightClub} onHighlight={highlight} />}
               {card}
             </div>
           </section>

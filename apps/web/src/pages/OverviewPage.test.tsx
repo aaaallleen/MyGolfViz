@@ -417,6 +417,22 @@ describe('OverviewPage', () => {
     });
   });
 
+  describe('edit mode through the all-excluded swap', () => {
+    test('turning off every Use switch swaps in the all-excluded state but keeps the table in edit mode', async () => {
+      const user = userEvent.setup();
+      const r = renderWithData([F1, F2]);
+      const counts = new Map<string, number>();
+      for (const s of r.store().visibleShots) counts.set(s.club, (counts.get(s.club) ?? 0) + 1);
+      const [club, n] = [...counts].sort((a, b) => a[1] - b[1])[0]!;
+      act(() => r.store().setClub(club));
+      await user.click(screen.getByRole('button', { name: 'Edit shots' }));
+      for (const sw of screen.getAllByRole('switch')) await user.click(sw);
+      expect(screen.getByRole('heading', { level: 2, name: `All ${n} shots here are excluded` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
+      expect(screen.getAllByRole('switch')).toHaveLength(n);
+    });
+  });
+
   describe('filter bar and exclusions', () => {
     const clubsOf = (r: ReturnType<typeof renderWithData>) => {
       const by = new Map<string, string[]>();

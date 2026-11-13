@@ -3,7 +3,7 @@ import { selectionPosition } from '@fsa/analytics';
 import { formatImpact, formatMeasurement, type MeasurementKey, type Shot, type SourceFile } from '@fsa/domain';
 import { Button, Missing } from '@fsa/ui';
 import { FileBadge } from './FileBadge';
-import { shotLabel, shotOptionLabel } from './shotLabel';
+import { pickerShots, shotLabel, shotOptionLabel } from './shotLabel';
 
 const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] = [
   { key: 'carry', label: 'Carry', accent: 'ball' },
@@ -15,9 +15,11 @@ const VALUES: { key: MeasurementKey; label: string; accent: 'ball' | 'club' }[] 
   { key: 'aoa', label: 'Attack angle', accent: 'club' },
 ];
 
-export function SelectedShotCard({ shots, selected, excluded, files, onSelect, onStep, onExclude, onInclude, color }: {
+export function SelectedShotCard({ shots, ordered, selected, excluded, files, onSelect, onStep, onExclude, onInclude, color }: {
   /** The included shots, in display order. */
   shots: readonly Shot[];
+  /** Every shot in the filter, excluded ones too, in display order. */
+  ordered: readonly Shot[];
   /** The selected shot. When excluded it is not in `shots`. */
   selected: Shot | undefined;
   excluded: boolean;
@@ -31,7 +33,7 @@ export function SelectedShotCard({ shots, selected, excluded, files, onSelect, o
 }) {
   const shot = selected;
   const pos = shot && !excluded ? selectionPosition(shot.id, shots) : null;
-  const options = shot && excluded ? [...shots, shot] : shots;
+  const options = pickerShots(shots, excluded ? shot : undefined, ordered);
   return (
     <div className="panel selected-card">
       <div className="selected-card__head">
@@ -60,7 +62,7 @@ export function SelectedShotCard({ shots, selected, excluded, files, onSelect, o
             </select>
           </div>
           {shot && excluded
-            ? <span className="selected-card__tag">Excluded</span>
+            ? <span className="excluded-tag">Excluded</span>
             : <span className="panel__note">{pos ? `${pos.index} of ${pos.total}` : `No shot selected · ${shots.length} shots`}</span>}
         </div>
         <div className="selected-card__steps" role="group" aria-label="Step through shots">

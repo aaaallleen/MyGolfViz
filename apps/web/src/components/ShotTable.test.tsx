@@ -91,13 +91,25 @@ describe('ShotTable exclusion', () => {
   });
 
   it('Include all calls onIncludeAll; Done leaves edit mode', async () => {
-    const { onIncludeAll } = setup();
+    const { onIncludeAll } = setup({ excluded: ['f1-2'] });
     await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
     await userEvent.click(screen.getByRole('button', { name: 'Include all' }));
     expect(onIncludeAll).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.getByRole('button', { name: 'Edit shots' })).toBeInTheDocument();
+  });
+
+  it('the edit-mode Include all is disabled until a row is excluded', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeDisabled();
+  });
+
+  it('the edit-mode Include all is enabled when a row is excluded', async () => {
+    setup({ excluded: ['f1-2'] });
+    await userEvent.click(screen.getByRole('button', { name: 'Edit shots' }));
+    expect(screen.getByRole('button', { name: 'Include all' })).toBeEnabled();
   });
 
   it('two files: rows carry F1/F2 badges', () => {

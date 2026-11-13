@@ -351,6 +351,28 @@ describe('InspectorPage', () => {
       expect(v.store().excludedIds.has(target.id)).toBe(false);
     });
 
+    test('Include it again announces through a polite live region', async () => {
+      const user = userEvent.setup();
+      const v = open();
+      const target = v.store().visibleShots[2]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      await user.click(screen.getByRole('button', { name: 'Include it again' }));
+      expect(screen.getAllByRole('status').map((n) => n.textContent).join('|')).toMatch(/included · \d+ shots used/);
+    });
+
+    test('an excluded open shot sits at its display-order position in the picker', () => {
+      const v = open();
+      const ordered = v.store().tableShots;
+      const target = ordered[3]!;
+      act(() => { v.store().setExcluded(target.id, true); v.store().select(target.id); });
+      const files = v.store().workingSet!.files;
+      const names = within(screen.getByRole('combobox', { name: 'Choose shot' })).getAllByRole('option').map((o) => o.textContent);
+      const at = names.indexOf(shotOptionLabel(target, files));
+      expect(at).toBe(3);
+      expect(names[at - 1]).toBe(shotOptionLabel(ordered[2]!, files));
+      expect(names[at + 1]).toBe(shotOptionLabel(ordered[4]!, files));
+    });
+
     test('with an included shot open, the picker does not list excluded shots', () => {
       const v = open();
       const [x, y] = [v.store().visibleShots[1]!, v.store().visibleShots[2]!];

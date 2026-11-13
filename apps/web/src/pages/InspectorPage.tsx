@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { buildReplayScene } from '@fsa/analytics';
 import { Button, EmptyState, ProvenanceLegend, TabList, TabPanel, Tabs } from '@fsa/ui';
@@ -9,6 +9,7 @@ import { Club3DTab } from '../components/Club3DTab';
 import { HeadTiles } from '../components/HeadTiles';
 import { ImpactTab } from '../components/ImpactTab';
 import { includeAllWithUndo } from '../components/includeAllWithUndo';
+import { shotLabel } from '../components/shotLabel';
 import { ShotHeader } from '../components/ShotHeader';
 import { usePhone } from '../components/usePhone';
 import { useWorkingSet, type InspectorTab } from '../state/store';
@@ -24,6 +25,7 @@ export function InspectorPage() {
   const phone = usePhone();
   const { workingSet, details, visibleShots, tableShots, excludedIds, selectedId, inspectorTab } = ws;
   const handedness = details.handedness;
+  const [announcement, setAnnouncement] = useState('');
 
   // The inspector shows an included shot, or an excluded one the user opened on purpose. With nothing
   // selected (or a selection outside the filter) it opens the first included shot and selects it.
@@ -85,12 +87,16 @@ export function InspectorPage() {
 
   return (
     <div className="inspector">
-      <ShotHeader shot={shot} shots={visibleShots} excluded={excluded} files={workingSet.files} details={details}
+      <p role="status" className="visually-hidden">{announcement}</p>
+      <ShotHeader shot={shot} shots={visibleShots} ordered={tableShots} excluded={excluded} files={workingSet.files} details={details}
         onSelect={ws.select} onStep={ws.step} onHandedness={(h) => ws.setDetails({ handedness: h })} />
       {excluded && (
         <div className="excluded-banner" role="status">
           <p>This shot is excluded. It isn't in your averages or comparisons.</p>
-          <Button onClick={() => ws.setExcluded(shot.id, false)}>Include it again</Button>
+          <Button onClick={() => {
+            ws.setExcluded(shot.id, false);
+            setAnnouncement(`${shotLabel(shot)} included · ${visibleShots.length + 1} shots used`);
+          }}>Include it again</Button>
         </div>
       )}
       <HeadTiles shot={shot} />

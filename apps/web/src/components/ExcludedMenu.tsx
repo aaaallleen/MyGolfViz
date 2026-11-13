@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { displayOrder } from '@fsa/analytics';
-import { formatMeasurement, MISSING_MARK } from '@fsa/domain';
 import { useWorkingSet } from '../state/store';
 import { FileBadge } from './FileBadge';
 import { includeAllWithUndo } from './includeAllWithUndo';
-import { shotLabel } from './shotLabel';
+import { carryText, fileOrdinal, shotLabel } from './shotLabel';
 
 /** Lists every excluded shot in the session: pick one to find it, or include it again. */
 export function ExcludedMenu() {
@@ -29,12 +28,12 @@ export function ExcludedMenu() {
                     data-shot-id={s.id}
                     onClick={() => { ws.reveal(s.id); setOpen(false); }}
                   >
-                    {s.club} · <FileBadge shot={s} files={files} /> {shotLabel(s)} · {s.m.carry === null ? MISSING_MARK : formatMeasurement('carry', s.m.carry)}
+                    {s.club} · <FileBadge shot={s} files={files} /> {shotLabel(s)} · {carryText(s)}
                   </button>
                   <button
                     type="button"
                     className="fsa-btn fsa-btn--secondary fsa-touch"
-                    aria-label={`Include shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${files.find((f) => f.id === s.fileId)?.ordinal ?? '?'}`}
+                    aria-label={`Include shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${fileOrdinal(s, files) ?? '?'}`}
                     onClick={() => ws.setExcluded(s.id, false)}
                   >
                     Include

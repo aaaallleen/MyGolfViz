@@ -94,8 +94,8 @@ excluded and which ones, and can bring any of them back.
 
 **Undo for "Include all" (every place it appears).** Because it can undo many deliberate
 exclusions in one click, each "Include all" shows a short "N shots included · Undo" notice
-that restores exactly the set it removed. It follows the same "only if nothing changed since"
-rule as Clear's undo. *(My call.)*
+that restores exactly the set it removed. The undo works as long as the set of excluded shots
+hasn't changed since; a filter or selection change doesn't block it. *(My call.)*
 - The Overview's averages heading (`Averages · All clubs · 58 shots`) counts included shots.
 
 ### Selected-shot card (Overview)

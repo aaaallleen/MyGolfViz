@@ -13,7 +13,7 @@ import {
 } from '@fsa/domain';
 import { Missing } from '@fsa/ui';
 import { usePhone } from './usePhone';
-import { rowTitle } from './shotLabel';
+import { fileOrdinal, rowTitle } from './shotLabel';
 import { FileBadge } from './FileBadge';
 
 /** Preferred column order inside each group; any field not listed here follows its group's list. */
@@ -113,8 +113,6 @@ function rawHeaders(shots: readonly Shot[]): string[] {
   return [...seen];
 }
 
-export { rowTitle };
-
 const ARIA_SORT = { asc: 'ascending', desc: 'descending' } as const;
 
 /**
@@ -201,7 +199,7 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
         <div className="shots-table__actions">
           {editing ? (
             <>
-              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" onClick={onIncludeAll}>Include all</button>
+              <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" disabled={!shots.some((s) => excludedIds.has(s.id))} onClick={onIncludeAll}>Include all</button>
               <button type="button" className="fsa-btn fsa-btn--secondary fsa-touch" onClick={() => setEditing(false)}>Done</button>
             </>
           ) : (
@@ -300,7 +298,7 @@ export function ShotTable({ shots, files, selectedId, onSelect, grouped, exclude
                           : col.id === 'use' ? (
                             <input
                               type="checkbox" role="switch" className="use-switch" checked={!excluded}
-                              aria-label={`Use shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${files.find((f) => f.id === s.fileId)?.ordinal ?? '?'}`}
+                              aria-label={`Use shot ${s.shotLabel ?? s.sourceRow}, ${s.club}, file ${fileOrdinal(s, files) ?? '?'}`}
                               onChange={(e) => onSetExcluded(s.id, !e.target.checked)}
                               onClick={(e) => e.stopPropagation()}
                               onKeyDown={(e) => e.stopPropagation()}
