@@ -23,7 +23,13 @@ def test_pending_migration_backs_up_first(settings):
     backups = list((settings.data_dir / "backups").iterdir())
     assert len(backups) == 1
     assert backups[0].name.endswith("-none.sqlite3")
-    sqlite3.connect(backups[0]).execute("select * from legacy").fetchall()
+    con = sqlite3.connect(backups[0])
+    try:
+        tables = {r[0] for r in con.execute("select name from sqlite_master where type='table'")}
+    finally:
+        con.close()
+    assert "legacy" in tables
+    assert "sessions" not in tables  # taken before the migration ran
 
 
 def test_keeps_five_backups(settings):
