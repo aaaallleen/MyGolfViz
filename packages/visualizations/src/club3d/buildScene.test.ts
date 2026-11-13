@@ -104,14 +104,33 @@ describe('buildClubScene', () => {
     s.dispose();
   });
 
-  test('dispose() disposes every geometry it created', () => {
+  test('dispose() disposes every geometry it created and none of the shared head geometry', () => {
     const s = buildClubScene(input());
     const geoms = new Set<THREE.BufferGeometry>();
     s.root.traverse((o) => { const g = (o as THREE.Mesh).geometry; if (g) geoms.add(g); });
+    const shared = [...geoms].filter((g) => g.userData.shared);
+    expect(shared.length).toBeGreaterThan(0);
     const spy = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose');
     s.dispose();
     const disposed = new Set(spy.mock.contexts as THREE.BufferGeometry[]);
-    for (const g of geoms) expect(disposed.has(g)).toBe(true);
+    for (const g of geoms) expect(disposed.has(g), g.type).toBe(!g.userData.shared);
+  });
+
+  test('a second scene for the same club still renders its head after the first is disposed', () => {
+    const a = buildClubScene(input({ club: 'Driver' })); a.dispose();
+    const b = buildClubScene(input({ club: 'Driver' }));
+    const g = (named(b.root, 'club-head') as THREE.Mesh).geometry;
+    expect(g.getAttribute('position').count).toBeGreaterThan(100);
+    b.dispose();
+  });
+
+  test.each(['7 Iron', 'Driver', '3 Wood', '4 Hybrid'])('%s: hosel and shaft form one straight line from the hosel base', (club) => {
+    const s = buildClubScene(input({ club })); s.root.updateMatrixWorld(true);
+    const hosel = named(s.root, 'club-hosel')!, shaft = named(s.root, 'club-shaft')!;
+    const axis = (o: THREE.Object3D) => new THREE.Vector3(0, 1, 0).applyQuaternion(o.getWorldQuaternion(new THREE.Quaternion()));
+    expect(axis(hosel).angleTo(axis(shaft))).toBeLessThan(1e-6);
+    expect(worldOf(shaft).sub(worldOf(hosel)).normalize().angleTo(axis(shaft))).toBeLessThan(1e-4);
+    s.dispose();
   });
 
   test('missing plane (swingH null): no arc points, club at the ball, no throw', () => {

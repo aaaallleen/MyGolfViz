@@ -5,7 +5,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { clubCategory, type Measurements, type Vec3 } from '@fsa/domain';
 import { clubFrame, type ReplayScene } from '@fsa/analytics';
 import type { Annotation } from './annotations';
-import { buildClubModel } from './clubModel';
+import { buildClubModel, type ClubModelData } from './clubModel';
 import { arcCenter, headPose } from './headPose';
 import { CLUB, MUTED, PLANE } from './palette';
 import { GRID } from '../theme';
@@ -94,10 +94,11 @@ function annotationObject(a: Annotation, dash: number): THREE.Object3D | null {
   return o;
 }
 
+/** Disposes the GPU resources under `o`, except geometry shared between scenes (club heads). */
 function disposeTree(o: THREE.Object3D) {
   o.traverse((c) => {
     const mesh = c as THREE.Mesh;
-    mesh.geometry?.dispose();
+    if (!mesh.geometry?.userData.shared) mesh.geometry?.dispose();
     const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
     if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
     else mat?.dispose();
@@ -186,18 +187,22 @@ export function buildClubScene(input: ClubSceneInput): ClubScene {
 
   holder.updateMatrix();
   head.updateMatrix();
-  const hoselTop = (head.userData.hoselTop as THREE.Vector3).clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
+  const model = head.userData as ClubModelData;
+  const hoselBase = model.hoselBase.clone().applyMatrix4(head.matrix).applyMatrix4(holder.matrix);
   const shaftDir = v3(pose.shaftDir);
   const shaftR = 0.0045 * Math.max(1, headScale * 0.6);
+  /** Adds a cylinder from `from` along the shaft direction and returns where it ends. */
   const segment = (from: THREE.Vector3, length: number, radius: number, color: string, name: string) => {
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 16), new THREE.MeshStandardMaterial({ color, metalness: 0.5, roughness: 0.35 }));
     mesh.name = name;
     mesh.position.copy(from).addScaledVector(shaftDir, length / 2);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), shaftDir);
     club.add(mesh);
+    return from.clone().addScaledVector(shaftDir, length);
   };
-  segment(hoselTop, SHAFT_YD - GRIP_YD, shaftR, '#AEB7BF', 'club-shaft');
-  segment(hoselTop.clone().addScaledVector(shaftDir, SHAFT_YD - GRIP_YD), GRIP_YD, shaftR * 1.6, '#15191C', 'club-grip');
+  const hoselTop = segment(hoselBase, model.hoselLengthYd * headScale, model.hoselRadiusYd * headScale, model.hoselColor, 'club-hosel');
+  const shaftTop = segment(hoselTop, SHAFT_YD - GRIP_YD, shaftR, '#AEB7BF', 'club-shaft');
+  segment(shaftTop, GRIP_YD, shaftR * 1.6, '#15191C', 'club-grip');
   root.add(pivot);
 
   const ball = new THREE.Mesh(new THREE.SphereGeometry(ballR, 32, 20), new THREE.MeshStandardMaterial({ color: '#F4F6F5', roughness: 0.55 }));
