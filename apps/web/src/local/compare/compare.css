@@ -1,0 +1,4 @@
+.shot-picker__field { display: flex; flex-direction: column; gap: 6px; }
+.shot-picker__field label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.shot-picker__field .fsa-select { width: 100%; }
+.shot-picker__state { display: flex; flex-direction: column; gap: 12px; }
