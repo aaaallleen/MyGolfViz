@@ -9,6 +9,7 @@ describe('HelpPage heading', () => {
     vi.stubEnv('VITE_APP_MODE', 'local');
     render(<HelpPage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Help$/);
+    expect(screen.queryByRole('heading', { name: 'Get the local version' })).toBeNull();
   });
 
   it('keeps "Help / Get Local Version" in public mode', () => {

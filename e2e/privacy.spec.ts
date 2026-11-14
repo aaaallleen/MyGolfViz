@@ -89,9 +89,9 @@ test('subpath: direct navigation and refresh work; every asset is under /fsa-e2e
     if (u.origin === ORIGIN) paths.push(u.pathname);
   });
   await page.goto('./#/help');
-  await expect(page.getByText('Want saved history? Run Local App')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Get the local version' })).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Want saved history? Run Local App')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Get the local version' })).toBeVisible();
   expect(paths.length).toBeGreaterThan(0);
   expect(paths.filter((p) => !p.startsWith('/fsa-e2e/'))).toEqual([]);
 });
