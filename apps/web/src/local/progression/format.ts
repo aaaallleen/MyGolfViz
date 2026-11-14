@@ -32,3 +32,13 @@ export function tickFormatter(key: MeasurementKey): (v: number) => string {
     return `${v < 0 && text !== '0' ? MINUS : ''}${text}${unit}`;
   };
 }
+
+/** A signed difference with its unit, e.g. `+3.9°` or `−570 rpm`; zero (after rounding) shows unsigned. */
+export function formatDelta(key: MeasurementKey, delta: number): string {
+  const { decimals } = fieldDef(key);
+  const text = Math.abs(delta).toLocaleString(NUMBER_LOCALE, numberFormat(decimals));
+  const zero = (0).toLocaleString(NUMBER_LOCALE, numberFormat(decimals));
+  const unit = unitSuffix(key);
+  if (text === zero) return `${zero}${unit}`;
+  return `${delta > 0 ? '+' : MINUS}${text}${unit}`;
+}

@@ -1,6 +1,7 @@
-import type { Measurements, QualityFlag, SessionDetails, Shot, SourceFile, WorkingSet } from '@fsa/domain';
+import type { SessionDetails, Shot, SourceFile, WorkingSet } from '@fsa/domain';
 import { exclusionKey } from '@fsa/analytics';
 import type { ImportRow, SessionRow, ShotOut } from './api';
+import { toShot } from './toShot';
 
 /** Turns a saved session's API rows into the in-memory working set the store and charts use. */
 export function sessionToWorkingSet(
@@ -26,20 +27,7 @@ export function sessionToWorkingSet(
     .map((s) => {
       const file = fileById.get(s.importId);
       if (s.excluded && file) excluded.add(exclusionKey(file.sha256, s.sourceRow));
-      return {
-        id: s.id,
-        fileId: s.importId,
-        sourceRow: s.sourceRow,
-        shotLabel: s.shotLabel,
-        club: s.club ?? 'Unknown club',
-        shotType: s.shotType,
-        mode: s.mode,
-        location: s.location,
-        // The API types these loosely; the server stores what the parser produced, so cast at this one boundary.
-        m: s.m as unknown as Measurements,
-        raw: s.raw as Record<string, string>,
-        flags: s.flags as QualityFlag[],
-      };
+      return toShot(s);
     });
 
   return {
