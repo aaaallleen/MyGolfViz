@@ -108,3 +108,21 @@ test('minLeft moves the plot right; trendChartLeft gives the margin a chart need
   const { container } = render(<TrendChart {...base} minLeft={need + 20} />);
   expect(Number(container.querySelector('line')!.getAttribute('x1'))).toBe(need + 20);
 });
+
+test('values of 0 or more never put the axis below 0, even when every value is 0', () => {
+  const ticks = (values: number[], target: TrendChartProps['target'] = null) => {
+    const { container, unmount } = render(
+      <TrendChart {...base} target={target} series={[{ name: 'Rate', color: '#fff', values }]} formatTick={(v) => `${v}%`} />,
+    );
+    const labels = [...container.querySelectorAll('text[text-anchor="end"]')].map((t) => t.textContent);
+    unmount();
+    return labels;
+  };
+  const flat = ticks([0, 0, 0]);
+  expect(flat[0]).toBe('0%');
+  expect(flat.some((l) => l!.startsWith('-'))).toBe(false);
+  expect(ticks([0, 5, 10]).some((l) => l!.startsWith('-'))).toBe(false);
+  expect(ticks([0, 2, 4], { low: 0, high: 3 }).some((l) => l!.startsWith('-'))).toBe(false);
+  // A negative value or bound still extends the axis below 0.
+  expect(ticks([-2, 0, 2]).some((l) => l!.startsWith('-'))).toBe(true);
+});

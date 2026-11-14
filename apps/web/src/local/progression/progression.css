@@ -7,6 +7,7 @@
 .prog-scope--sticky { position: sticky; top: 0; z-index: 5; margin-block: -8px; padding-block: 8px; background: var(--bg); border-bottom: 1px solid var(--border); }
 .prog-scope__controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
 .prog-scope__line { margin: 0; color: var(--text-2); font-size: 13px; }
+.prog-scope__line--loading { opacity: 0.55; }
 
 .prog-choose { margin: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 560px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .prog-choose legend { padding: 0 4px; font-size: 12px; color: var(--muted); }

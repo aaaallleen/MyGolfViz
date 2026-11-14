@@ -10,7 +10,7 @@ import * as api from '../api';
 import type { SessionRow } from '../api';
 import { formatPlain, tickFormatter } from './format';
 import { TileFrame } from './MetricTile';
-import { sessionsForGapping, toProgressionShot, type Scope } from './scope';
+import { pickedApplies, scopeLine, sessionsForGapping, shotsQueryIds, toProgressionShot, type Scope } from './scope';
 import type { TileDef } from './tiles';
 import { isFew } from './TileDetails';
 
@@ -262,9 +262,13 @@ export function useGappingShots(rows: readonly SessionRow[], scope: Scope) {
   useEffect(() => {
     let live = true;
     setFailedKey(null);
+    const wanted = new Set(ids);
+    const sessionIds = shotsQueryIds(scope, sessions);
     // No `club`: all clubs.
-    api.listLibraryShots({ sessionIds: ids }).then(
-      (list) => { if (live) setLoaded({ key, shots: list.map(toProgressionShot) }); },
+    api.listLibraryShots(sessionIds ? { sessionIds } : {}).then(
+      (list) => {
+        if (live) setLoaded({ key, shots: list.filter((s) => wanted.has(s.sessionId)).map(toProgressionShot) });
+      },
       () => { if (live) setFailedKey(key); },
     );
     return () => { live = false; };
@@ -279,10 +283,11 @@ function GappingTile({ def, rows, scope, controls }: SpecialTileProps) {
   const { sessions, shots, loading, failed } = useGappingShots(rows, scope);
   const gaps = useMemo(() => (shots ? clubGapping(shots, scope.shots) : null), [shots, scope.shots]);
   // The same rule as sessionsForGapping: a hand-picked set counts while any of it still exists.
-  const chosen = scope.picked !== null && rows.some((r) => scope.picked!.includes(r.id));
-  const subtitle = chosen
+  const which = pickedApplies(scope, sessions)
     ? `Median carry · ${plural(sessions.length, 'chosen session')}`
     : `Median carry · last ${plural(sessions.length, 'session')} of any club`;
+  // Gapping covers every club, so it counts its own excluded shots; the scope line counts only the club's.
+  const subtitle = scope.shots === 'stock' ? `${which} · ${shots ? scopeLine(shots, 'stock') : 'Stock shots only'}` : which;
 
   return (
     <TileFrame def={def} controls={controls} subtitle={subtitle}>

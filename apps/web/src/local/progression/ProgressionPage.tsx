@@ -8,7 +8,9 @@ import type { SessionRow, TargetRange } from '../api';
 import { AddTileMenu } from './AddTileMenu';
 import { MetricTile, TileControls } from './MetricTile';
 import { ScopeBar } from './ScopeBar';
-import { DEFAULT_SCOPE, parseScope, resolveClub, SCOPE_KEY, scopeLine, sessionsForClub, toProgressionShot, type Scope } from './scope';
+import {
+  DEFAULT_SCOPE, parseScope, resolveClub, SCOPE_KEY, scopeLine, sessionsForClub, shotsQueryIds, toProgressionShot, type Scope,
+} from './scope';
 import { SpecialTile } from './SpecialTiles';
 import { DEFAULT_LAYOUT, LAYOUT_KEY, moveTile, parseLayout, TILES, type TileDef, type TileId } from './tiles';
 import './progression.css';
@@ -35,6 +37,9 @@ export default function ProgressionPage() {
   const layoutSave = useRef<{ inFlight: boolean; queued: TileId[] | null }>({ inFlight: false, queued: null });
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // The key whose shots failed to load; the scope bar stays so the user can change scope or retry.
+  const [shotsFailedKey, setShotsFailedKey] = useState<string | null>(null);
+  const [shotsAttempt, setShotsAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -65,15 +70,20 @@ export default function ProgressionPage() {
   useEffect(() => {
     if (club === null) return;
     let live = true;
+    setShotsFailedKey(null);
     const sessions = shown;
-    api.listLibraryShots({ club, sessionIds: shownIds }).then(
+    const ids = new Set(shownIds);
+    const sessionIds = shotsQueryIds(scope, shown);
+    api.listLibraryShots({ club, ...(sessionIds ? { sessionIds } : {}) }).then(
       // Only the answer for the current key lands: a change of key ends `live` for the older request.
-      (list) => { if (live) setLoaded({ key, club, sessions, shots: list.map(toProgressionShot) }); },
-      (e: unknown) => { if (live && !isUnauthorised(e)) setFailed(true); },
+      (list) => {
+        if (live) setLoaded({ key, club, sessions, shots: list.filter((s) => ids.has(s.sessionId)).map(toProgressionShot) });
+      },
+      (e: unknown) => { if (live && !isUnauthorised(e)) setShotsFailedKey(key); },
     );
     return () => { live = false; };
     // `key` covers the club and the shown session ids.
-  }, [key, attempt]);
+  }, [key, attempt, shotsAttempt]);
 
   const changeScope = (next: Scope) => {
     // The choice applies for this visit even when saving it fails.
@@ -167,6 +177,7 @@ export default function ProgressionPage() {
     );
   }
 
+  const shotsFailed = shotsFailedKey === key;
   const busy = loaded !== null && loaded.key !== key;
   const addTile = <AddTileMenu layout={layout} onAdd={(id) => changeLayout([...layout, id])} />;
   return (
@@ -178,9 +189,16 @@ export default function ProgressionPage() {
         shown={shown}
         scope={scope}
         onChange={changeScope}
-        line={loaded ? scopeLine(loaded.shots, scope.shots) : null}
+        line={loaded && !shotsFailed ? scopeLine(loaded.shots, scope.shots) : null}
+        lineStale={busy}
       />
-      {loaded && (layout.length === 0 ? (
+      {shotsFailed ? (
+        <EmptyState
+          title="Couldn't load the shots"
+          body="Check that MyGolfViz is still running, then retry."
+          action={<Button variant="primary" onClick={() => setShotsAttempt((n) => n + 1)}>Retry</Button>}
+        />
+      ) : loaded && (layout.length === 0 ? (
         <EmptyState title="No tiles on the dashboard" body="Add tiles to follow this club across sessions." action={addTile} />
       ) : (
         <>

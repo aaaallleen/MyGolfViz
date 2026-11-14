@@ -3,7 +3,7 @@ import { orderSessions } from '@fsa/analytics';
 import { formatSessionDate } from '@fsa/domain';
 import { Button, SegmentedControl, SelectField } from '@fsa/ui';
 import type { SessionRow } from '../api';
-import { clubsInLibrary, type Scope, type SessionsChoice } from './scope';
+import { clubsInLibrary, pickedApplies, type Scope, type SessionsChoice } from './scope';
 
 export interface ScopeBarProps {
   rows: readonly SessionRow[];
@@ -13,8 +13,10 @@ export interface ScopeBarProps {
   shown: readonly SessionRow[];
   scope: Scope;
   onChange: (next: Scope) => void;
-  /** e.g. `All 214 shots`; null while the shots load. */
+  /** e.g. `All 214 shots`; null before the first shots answer. */
   line: string | null;
+  /** The line belongs to the previous answer while a new one loads: dimmed and not announced. */
+  lineStale?: boolean;
 }
 
 const LAST_OPTIONS = [
@@ -29,9 +31,9 @@ const LAST_OPTIONS = [
 const shotsLabel = (n: number) => `${n} ${n === 1 ? 'shot' : 'shots'}`;
 const countFor = (r: SessionRow, club: string) => r.clubs.find((c) => c.club === club)?.count ?? 0;
 
-export function ScopeBar({ rows, club, shown, scope, onChange, line }: ScopeBarProps) {
+export function ScopeBar({ rows, club, shown, scope, onChange, line, lineStale = false }: ScopeBarProps) {
   const [choosing, setChoosing] = useState<Set<string> | null>(null);
-  const pickedActive = scope.picked !== null && shown.some((s) => scope.picked!.includes(s.id));
+  const pickedActive = pickedApplies(scope, shown);
   const sessionsValue = choosing || pickedActive ? 'choose' : String(scope.last);
   const candidates = orderSessions(rows.filter((r) => countFor(r, club) > 0)).reverse();
 
@@ -82,7 +84,10 @@ export function ScopeBar({ rows, club, shown, scope, onChange, line }: ScopeBarP
           onChange={(band) => onChange({ ...scope, band })}
         />
       </div>
-      {line && <p className="prog-scope__line" aria-live="polite">{line}</p>}
+      {/* The live region stays in place; a stale line is hidden from it so only the current count is announced. */}
+      <p className="prog-scope__line" aria-live="polite">
+        {line && (lineStale ? <span className="prog-scope__line--loading" aria-hidden="true">{line}</span> : line)}
+      </p>
       {choosing && (
         <fieldset className="prog-choose">
           <legend>Choose sessions</legend>

@@ -84,6 +84,19 @@ export function sessionsForGapping(rows: readonly SessionRow[], scope: Scope): S
   return lastN(ordered, scope.last);
 }
 
+/** True when a hand-picked set chose these sessions (any of it is among them). */
+export function pickedApplies(scope: Scope, sessions: readonly { id: string }[]): boolean {
+  return scope.picked !== null && sessions.some((s) => scope.picked!.includes(s.id));
+}
+
+/**
+ * `sessionIds` for `GET /shots`. None for Sessions: All, whose sessions the server's own filter already gives:
+ * listing hundreds of ids could pass the server's request size limit. Callers keep only the shown sessions' shots.
+ */
+export function shotsQueryIds(scope: Scope, sessions: readonly SessionRow[]): string[] | undefined {
+  return scope.last === 'all' && !pickedApplies(scope, sessions) ? undefined : sessions.map((s) => s.id);
+}
+
 export function scopeLine(shots: readonly { excluded: boolean }[], choice: ShotsChoice): string {
   if (choice === 'stock') {
     return `Stock shots only · ${shots.filter((s) => s.excluded).length} excluded left out`;

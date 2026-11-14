@@ -195,6 +195,68 @@ describe('ProgressionPage', () => {
     expect(within(carry).getByText('First session shown')).toBeInTheDocument();
   });
 
+  test('Sessions: All asks for the club without listing every session; shots of other sessions are left out', async () => {
+    vi.mocked(api.getSetting).mockImplementation(async (key: string) =>
+      key === 'progression.scope' ? { club: 'Driver', last: 'all', picked: null, shots: 'all', band: 'iqr' } : null);
+    // A session the page does not know about (imported elsewhere since the page loaded).
+    SHOTS = [...SHOTS, shot('z', 'Driver', 300, 0)];
+    renderPage();
+    expect(await screen.findByText('All 10 shots')).toBeInTheDocument();
+    expect(api.listLibraryShots).toHaveBeenLastCalledWith({ club: 'Driver' });
+  });
+
+  test('a hand-picked set is sent even with Sessions: All', async () => {
+    vi.mocked(api.getSetting).mockImplementation(async (key: string) =>
+      key === 'progression.scope' ? { club: 'Driver', last: 'all', picked: ['c'], shots: 'all', band: 'iqr' } : null);
+    renderPage();
+    await waitFor(() => expect(api.listLibraryShots).toHaveBeenLastCalledWith({ club: 'Driver', sessionIds: ['c'] }));
+  });
+
+  test('a failed shots fetch keeps the scope bar usable and shows Retry in place of the tiles', async () => {
+    vi.mocked(api.listLibraryShots).mockRejectedValueOnce(new Error('Bad Request'));
+    renderPage();
+    expect(await screen.findByText("Couldn't load the shots")).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load your sessions")).not.toBeInTheDocument();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+    const scope = screen.getByRole('region', { name: 'Scope' });
+    expect(within(scope).queryByText(/shots$/, { selector: 'p' })).not.toBeInTheDocument();
+
+    // The scope can still change: a smaller choice loads.
+    await userEvent.selectOptions(within(scope).getByLabelText('Club'), '7 Iron');
+    expect(await screen.findByText('All 3 shots')).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load the shots")).not.toBeInTheDocument();
+  });
+
+  test('Retry after a failed shots fetch asks again', async () => {
+    vi.mocked(api.listLibraryShots).mockRejectedValueOnce(new Error('down'));
+    renderPage();
+    await screen.findByText("Couldn't load the shots");
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('All 10 shots')).toBeInTheDocument();
+    expect(api.listSessions).toHaveBeenCalledTimes(1);
+    expect(api.listLibraryShots).toHaveBeenCalledTimes(2);
+  });
+
+  test('while another club loads the scope line is dimmed and not announced', async () => {
+    renderPage();
+    expect(await screen.findByText('All 10 shots')).not.toHaveAttribute('aria-hidden');
+    let release: () => void = () => {};
+    const impl = vi.mocked(api.listLibraryShots).getMockImplementation()!;
+    vi.mocked(api.listLibraryShots).mockImplementationOnce((opts) =>
+      new Promise((resolve) => { release = () => resolve(impl(opts)); }));
+    await userEvent.selectOptions(screen.getByLabelText('Club'), '7 Iron');
+    const stale = screen.getByText('All 10 shots');
+    expect(stale).toHaveAttribute('aria-hidden', 'true');
+    expect(stale).toHaveClass('prog-scope__line--loading');
+    // The Shots switch while loading must not announce a count for the previous club either.
+    await userEvent.click(screen.getByRole('button', { name: 'Stock shots only' }));
+    expect(screen.getByText(/^Stock shots only · \d+ excluded left out$/)).toHaveAttribute('aria-hidden', 'true');
+    release();
+    const fresh = await screen.findByText('Stock shots only · 0 excluded left out');
+    expect(fresh).not.toHaveAttribute('aria-hidden');
+    expect(fresh.closest('[aria-live="polite"]')).not.toBeNull();
+  });
+
   test('no sessions shows the empty state with a link to load a CSV', async () => {
     vi.mocked(api.listSessions).mockResolvedValue([]);
     renderPage();

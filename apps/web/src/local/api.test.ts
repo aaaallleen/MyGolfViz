@@ -92,6 +92,24 @@ describe('library client', () => {
     expect(url.searchParams.getAll('session_ids')).toEqual(['a', 'b']);
   });
 
+  test('listLibraryShots splits a long session list over several requests and joins the answers in order', async () => {
+    const ids = Array.from({ length: 450 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+    const fn = vi.fn(async (path: string) => {
+      const sent = new URL(path, 'http://x').searchParams.getAll('session_ids');
+      return new Response(JSON.stringify(sent.map((id) => ({ id }))), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fn);
+    const shots = await listLibraryShots({ club: 'Driver', sessionIds: ids });
+    expect(fn.mock.calls.length).toBeGreaterThan(1);
+    for (const [path] of fn.mock.calls as unknown as [string][]) {
+      const url = new URL(path, 'http://x');
+      expect(url.searchParams.get('club')).toBe('Driver');
+      // Well under the server's 16 KB request-head limit.
+      expect(path.length).toBeLessThan(12_000);
+    }
+    expect(shots.map((s) => s.id)).toEqual(ids);
+  });
+
   test('listLibraryShots omits empty params', async () => {
     const fn = mockFetch(200, []);
     await listLibraryShots({});

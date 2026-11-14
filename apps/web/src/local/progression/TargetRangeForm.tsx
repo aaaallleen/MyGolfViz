@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { unitSuffix, type MeasurementKey } from '@fsa/domain';
 import { Button } from '@fsa/ui';
 import type { TargetRange } from '../api';
@@ -42,10 +42,17 @@ export function TargetRangeForm({ metric, abs, range, onSave, onClear, onCancel 
   const [low, setLow] = useState(asText(range?.low));
   const [high, setHigh] = useState(asText(range?.high));
   const [error, setError] = useState<string | null>(null);
+  const lowInput = useRef<HTMLInputElement>(null);
+  const highInput = useRef<HTMLInputElement>(null);
   const unit = unitSuffix(metric).trim();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    // A number field reports '' for text it cannot read (`-`, `1e`); only its validity tells that from empty.
+    if (lowInput.current?.validity.badInput || highInput.current?.validity.badInput) {
+      setError('Enter numbers only.');
+      return;
+    }
     const parsed = validateRange(low, high, abs);
     if (!parsed.ok) {
       setError(parsed.error);
@@ -54,11 +61,12 @@ export function TargetRangeForm({ metric, abs, range, onSave, onClear, onCancel 
     onSave(parsed.low, parsed.high);
   };
 
-  const field = (label: string, value: string, set: (v: string) => void, autoFocus = false) => (
+  const field = (label: string, value: string, set: (v: string) => void, ref: RefObject<HTMLInputElement | null>, autoFocus = false) => (
     <div className="prog-range__field">
       <label htmlFor={`${id}-${label}`}>{label}</label>
       <div className="prog-range__input">
         <input
+          ref={ref}
           id={`${id}-${label}`}
           type="number"
           step="any"
@@ -77,8 +85,8 @@ export function TargetRangeForm({ metric, abs, range, onSave, onClear, onCancel 
   return (
     <form className="prog-range" aria-label="Target range" onSubmit={submit} noValidate>
       <div className="prog-range__fields">
-        {field('Low', low, setLow, true)}
-        {field('High', high, setHigh)}
+        {field('Low', low, setLow, lowInput, true)}
+        {field('High', high, setHigh, highInput)}
       </div>
       {error && <p id={`${id}-error`} className="prog-range__error" role="alert">{error}</p>}
       <div className="prog-range__actions">

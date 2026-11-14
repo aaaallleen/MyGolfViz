@@ -253,6 +253,27 @@ describe('Club gapping', () => {
     expect(within(t).getByText('Driver · 247.5 yd')).toBeInTheDocument();
   });
 
+  test('Sessions: All asks for every club without listing the sessions', async () => {
+    settings['progression.scope'] = { club: 'Driver', last: 'all', picked: null, shots: 'all', band: 'iqr' };
+    renderPage(['gapping']);
+    const t = await screen.findByRole('article', { name: 'Club gapping' });
+    expect(await within(t).findByText('7 Iron · 160.0 yd')).toBeInTheDocument();
+    expect(api.listLibraryShots).toHaveBeenCalledWith({});
+    expect(vi.mocked(api.listLibraryShots).mock.calls.some(([o]) => o?.sessionIds !== undefined)).toBe(false);
+  });
+
+  test('under Stock shots only the subtitle counts the excluded shots left out of gapping', async () => {
+    // One excluded 7 Iron shot besides the two excluded Driver shots.
+    SHOTS = SHOTS.map((s, i) => (i === 10 ? { ...s, excluded: true } : s));
+    renderPage(['gapping']);
+    const t = await screen.findByRole('article', { name: 'Club gapping' });
+    await within(t).findByText('Driver · 250.0 yd');
+    expect(within(t).getByText('Median carry · last 3 sessions of any club')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Stock shots only' }));
+    expect(within(t).getByText('Median carry · last 3 sessions of any club · Stock shots only · 3 excluded left out'))
+      .toBeInTheDocument();
+  });
+
   test('a hand-picked set is used, and the subtitle says so', async () => {
     settings['progression.scope'] = { club: 'Driver', last: 6, picked: ['a', 'c'], shots: 'all', band: 'iqr' };
     renderPage(['gapping']);

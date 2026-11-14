@@ -42,18 +42,15 @@ def list_library_shots(
         )
         if club is not None:
             q = q.where(models.Shot.club == club)
+        exclusions = select(
+            models.Exclusion.session_id,
+            models.Exclusion.sha256,
+            models.Exclusion.source_row,
+        )
         if session_ids:
             q = q.where(models.Session.id.in_(session_ids))
-        excluded = {
-            (sid, sha, row)
-            for sid, sha, row in db.execute(
-                select(
-                    models.Exclusion.session_id,
-                    models.Exclusion.sha256,
-                    models.Exclusion.source_row,
-                )
-            )
-        }
+            exclusions = exclusions.where(models.Exclusion.session_id.in_(session_ids))
+        excluded = {(sid, sha, row) for sid, sha, row in db.execute(exclusions)}
         return [
             LibraryShot(
                 id=s.id,

@@ -233,6 +233,18 @@ describe('target ranges', () => {
     expect(api.putTargetRange).not.toHaveBeenCalled();
   });
 
+  test('text a number field cannot read (such as "-") shows Enter numbers only. and sends nothing', async () => {
+    await renderPage();
+    const form = await openForm('Carry');
+    // Browsers report '' for unreadable text in a number field and flag it as bad input.
+    const low = form.getByLabelText('Low') as HTMLInputElement;
+    Object.defineProperty(low, 'validity', { configurable: true, get: () => ({ badInput: true, valid: false }) });
+    await userEvent.type(form.getByLabelText('High'), '250');
+    await userEvent.click(form.getByRole('button', { name: 'Save' }));
+    expect(form.getByRole('alert')).toHaveTextContent('Enter numbers only.');
+    expect(api.putTargetRange).not.toHaveBeenCalled();
+  });
+
   test('accuracy tiles take only bounds of 0 or more', async () => {
     await renderPage();
     const form = await openForm('Lateral (landing)');

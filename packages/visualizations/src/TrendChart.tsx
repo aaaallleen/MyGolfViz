@@ -67,7 +67,9 @@ function yAxis({ series, target = null, formatTick }: Pick<TrendChartProps, 'ser
     hi += pad;
   }
   const pad = (hi - lo) * 0.05;
-  const y0 = lo - pad, y1 = hi + pad;
+  // Values that are never negative (rates, counts, SDs) keep the axis at 0 or above.
+  const y0 = nums.every((v) => v >= 0) ? Math.max(0, lo - pad) : lo - pad;
+  const y1 = hi + pad;
   const ticks = niceTicks(y0, y1, 4);
   const labels = ticks.map(formatTick);
   // The plot starts right of the widest label, so long ones (`12,500 rpm`) are not clipped.

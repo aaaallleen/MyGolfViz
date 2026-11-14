@@ -52,6 +52,18 @@ def test_shots_report_exclusions(client):
     assert {x["id"] for x in rows if x["excluded"]} == set(ids)
 
 
+def test_shots_filtered_by_sessions_still_report_exclusions(client):
+    later, earlier = _seed(client)
+    later_ids = [x["id"] for x in client.get("/api/v1/shots", params={"session_ids": [later]}).json()[:2]]
+    earlier_ids = [x["id"] for x in client.get("/api/v1/shots", params={"session_ids": [earlier]}).json()[:3]]
+    for sid, ids in ((later, later_ids), (earlier, earlier_ids)):
+        assert client.patch(f"/api/v1/sessions/{sid}/exclusions", json={"exclude": ids}).status_code == 200
+    rows = client.get("/api/v1/shots", params={"session_ids": [later]}).json()
+    assert {x["id"] for x in rows if x["excluded"]} == set(later_ids)
+    rows = client.get("/api/v1/shots", params={"session_ids": [earlier, later]}).json()
+    assert {x["id"] for x in rows if x["excluded"]} == set(later_ids) | set(earlier_ids)
+
+
 def test_shots_without_club_param_returns_all_clubs(client):
     _, earlier = _seed(client)
     r = client.get("/api/v1/shots", params={"session_ids": [earlier]})
