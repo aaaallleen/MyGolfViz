@@ -2,21 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import type { ProgressionShot } from '@fsa/analytics';
-import type { Measurements } from '@fsa/domain';
 import { Button, EmptyState } from '@fsa/ui';
 import * as api from '../api';
-import type { LibraryShot, SessionRow, TargetRange } from '../api';
+import type { SessionRow, TargetRange } from '../api';
 import { AddTileMenu } from './AddTileMenu';
-import { MetricTile, TileControls, TileFrame } from './MetricTile';
+import { MetricTile, TileControls } from './MetricTile';
 import { ScopeBar } from './ScopeBar';
-import { DEFAULT_SCOPE, parseScope, resolveClub, SCOPE_KEY, scopeLine, sessionsForClub, type Scope } from './scope';
+import { DEFAULT_SCOPE, parseScope, resolveClub, SCOPE_KEY, scopeLine, sessionsForClub, toProgressionShot, type Scope } from './scope';
+import { SpecialTile } from './SpecialTiles';
 import { DEFAULT_LAYOUT, LAYOUT_KEY, moveTile, parseLayout, TILES, type TileDef, type TileId } from './tiles';
 import './progression.css';
-
-/** The generated API types leave `m` untyped; the backend sends canonical measurements. */
-export function toProgressionShot(s: LibraryShot): ProgressionShot {
-  return { id: s.id, sessionId: s.sessionId, club: s.club, m: s.m as unknown as Measurements, excluded: s.excluded };
-}
 
 const isUnauthorised = (e: unknown) => e instanceof api.ApiError && e.status === 401;
 const tileDef = (id: TileId): TileDef => TILES.find((t) => t.id === id)!;
@@ -228,8 +223,9 @@ export default function ProgressionPage() {
                   />
                 );
               }
-              // Mishit, speed & smash, impact and gapping tiles come with their own views.
-              return <TileFrame key={id} def={def} controls={controls} />;
+              return (
+                <SpecialTile key={id} def={def} rows={rows} sessions={loaded.sessions} shots={loaded.shots} scope={scope} controls={controls} />
+              );
             })}
           </div>
         </>

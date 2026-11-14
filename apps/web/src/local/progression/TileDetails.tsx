@@ -4,7 +4,7 @@ import type { SessionRow } from '../api';
 import { formatPlain } from './format';
 
 /** `few shots` only when there are some: n 0 is no shots at all. */
-export const isFew = (s: MetricStats) => s.few && s.n > 0;
+export const isFew = (s: Pick<MetricStats, 'few' | 'n'>) => s.few && s.n > 0;
 
 export interface TileDetailsProps {
   metric: MeasurementKey;

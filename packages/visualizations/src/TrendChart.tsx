@@ -26,7 +26,9 @@ export interface TrendChartProps {
   zeroLine?: boolean;
 }
 
-const W = 360, LEFT = 46, RIGHT = 10, TOP = 10, BOTTOM = 22;
+const W = 360, MIN_LEFT = 46, RIGHT = 10, TOP = 10, BOTTOM = 22;
+/** Y labels are 9 px; a character is at most about 0.6 em wide. */
+const TICK_FONT = 9, CHAR_W = TICK_FONT * 0.6, LABEL_GAP = 6, LABEL_PAD = 4;
 const r2 = (n: number) => Number(n.toFixed(2));
 
 /** Split indices into runs of consecutive non-null entries. */
@@ -61,11 +63,15 @@ export function TrendChart({ title, sessions, series, target = null, formatTick,
   const pad = (hi - lo) * 0.05;
   const y0 = lo - pad, y1 = hi + pad;
   const ticks = niceTicks(y0, y1, 4);
+  const labels = ticks.map(formatTick);
+  // The plot starts right of the widest label, so long ones (`12,500 rpm`) are not clipped.
+  const widest = Math.max(0, ...labels.map((l) => l.length));
+  const left = Math.max(MIN_LEFT, Math.ceil(widest * CHAR_W) + LABEL_GAP + LABEL_PAD);
 
   const plotT = TOP, plotB = height - BOTTOM;
   const sy = linear(y0, y1, plotB, plotT);
   const n = sessions.length;
-  const xAt = (i: number) => (n <= 1 ? (LEFT + W - RIGHT) / 2 : LEFT + ((W - LEFT - RIGHT) * i) / (n - 1));
+  const xAt = (i: number) => (n <= 1 ? (left + W - RIGHT) / 2 : left + ((W - left - RIGHT) * i) / (n - 1));
 
   let targetRect: { y: number; h: number } | null = null;
   if (target && (target.low != null || target.high != null)) {
@@ -77,18 +83,18 @@ export function TrendChart({ title, sessions, series, target = null, formatTick,
   return (
     <svg role="img" aria-label={title} viewBox={`0 0 ${W} ${height}`} width="100%" style={{ display: 'block', fontFamily: FONT }}>
       {targetRect && (
-        <rect data-testid="target-band" x={LEFT} y={r2(targetRect.y)} width={W - LEFT - RIGHT} height={r2(targetRect.h)} fill={BORDER} opacity={0.35} />
+        <rect data-testid="target-band" x={left} y={r2(targetRect.y)} width={W - left - RIGHT} height={r2(targetRect.h)} fill={BORDER} opacity={0.35} />
       )}
-      {ticks.map((t) => (
+      {ticks.map((t, k) => (
         <g key={t}>
-          <line x1={LEFT} x2={W - RIGHT} y1={r2(sy(t))} y2={r2(sy(t))} stroke={GRID} strokeWidth={1} />
-          <text x={LEFT - 6} y={r2(sy(t)) + 3} textAnchor="end" fontSize={9} fill={MUTED} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {formatTick(t)}
+          <line x1={left} x2={W - RIGHT} y1={r2(sy(t))} y2={r2(sy(t))} stroke={GRID} strokeWidth={1} />
+          <text x={left - LABEL_GAP} y={r2(sy(t)) + 3} textAnchor="end" fontSize={TICK_FONT} fill={MUTED} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {labels[k]}
           </text>
         </g>
       ))}
       {zeroLine && y0 < 0 && y1 > 0 && (
-        <line x1={LEFT} x2={W - RIGHT} y1={r2(sy(0))} y2={r2(sy(0))} stroke={MUTED} strokeWidth={1} strokeDasharray="3 3" />
+        <line x1={left} x2={W - RIGHT} y1={r2(sy(0))} y2={r2(sy(0))} stroke={MUTED} strokeWidth={1} strokeDasharray="3 3" />
       )}
       {sessions.map((s, i) => (
         <text key={i} x={r2(xAt(i))} y={height - 6} textAnchor="middle" fontSize={9} fill={MUTED}>

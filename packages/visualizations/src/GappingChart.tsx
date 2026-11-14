@@ -6,6 +6,13 @@ export interface GappingChartProps { rows: readonly GapRow[]; formatValue: (v: n
 
 const W = 360, LEFT = 8, RIGHT = 12, ROW = 22, GAP = 16, TOP = 6, AXIS = 18;
 const r2 = (n: number) => Number(n.toFixed(2));
+/** Axis labels are 9 px; a character is at most about 0.6 em wide. */
+const TICK_FONT = 9, CHAR_W = TICK_FONT * 0.6;
+/** Centre of a label under `x`, moved in so the end ticks' labels are not clipped by the svg edge. */
+const labelX = (x: number, text: string) => {
+  const half = (text.length * CHAR_W) / 2;
+  return Math.min(Math.max(x, half), W - half);
+};
 
 export function GappingChart({ rows, formatValue }: GappingChartProps) {
   const height = TOP + rows.length * ROW + Math.max(0, rows.length - 1) * GAP + AXIS;
@@ -20,14 +27,17 @@ export function GappingChart({ rows, formatValue }: GappingChartProps) {
 
   return (
     <svg role="img" aria-label="Club gapping" viewBox={`0 0 ${W} ${height}`} width="100%" style={{ display: 'block', fontFamily: FONT }}>
-      {ticks.map((t) => (
-        <g key={t}>
-          <line x1={r2(x(t))} x2={r2(x(t))} y1={TOP} y2={axisY} stroke={GRID} strokeWidth={1} />
-          <text x={r2(x(t))} y={axisY + 10} textAnchor="middle" fontSize={9} fill={MUTED} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {formatValue(t)}
-          </text>
-        </g>
-      ))}
+      {ticks.map((t) => {
+        const text = formatValue(t);
+        return (
+          <g key={t}>
+            <line x1={r2(x(t))} x2={r2(x(t))} y1={TOP} y2={axisY} stroke={GRID} strokeWidth={1} />
+            <text x={r2(labelX(x(t), text))} y={axisY + 10} textAnchor="middle" fontSize={TICK_FONT} fill={MUTED} style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {text}
+            </text>
+          </g>
+        );
+      })}
       {rows.map((r, i) => {
         const y = TOP + i * (ROW + GAP);
         const x1 = x(r.p25), x2 = x(r.p75), xm = x(r.median);

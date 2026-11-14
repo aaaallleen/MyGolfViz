@@ -37,14 +37,25 @@ const colorFor = (key: MeasurementKey) => (fieldDef(key).group === 'club' ? CLUB
 
 const categoryTitle = (def: TileDef) => CATEGORIES.find((c) => c.id === def.category)?.title ?? '';
 
-export function TileFrame({ def, controls, children }: { def: TileDef; controls: ReactNode; children?: ReactNode }) {
+export interface TileFrameProps {
+  def: TileDef;
+  controls: ReactNode;
+  /** A line under the title, e.g. which shots or sessions the tile uses. */
+  subtitle?: ReactNode;
+  /** Extra class on the article, e.g. `prog-tile--wide`. */
+  className?: string;
+  children?: ReactNode;
+}
+
+export function TileFrame({ def, controls, subtitle, className, children }: TileFrameProps) {
   const id = useId();
   return (
-    <article className="prog-tile" aria-labelledby={id}>
+    <article className={className ? `prog-tile ${className}` : 'prog-tile'} aria-labelledby={id}>
       <header className="prog-tile__head">
         <div>
           <div className="prog-tile__eyebrow">{categoryTitle(def)}</div>
           <h2 id={id} className="prog-tile__title">{def.title}</h2>
+          {subtitle && <p className="prog-tile__subtitle">{subtitle}</p>}
         </div>
         <div className="prog-tile__controls">{controls}</div>
       </header>

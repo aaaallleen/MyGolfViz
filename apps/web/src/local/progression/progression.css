@@ -43,10 +43,13 @@
 @media (pointer: coarse) { .prog-tile__ctl { width: var(--touch-target); } }
 .prog-tile__headline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
 .prog-tile__value { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; }
+.prog-tile__value--long { font-size: 22px; }
 .prog-tile__what { font-size: 12px; color: var(--muted); }
 .prog-tile__change { font-size: 13px; color: var(--text-2); }
 .prog-tile__inrange { font-size: 12px; color: var(--text-2); }
 .prog-tile__caption { margin: 0; font-size: 12px; color: var(--muted); }
+.prog-tile__subtitle { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.prog-tile__note { margin: 0; font-size: 13px; color: var(--text-2); }
 .prog-tile__range { display: flex; }
 .prog-tile__range .fsa-btn { padding: 0 8px; margin-left: -8px; color: var(--text-2); }
 .prog-tile__range .fsa-btn[aria-disabled="true"] { opacity: 0.5; cursor: default; }
@@ -61,6 +64,19 @@
 .prog-range__unit { color: var(--text-2); font-size: 13px; }
 .prog-range__error { margin: 0; font-size: 12px; color: var(--danger); }
 .prog-range__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Special tiles */
+.prog-impact { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; }
+.prog-impact__map, .prog-impact__trend { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.prog-impact__map svg { max-width: 320px; }
+.prog-gapping { display: flex; flex-direction: column; gap: 8px; }
+.prog-gapping--loading { opacity: 0.55; }
+@media (prefers-reduced-motion: no-preference) { .prog-gapping { transition: opacity 150ms ease-out; } }
+/* Wide screens: Impact location spans two columns, heatmap beside its trend. */
+@media (min-width: 1100px) {
+  .prog-tile--wide { grid-column: span 2; }
+  .prog-impact { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); align-items: start; }
+}
 
 .prog-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
 .prog-legend li { display: flex; align-items: center; gap: 6px; }

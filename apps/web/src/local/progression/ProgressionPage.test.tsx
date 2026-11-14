@@ -163,7 +163,7 @@ describe('ProgressionPage', () => {
   test('Choose… picks sessions from a checklist; Apply needs at least one', async () => {
     renderPage();
     await screen.findByText('All 10 shots');
-    await userEvent.selectOptions(screen.getByLabelText('Sessions'), 'Choose…');
+    await userEvent.selectOptions(within(screen.getByRole('region', { name: 'Scope' })).getByLabelText('Sessions'), 'Choose…');
     const list = screen.getByRole('group', { name: 'Choose sessions' });
     const boxes = within(list).getAllByRole('checkbox');
     // Newest first, with name and the club's shot count.

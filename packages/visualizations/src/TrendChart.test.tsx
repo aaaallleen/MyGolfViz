@@ -74,3 +74,31 @@ test('bands render as a translucent path', () => {
   );
   expect(container.querySelector('path[opacity="0.18"]')).toBeTruthy();
 });
+
+// 9 px tabular digits are about 0.55 em wide; letters and separators roughly the same.
+const estWidth = (label: string) => label.length * 9 * 0.55;
+const tickLabel = (container: HTMLElement, text: string) =>
+  [...container.querySelectorAll('text')].find((t) => t.textContent === text)!;
+
+test('wide y-axis labels fit inside the svg (right-aligned to the plot edge)', () => {
+  const { container } = render(
+    <TrendChart
+      {...base}
+      series={[{ name: 'Median', color: '#fff', values: [12000, 12500, 13000] }]}
+      formatTick={(v) => `${v.toLocaleString('en-US')} rpm`}
+    />,
+  );
+  const label = tickLabel(container, '12,500 rpm');
+  expect(label.getAttribute('text-anchor')).toBe('end');
+  expect(Number(label.getAttribute('x'))).toBeGreaterThanOrEqual(estWidth('12,500 rpm'));
+});
+
+test('the plot starts further right for longer labels', () => {
+  const leftEdge = (formatTick: (v: number) => string) => {
+    const { container, unmount } = render(<TrendChart {...base} formatTick={formatTick} />);
+    const x = Number(container.querySelector('line')!.getAttribute('x1'));
+    unmount();
+    return x;
+  };
+  expect(leftEdge((v) => `${v} rpm long label`)).toBeGreaterThan(leftEdge((v) => `${v}`));
+});

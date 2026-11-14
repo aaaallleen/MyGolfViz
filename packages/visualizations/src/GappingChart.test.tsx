@@ -30,3 +30,20 @@ test('renders nothing harmful with no rows', () => {
   const { container } = render(<GappingChart rows={[]} formatValue={fmt} />);
   expect(container.innerHTML).not.toMatch(/NaN/);
 });
+
+test('axis labels at either end stay inside the svg', () => {
+  // 9 px labels; a character is at most about 0.6 em wide.
+  const est = (s: string) => s.length * 9 * 0.6;
+  const long = (v: number) => `${v.toFixed(1)} yd of carry`;
+  const { container } = render(
+    <GappingChart rows={[row({ median: 160, p25: 150, p75: 170 }), row({ club: 'Gap Wedge', median: 100, p25: 95, p75: 105, gapToNext: null })]} formatValue={long} />,
+  );
+  const ticks = [...container.querySelectorAll('text[text-anchor="middle"]')];
+  expect(ticks.length).toBeGreaterThan(1);
+  for (const t of ticks) {
+    const x = Number(t.getAttribute('x'));
+    const half = est(t.textContent!) / 2;
+    expect(x - half).toBeGreaterThanOrEqual(0);
+    expect(x + half).toBeLessThanOrEqual(360);
+  }
+});

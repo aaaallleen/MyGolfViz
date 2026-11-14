@@ -1,6 +1,11 @@
-import { orderSessions, type ShotsChoice } from '@fsa/analytics';
-import { compareClubs } from '@fsa/domain';
-import type { SessionRow } from '../api';
+import { orderSessions, type ProgressionShot, type ShotsChoice } from '@fsa/analytics';
+import { compareClubs, type Measurements } from '@fsa/domain';
+import type { LibraryShot, SessionRow } from '../api';
+
+/** The generated API types leave `m` untyped; the backend sends canonical measurements. */
+export function toProgressionShot(s: LibraryShot): ProgressionShot {
+  return { id: s.id, sessionId: s.sessionId, club: s.club, m: s.m as unknown as Measurements, excluded: s.excluded };
+}
 
 export type SessionsChoice = 3 | 6 | 10 | 20 | 'all';
 
