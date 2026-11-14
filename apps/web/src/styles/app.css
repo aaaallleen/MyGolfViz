@@ -455,12 +455,13 @@ textarea.field__input { padding: 10px 12px; }
 .lib-cal__arrow { width: var(--touch-target); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .lib-cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .lib-cal__weekdays { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.lib-day { min-height: 96px; box-sizing: border-box; padding: 8px; border-radius: var(--radius-control); background: var(--surface-sunken); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lib-day { min-height: 96px; box-sizing: border-box; padding: 8px; border-radius: var(--radius-control); background: var(--surface-sunken); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; min-width: 0; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .lib-day:not(.is-selected):not(.is-today):hover { border-color: var(--border-strong); } }
 .lib-day.is-out { background: transparent; }
 .lib-day.is-out .lib-day__num { color: var(--muted); }
 .lib-day.is-today { border-color: var(--text); }
 .lib-day.is-selected { background: var(--row-selected); }
-.lib-day__num { align-self: flex-start; min-width: 28px; min-height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: left; }
+.lib-day__num { cursor: pointer; align-self: flex-start; min-width: 28px; min-height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: left; }
 .lib-day__num:focus-visible, .lib-day__session:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }
 .lib-day__session { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px; background: var(--ball); color: var(--bg); text-decoration: none; min-width: 0; }
 .lib-day__name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -473,6 +474,7 @@ textarea.field__input { padding: 10px 12px; }
 .lib-cal__side { flex: 1 1 300px; min-width: 0; }
 .lib-day-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .lib-day-panel h2 { font-size: 18px; }
+.lib-day-panel__add { display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; padding: 0 18px; text-decoration: none; }
 .lib-day-session { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border); text-decoration: none; color: var(--text); }
 .lib-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .lib-stats div { display: flex; flex-direction: column; gap: 2px; }
