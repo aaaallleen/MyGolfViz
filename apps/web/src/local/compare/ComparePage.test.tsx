@@ -325,6 +325,21 @@ describe('ComparePage', () => {
     expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(1);
   });
 
+  test('the top view draws each shot\'s ball flight in its colour, and notes a straight one', async () => {
+    FIXTURES.B = detail(shotOut('B', '7 Iron', '3', { ...M, carry: 160, launchH: null }), EARLIER);
+    FIXTURES.A = detail(shotOut('A', 'Driver', '7', { ...M, launchH: 2.5 }), LATER);
+    FIXTURES.C = detail(shotOut('C', 'Driver', '9', { ...M, carry: 255, launchH: null }), LATER);
+    renderAt(['/compare?a=A&b=B&c=C']);
+    await screen.findByText(lbl(C_LABEL));
+    const top = screen.getByRole('img', { name: /^Top-down dispersion/ });
+    expect([...top.querySelectorAll('[data-testid="flight-path"]')].map((p) => p.getAttribute('data-shot-id'))).toEqual(['A', 'B', 'C']);
+    expect(screen.getByRole('heading', { name: 'Ball flight (top view)' })).toBeInTheDocument();
+    expect(screen.getByText(/^Flight paths are illustrative/)).toBeInTheDocument();
+    expect(screen.getByText('Shot B has no launch direction, so its path is drawn straight')).toBeInTheDocument();
+    expect(screen.getByText('Shot C has no launch direction, so its path is drawn straight')).toBeInTheDocument();
+    expect(screen.queryByText(/Shot A has no launch direction/)).toBeNull();
+  });
+
   test('a shot without a landing position is noted', async () => {
     FIXTURES.A = detail(shotOut('A', 'Driver', '7', { ...M, lateral: null }), LATER);
     renderAt(['/compare?a=A&b=B']);

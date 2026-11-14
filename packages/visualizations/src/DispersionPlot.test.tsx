@@ -1,5 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
-import { expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import type { DispersionStats } from '@fsa/analytics';
 import { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 
@@ -198,4 +198,45 @@ test('without onSelect the dots are plain marks: no pointer cursor, no button ro
     expect(c).not.toHaveAttribute('role');
   }
   expect(() => fireEvent.click(circle(container, 'a'))).not.toThrow();
+});
+
+describe('flight paths', () => {
+  const nums = (d: string) => d.match(/-?\d+(\.\d+)?/g)!.map(Number);
+  const paths = (c: HTMLElement) => [...c.querySelectorAll<SVGPathElement>('[data-testid="flight-path"]')];
+
+  test('none are drawn unless asked for', () => {
+    const { container } = renderPlot();
+    expect(paths(container)).toHaveLength(0);
+  });
+
+  test('each listed shot gets a path from the tee to its dot, in its group colour, under the dots', () => {
+    const { container } = renderPlot({ flightPaths: { a: 2, w1: null } });
+    const ps = paths(container);
+    expect(ps.map((p) => p.getAttribute('data-shot-id')).sort()).toEqual(['a', 'w1']);
+    const a = ps.find((p) => p.getAttribute('data-shot-id') === 'a')!;
+    expect(a.parentElement).toHaveAttribute('stroke', '#C98500');
+    const [x0, y0, , , x1, y1] = nums(a.getAttribute('d')!);
+    const [w0x, w0y] = nums(ps.find((p) => p.getAttribute('data-shot-id') === 'w1')!.getAttribute('d')!);
+    expect([w0x, w0y]).toEqual([x0, y0]); // every path leaves the same tee
+    const dot = circle(container, 'a');
+    expect([x1, y1]).toEqual([Number(dot.getAttribute('cx')), Number(dot.getAttribute('cy'))]);
+    // Drawn before the dots, so the dots sit on top.
+    const order = [...container.querySelectorAll('[data-testid="flight-path"], circle[data-shot-id]')];
+    expect(order.indexOf(a)).toBeLessThan(order.indexOf(dot));
+  });
+
+  test('a shot launched right bends below the target line first; no launch direction is a straight line', () => {
+    const { container } = renderPlot({ flightPaths: { a: 2, w1: null } });
+    const byId = (id: string) => nums(paths(container).find((p) => p.getAttribute('data-shot-id') === id)!.getAttribute('d')!);
+    const [, teeY, , ctrlY] = byId('a');
+    expect(ctrlY).toBeGreaterThan(teeY!); // right of target is below the line
+    const [sx0, sy0, cx, cy, ex, ey] = byId('w1');
+    expect(cx).toBeCloseTo((sx0! + ex!) / 2, 0);
+    expect(cy).toBeCloseTo((sy0! + ey!) / 2, 0);
+  });
+
+  test('the aria-label says the flights are drawn', () => {
+    const { container } = renderPlot({ flightPaths: { a: 2 } });
+    expect(container.querySelector('svg')!.getAttribute('aria-label')).toContain('ball flight is drawn from the tee');
+  });
 });

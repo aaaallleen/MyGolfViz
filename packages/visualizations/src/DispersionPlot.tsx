@@ -18,6 +18,11 @@ export interface DispersionPlotProps {
   width?: number;
   /** Draw every group at full emphasis (Compare's two shots). */
   allOn?: boolean;
+  /**
+   * Shots whose ball flight is drawn from the tee to the landing dot in their group's colour, with each
+   * shot's horizontal launch (deg, right +; null draws a straight line). Compare draws every shot this way.
+   */
+  flightPaths?: Readonly<Record<string, number | null>>;
   /** Makes landing dots clickable; without it they are plain marks. */
   onSelect?(shotId: string): void;
   labelFor(shotId: string): string;
@@ -41,7 +46,7 @@ const r1 = (n: number) => Number(n.toFixed(1));
 const r3 = (n: number) => Number(n.toFixed(3));
 const tickLat = (t: number) => (t === 0 ? 'Target' : `${Math.abs(t)} ${t < 0 ? 'L' : 'R'}`);
 
-export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, allOn = false, onSelect, labelFor }: DispersionPlotProps) {
+export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, allOn = false, flightPaths, onSelect, labelFor }: DispersionPlotProps) {
   const note = NOTE[mode];
   const points = groups.flatMap((g) => g.stats.points);
 
@@ -77,6 +82,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
   const aria =
     `Top-down dispersion of ${word.toLowerCase()} distance from the tee against lateral landing, one colour per club, with a target centre line.` +
     (highlightClub ? ` ${highlightClub} highlighted.` : '') +
+    (flightPaths ? ' Each shot’s ball flight is drawn from the tee to where it lands.' : '') +
     (sel ? ` Selected ${labelFor(sel.shotId)} lands at ${r1(sel.y)} yards, ${r1(Math.abs(sel.x))} yards ${sel.x < 0 ? 'left' : 'right'}.` : '');
 
   // Ellipse: the unit circle mapped by the principal axes. Data is (lateral, distance); the screen
@@ -86,13 +92,14 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
     return `matrix(${[k * e.rx * s, k * e.rx * c, k * e.ry * c, -k * e.ry * s, sx(e.cy), sy(e.cx)].map(r3).join(' ')})`;
   };
 
-  // The selected shot's path seen from above: leaves the tee along its launch direction, ends where it lands.
-  let path: string | null = null;
-  if (sel) {
-    const lh = selectedLaunchH === null ? null : (selectedLaunchH * Math.PI) / 180;
-    const ctrlLat = lh === null ? sel.x / 2 : (sel.y / 2) * Math.tan(lh);
-    path = `M${r1(sx(0))} ${r1(sy(0))} Q${r1(sx(sel.y / 2))} ${r1(sy(ctrlLat))} ${r1(sx(sel.y))} ${r1(sy(sel.x))}`;
-  }
+  // A ball flight seen from above: leaves the tee along its launch direction and ends where it lands
+  // (the same curve the 3D replay draws). Without a launch direction it is a straight line.
+  const flight = (p: { x: number; y: number }, launchH: number | null) => {
+    const lh = launchH === null ? null : (launchH * Math.PI) / 180;
+    const ctrlLat = lh === null ? p.x / 2 : (p.y / 2) * Math.tan(lh);
+    return `M${r1(sx(0))} ${r1(sy(0))} Q${r1(sx(p.y / 2))} ${r1(sy(ctrlLat))} ${r1(sx(p.y))} ${r1(sy(p.x))}`;
+  };
+  const path = sel ? flight(sel, selectedLaunchH) : null;
   const labelLeft = sel !== null && sx(sel.y) > R - 140;
 
   return (
@@ -132,6 +139,13 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
             </g>
           );
         })}
+        {flightPaths && ordered.map((g) => (
+          <g key={`fl-${g.club}`} fill="none" stroke={g.color} strokeOpacity={0.85} strokeWidth={2} strokeLinecap="round">
+            {g.stats.points.filter((p) => p.shotId in flightPaths).map((p) => (
+              <path key={p.shotId} data-testid="flight-path" data-shot-id={p.shotId} d={flight(p, flightPaths[p.shotId] ?? null)} />
+            ))}
+          </g>
+        ))}
         {ordered.map((g) => {
           const level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return (

@@ -14,6 +14,9 @@ export function CompareDiagrams({ shots }: { shots: { slot: Slot; shot: Shot }[]
   // One distance axis for every view, wide enough for the longest carry.
   const xMax = patternXMax(Math.max(...slots.map((s) => s.shot.m.carry ?? 0)));
   const noLanding = slots.filter((s) => s.shot.m.lateral === null || s.shot.m.carry === null);
+  // Each shot's flight from the tee to its landing dot, bent by its horizontal launch.
+  const flightPaths = Object.fromEntries(slots.map((s) => [s.slot, s.shot.m.launchH]));
+  const straight = slots.filter((s) => s.shot.m.launchH === null && !noLanding.includes(s));
 
   return (
     <div className="compare-diagrams">
@@ -31,7 +34,7 @@ export function CompareDiagrams({ shots }: { shots: { slot: Slot; shot: Shot }[]
         ))}
       </section>
       <section className="compare-diagram">
-        <h2>Landing (top view)</h2>
+        <h2>Ball flight (top view)</h2>
         <DispersionPlot
           mode="carry"
           groups={slots.map((s) => ({ club: s.slot, color: s.color, stats: dispersionStats([s.shot], 'carry') }))}
@@ -39,10 +42,15 @@ export function CompareDiagrams({ shots }: { shots: { slot: Slot; shot: Shot }[]
           selectedId={null}
           highlightClub={null}
           allOn
+          flightPaths={flightPaths}
           labelFor={(id) => `Shot ${id}`}
         />
+        <p className="compare-note">Flight paths are illustrative: drawn from launch direction (H-launch) to the reported landing</p>
         {noLanding.map((s) => (
           <p key={s.slot} className="compare-note">{`Shot ${s.slot} has no landing position`}</p>
+        ))}
+        {straight.map((s) => (
+          <p key={s.slot} className="compare-note">{`Shot ${s.slot} has no launch direction, so its path is drawn straight`}</p>
         ))}
       </section>
       <section className="compare-diagram">

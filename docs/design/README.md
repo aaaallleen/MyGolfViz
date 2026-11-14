@@ -93,6 +93,7 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    - **Clear comparison** (beside the title, once any shot is chosen) empties the page and makes the Compare tab forget it; Back still returns to it.
    - **Shot A is the baseline**: it carries a "Baseline" tag in its slot and in the table header, and every change is measured from it.
    - Layout B: the shots' diagrams on the left, the "What changed from A" table on the right; one column on narrow windows. With three or four shots the table takes half the width from 1200 px and sits below the diagrams under that.
+   - The top view is **Ball flight (top view)**: each shot's flight is drawn from the tee to its landing dot in its colour, leaving along its launch direction (H-launch), the same curve as the 3D replay; it is labelled illustrative, and a shot without H-launch is drawn straight with a note.
    - Shot A is white (`COMPARE_A`), B purple (`COMPARE_B`), C amber (`COMPARE_C`) and D teal (`COMPARE_D`), in the header, the diagrams and the table.
    - The table has the baseline column A, then one column per other shot showing its value and, under it, Δ = that shot − A in a smaller, muted grey (the values are what to read; Δ is a reference), signed with the unit and no colouring: nothing is "better" or "worse". Rows sort by the biggest |Δ| / `COMPARE_SCALE` across the shots; a missing value reads `n/a` and a row with no Δ at all sorts last.
    - There is no Swap: B, C and D each have **Make baseline**, which trades that shot with A.
