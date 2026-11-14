@@ -14,7 +14,7 @@ export interface ShotPickerProps {
   open: boolean;
   onOpenChange(open: boolean): void;
   /** Starting session and club; null picks the newest session and its first club. */
-  initial: { sessionId: string; club: string } | null;
+  initial: { sessionId: string; club: string; shotId?: string } | null;
   onPick(shotId: string): void;
 }
 
@@ -46,7 +46,7 @@ function PickerBody({ initial, onOpenChange, onPick }: Pick<ShotPickerProps, 'in
   const [attempt, setAttempt] = useState(0);
   const [pickedSession, setPickedSession] = useState<string | null>(initial?.sessionId ?? null);
   const [pickedClub, setPickedClub] = useState<string | null>(initial?.club ?? null);
-  const [shotId, setShotId] = useState('');
+  const [shotId, setShotId] = useState(initial?.shotId ?? '');
   const [detail, setDetail] = useState<Detail | null>(null);
   const listRequest = useRef(0);
   const detailRequest = useRef(0);

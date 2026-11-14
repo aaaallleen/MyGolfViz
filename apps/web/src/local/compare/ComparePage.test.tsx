@@ -30,6 +30,8 @@ const A = detail(shotOut('A', 'Driver', '7', M), LATER);
 const B = detail(shotOut('B', '7 Iron', '3', { ...M, carry: 160, height: 80, spin: 2980 }), EARLIER);
 const A_LABEL = 'A · Driver · Shot 7 · Later · 7 Nov 2026';
 const B_LABEL = 'B · 7 Iron · Shot 3 · Earlier · 1 Oct 2026';
+// A slot label holds its date in a nowrap span, so match the whole label's text.
+const lbl = (t: string) => (_: string, el: Element | null) => !!el?.classList.contains('compare-slot__label') && el.textContent === t;
 const TABLE = 'What changed · B → A';
 
 let FIXTURES: Record<string, ShotDetail>;
@@ -76,7 +78,7 @@ describe('ComparePage', () => {
 
   test("only A shows its label and B's Choose shot…", async () => {
     renderAt(['/compare?a=A']);
-    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(A_LABEL))).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Change shot…' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
@@ -87,13 +89,13 @@ describe('ComparePage', () => {
   test('an excluded shot says so in its label', async () => {
     FIXTURES.A = detail(shotOut('A', 'Driver', '7', M, true), LATER);
     renderAt(['/compare?a=A']);
-    expect(await screen.findByText(`${A_LABEL} · excluded`)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(`${A_LABEL} · excluded`))).toBeInTheDocument();
   });
 
   test('both show labels, diagrams and the table', async () => {
     const { container } = renderAt(['/compare?a=A&b=B']);
-    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
-    expect(screen.getByText(B_LABEL)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(A_LABEL))).toBeInTheDocument();
+    expect(screen.getByText(lbl(B_LABEL))).toBeInTheDocument();
     expect(sideView()).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /^Top-down dispersion/ })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /^Top view of club path/ })).toBeInTheDocument();
@@ -106,12 +108,12 @@ describe('ComparePage', () => {
     renderAt(['/compare?a=A&b=B']);
     await userEvent.click(await screen.findByRole('button', { name: 'Swap' }));
     expect(where()).toBe('/compare?a=B&b=A');
-    expect(await screen.findByText('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026')).toBeInTheDocument();
+    expect(await screen.findByText(lbl('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026'))).toBeInTheDocument();
   });
 
   test('choosing a shot puts it in the URL', async () => {
     renderAt(['/compare?b=B']);
-    await screen.findByText(B_LABEL);
+    await screen.findByText(lbl(B_LABEL));
     await userEvent.click(screen.getByRole('button', { name: 'Choose shot…' }));
     const dialog = await screen.findByRole('dialog', { name: 'Choose shot A' });
     // B is set and A is empty, so A's picker starts from B's session and club.
@@ -122,10 +124,27 @@ describe('ComparePage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  test("Change shot… on a filled slot starts from that slot's own session, club and shot", async () => {
+    renderAt(['/compare?a=A&b=B']);
+    await screen.findByText(lbl(B_LABEL));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Change shot…' })[1]!);
+    const dialog = await screen.findByRole('dialog', { name: 'Choose shot B' });
+    await waitFor(() => expect(within(dialog).getByLabelText('Session')).toHaveDisplayValue('Earlier · 1 Oct 2026'));
+    expect(within(dialog).getByLabelText('Club')).toHaveDisplayValue('7 Iron');
+    await waitFor(() => expect(within(dialog).getByLabelText('Shot')).toHaveDisplayValue(/^Shot 3/));
+    expect(within(dialog).getByRole('button', { name: 'Choose' })).toBeEnabled();
+  });
+
+  test('a session with several files shows the file badge in the slot label', async () => {
+    FIXTURES.A = { ...A, session: { ...LATER, fileCount: 2 }, import: { id: 'imp', ordinal: 2 } as ImportRow };
+    renderAt(['/compare?a=A']);
+    expect(await screen.findByText(lbl('A · Driver · F2 Shot 7 · Later · 7 Nov 2026'))).toBeInTheDocument();
+  });
+
   test('a shot that no longer exists leaves its slot empty and keeps the other', async () => {
     renderAt(['/compare?a=gone&b=B']);
     expect(await screen.findByText('That shot is no longer in your library')).toBeInTheDocument();
-    expect(await screen.findByText(B_LABEL)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(B_LABEL))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose shot…' })).toBeInTheDocument();
     expect(screen.queryByRole('table')).toBeNull();
     expect(rememberedPair()).toEqual({ a: null, b: 'B' });
@@ -136,12 +155,12 @@ describe('ComparePage', () => {
     renderAt(['/compare?a=A']);
     expect(await screen.findByText("Couldn't load that shot")).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(A_LABEL))).toBeInTheDocument();
   });
 
   test('empty id counts as absent', async () => {
     renderAt(['/compare?a=&b=B']);
-    expect(await screen.findByText(B_LABEL)).toBeInTheDocument();
+    expect(await screen.findByText(lbl(B_LABEL))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose shot…' })).toBeInTheDocument();
     expect(screen.queryByText('That shot is no longer in your library')).toBeNull();
     expect(api.getShot).toHaveBeenCalledTimes(1);
@@ -156,16 +175,16 @@ describe('ComparePage', () => {
     act(() => { void nav('/compare?a=A2'); });
     await waitFor(() => expect(pending.A2).toBeDefined());
     await act(async () => pending.A2!(detail(shotOut('A2', 'Driver', '2', M), LATER)));
-    expect(screen.getByText('A · Driver · Shot 2 · Later · 7 Nov 2026')).toBeInTheDocument();
+    expect(screen.getByText(lbl('A · Driver · Shot 2 · Later · 7 Nov 2026'))).toBeInTheDocument();
     await act(async () => pending.A1!(detail(shotOut('A1', 'Driver', '1', M), LATER)));
-    expect(screen.getByText('A · Driver · Shot 2 · Later · 7 Nov 2026')).toBeInTheDocument();
-    expect(screen.queryByText('A · Driver · Shot 1 · Later · 7 Nov 2026')).toBeNull();
+    expect(screen.getByText(lbl('A · Driver · Shot 2 · Later · 7 Nov 2026'))).toBeInTheDocument();
+    expect(screen.queryByText(lbl('A · Driver · Shot 1 · Later · 7 Nov 2026'))).toBeNull();
   });
 
   test('different clubs share one distance axis', async () => {
     FIXTURES.B = detail(shotOut('B', 'Wedge', '3', { ...M, carry: 90, height: 60, lateral: -2 }), EARLIER);
     renderAt(['/compare?a=A&b=B']);
-    await screen.findByText(A_LABEL);
+    await screen.findByText(lbl(A_LABEL));
     const ticks = [...sideView().querySelectorAll('text')].map((t) => t.textContent ?? '').filter((t) => /^\d+$/.test(t)).map(Number);
     expect(Math.max(...ticks)).toBeGreaterThanOrEqual(248);
     expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(2);
@@ -189,16 +208,16 @@ describe('ComparePage', () => {
 
   test('nav click restores the last comparison, Back does not', async () => {
     const first = renderAt(['/compare?a=A&b=B']);
-    await screen.findByText(B_LABEL);
+    await screen.findByText(lbl(B_LABEL));
     act(() => { void nav('/elsewhere'); });
     await userEvent.click(screen.getByRole('link', { name: 'Compare' }));
     await waitFor(() => expect(where()).toBe('/compare?a=A&b=B'));
-    await screen.findByText(B_LABEL);
+    await screen.findByText(lbl(B_LABEL));
     first.unmount();
 
     rememberPair({ a: null, b: null });
     renderAt(['/compare', '/compare?a=A']);
-    await screen.findByText(A_LABEL);
+    await screen.findByText(lbl(A_LABEL));
     expect(rememberedPair()).toEqual({ a: 'A', b: null });
     act(() => { void nav(-1); });
     expect(where()).toBe('/compare');

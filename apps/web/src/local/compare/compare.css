@@ -20,6 +20,7 @@
 .compare-slot--a { --slot-color: var(--compare-a); }
 .compare-slot--b { --slot-color: var(--compare-b); }
 .compare-slot__label { margin: 0; display: flex; align-items: baseline; gap: 8px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.compare-slot__date { white-space: nowrap; }
 .compare-slot__swatch { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--slot-color); }
 .compare-slot__msg { margin: 0; color: var(--text-2); font-size: 14px; }
 .compare-hint { margin: 0; color: var(--text-2); }
@@ -40,6 +41,7 @@
 .compare-table caption { margin-bottom: 8px; text-align: left; font-weight: 600; color: var(--text); }
 .compare-table th, .compare-table td { padding: 6px 6px; text-align: right; border-bottom: 1px solid var(--border); }
 .compare-table thead th { font-size: 12px; font-weight: 500; color: var(--muted); }
+.compare-table thead th:first-child { text-align: left; }
 .compare-table tbody th { text-align: left; font-weight: 500; color: var(--text); }
 .compare-table td { color: var(--text-2); white-space: nowrap; }
 .compare-table td:last-child { color: var(--text); }

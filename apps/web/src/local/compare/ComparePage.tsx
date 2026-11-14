@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router';
 import { formatSessionDate, sessionTitle } from '@fsa/domain';
 import { Button } from '@fsa/ui';
@@ -41,17 +41,20 @@ function useShotSlot(id: string | null): { state: SlotState | null; retry(): voi
 
 const foundDetail = (s: SlotState | null): ShotDetail | null => (s?.status === 'found' ? s.detail : null);
 const startFrom = (d: ShotDetail) => ({ sessionId: d.session.id, club: toShot(d.shot).club });
+const ownShot = (d: ShotDetail) => ({ ...startFrom(d), shotId: d.shot.id });
 
-/** `A · Driver · Shot 7 · Range practice · 7 Nov 2026`, plus ` · excluded`. */
-function slotLabel(slot: Slot, d: ShotDetail): string {
+/** `A · Driver · F2 Shot 7 · Range practice · 7 Nov 2026`, plus ` · excluded`; the file badge shows for a session with two or more files. */
+function slotLabel(slot: Slot, d: ShotDetail) {
   const s = toShot(d.shot);
   const date = formatSessionDate(d.session.date, { setByYou: false });
-  return `${slot} · ${s.club} · Shot ${s.shotLabel ?? s.sourceRow} · ${sessionTitle(d.session)} · ${date}${d.shot.excluded ? ' · excluded' : ''}`;
+  const file = d.session.fileCount >= 2 ? `F${d.import.ordinal} ` : '';
+  const head = `${slot} · ${s.club} · ${file}Shot ${s.shotLabel ?? s.sourceRow} · ${sessionTitle(d.session)} · `;
+  return <>{head}<span className="compare-slot__date">{date}</span>{d.shot.excluded ? ' · excluded' : ''}</>;
 }
 
 function SlotCard({ slot, state, onChoose, onRetry }: { slot: Slot; state: SlotState | null; onChoose(): void; onRetry(): void }) {
   const choose = <Button onClick={onChoose}>Choose shot…</Button>;
-  let label = `Shot ${slot}`;
+  let label: ReactNode = `Shot ${slot}`;
   let body = choose;
   if (state?.status === 'found') {
     label = slotLabel(slot, state.detail);
@@ -118,9 +121,10 @@ export default function ComparePage() {
     setPicking('B');
   }, [pendingPickB, aSettled]);
 
-  const initial: Record<Slot, { sessionId: string; club: string } | null> = {
-    A: bFound && !aFound ? startFrom(bFound) : null,
-    B: aFound ? startFrom(aFound) : null,
+  // A slot that holds a shot starts from that shot; an empty one starts from the other slot's session and club.
+  const initial: Record<Slot, { sessionId: string; club: string; shotId?: string } | null> = {
+    A: aFound ? ownShot(aFound) : bFound ? startFrom(bFound) : null,
+    B: bFound ? ownShot(bFound) : aFound ? startFrom(aFound) : null,
   };
 
   return (

@@ -18,7 +18,8 @@ export interface DispersionPlotProps {
   width?: number;
   /** Draw every group at full emphasis (Compare's two shots). */
   allOn?: boolean;
-  onSelect(shotId: string): void;
+  /** Makes landing dots clickable; without it they are plain marks. */
+  onSelect?(shotId: string): void;
   labelFor(shotId: string): string;
 }
 
@@ -138,7 +139,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
               {...(level === 'on' ? { stroke: SURFACE, strokeWidth: 1.5 } : {})}>
               {g.stats.points.filter((p) => p.shotId !== selectedId).map((p) => (
                 <circle key={p.shotId} data-shot-id={p.shotId} data-club={g.club} cx={r1(sx(p.y))} cy={r1(sy(p.x))} r={level === 'on' ? 5.5 : 5}
-                  style={{ cursor: 'pointer' }} onClick={() => onSelect(p.shotId)} />
+                  {...(onSelect ? { style: { cursor: 'pointer' }, onClick: () => onSelect(p.shotId) } : {})} />
               ))}
             </g>
           );
@@ -147,7 +148,8 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           <g>
             <path data-testid="selected-path" d={path} fill="none" stroke={INK} strokeOpacity={0.7} strokeWidth={1.5} />
             <circle data-shot-id={sel.shotId} aria-current="true" cx={r1(sx(sel.y))} cy={r1(sy(sel.x))} r={8}
-              fill={INK} stroke={SURFACE} strokeWidth={2} style={{ cursor: 'pointer' }} onClick={() => onSelect(sel.shotId)} />
+              fill={INK} stroke={SURFACE} strokeWidth={2}
+              {...(onSelect ? { style: { cursor: 'pointer' }, onClick: () => onSelect(sel.shotId) } : {})} />
             <text x={r1(sx(sel.y) + (labelLeft ? -14 : 14))} y={r1(sy(sel.x) - 8)} textAnchor={labelLeft ? 'end' : 'start'}
               fill={INK} fontSize={13} fontWeight={600} fontFamily={FONT} stroke={SURFACE} strokeWidth={3} paintOrder="stroke">
               {labelFor(sel.shotId)}

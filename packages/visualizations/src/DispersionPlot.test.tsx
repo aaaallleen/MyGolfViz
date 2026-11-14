@@ -189,3 +189,13 @@ test('allOn draws every dot at full strength', () => {
   expect(circle(container, 'p').parentElement).toHaveAttribute('fill-opacity', '0.95');
   expect(circle(container, 'q').parentElement).toHaveAttribute('fill-opacity', '0.95');
 });
+
+test('without onSelect the dots are plain marks: no pointer cursor, no button role, clicks do nothing', () => {
+  const { container } = renderPlot({ onSelect: undefined, selectedId: 'b' });
+  for (const id of ['a', 'b', 'c']) {
+    const c = circle(container, id);
+    expect((c as SVGElement).style.cursor).toBe('');
+    expect(c).not.toHaveAttribute('role');
+  }
+  expect(() => fireEvent.click(circle(container, 'a'))).not.toThrow();
+});

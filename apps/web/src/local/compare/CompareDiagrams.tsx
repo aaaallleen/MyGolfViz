@@ -2,8 +2,6 @@ import { dispersionStats, trajectoryCurve } from '@fsa/analytics';
 import type { Shot } from '@fsa/domain';
 import { COMPARE_A, COMPARE_B, DeliveryOverlay, DispersionPlot, patternXMax, TrajectoryPlot } from '@fsa/visualizations';
 
-const noop = () => {};
-
 /** Both shots overlaid on the side view, the landing top view and the delivery top view. */
 export function CompareDiagrams({ a, b }: { a: Shot; b: Shot }) {
   // Each shot is keyed by its slot, not its id, so a shot compared with itself still draws twice.
@@ -40,7 +38,6 @@ export function CompareDiagrams({ a, b }: { a: Shot; b: Shot }) {
           selectedId={null}
           highlightClub={null}
           allOn
-          onSelect={noop}
           labelFor={(id) => `Shot ${id}`}
         />
         {noLanding.map((s) => (

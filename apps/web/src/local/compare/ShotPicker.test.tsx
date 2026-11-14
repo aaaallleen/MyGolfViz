@@ -38,7 +38,7 @@ function setup() {
   vi.mocked(api.getShots).mockReset().mockImplementation(async (id) => (id === 'later' ? LATER_SHOTS : EARLIER_SHOTS));
 }
 
-function renderPicker(initial: { sessionId: string; club: string } | null = null) {
+function renderPicker(initial: { sessionId: string; club: string; shotId?: string } | null = null) {
   const onPick = vi.fn();
   const onOpenChange = vi.fn();
   render(
@@ -63,6 +63,22 @@ describe('ShotPicker', () => {
     renderPicker({ sessionId: 'earlier', club: 'Driver' });
     await waitFor(() => expect(screen.getByLabelText('Session')).toHaveDisplayValue('Earlier · 1 Oct 2026'));
     expect(screen.getByLabelText('Club')).toHaveDisplayValue('Driver');
+  });
+
+  test('initial.shotId preselects that shot and enables Choose', async () => {
+    const { onPick } = renderPicker({ sessionId: 'later', club: 'Driver', shotId: 'l2' });
+    await waitFor(() => expect(screen.getByLabelText('Shot')).toHaveDisplayValue(/^F2 Shot 1/));
+    const choose = screen.getByRole('button', { name: 'Choose' });
+    expect(choose).toBeEnabled();
+    await userEvent.click(choose);
+    expect(onPick).toHaveBeenCalledWith('l2');
+  });
+
+  test('an initial.shotId that is not among the options is ignored', async () => {
+    renderPicker({ sessionId: 'later', club: 'Driver', shotId: 'nope' });
+    await screen.findByRole('option', { name: /F1 Shot 1/ });
+    expect(screen.getByLabelText('Shot')).toHaveDisplayValue('Choose a shot');
+    expect(screen.getByRole('button', { name: 'Choose' })).toBeDisabled();
   });
 
   test('lists shots with file badge, carry, club speed and excluded mark', async () => {

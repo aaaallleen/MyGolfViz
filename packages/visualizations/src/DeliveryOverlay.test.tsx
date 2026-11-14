@@ -27,3 +27,28 @@ test('missing values are left out, not drawn at 0', () => {
   expect(container.textContent).toContain('B has no club path data');
   expect(container.textContent).not.toContain('A has no');
 });
+
+test('each shot gets a label line with path and face', () => {
+  const { container } = render(<DeliveryOverlay shots={[A]} />);
+  expect(container.querySelector('[data-kind="path-label"]')!.textContent).toBe('A path 2.1° R · face 1.0° R');
+});
+
+test('a face-only shot still gets a label line, and none when both are missing', () => {
+  const { container } = render(<DeliveryOverlay shots={[{ ...A, clubPath: null, ftt: 8.6 }, { ...B, clubPath: null, ftt: null }]} />);
+  const labels = [...container.querySelectorAll('[data-kind="path-label"]')].map((e) => e.textContent);
+  expect(labels).toEqual(['A face 8.6° R']);
+});
+
+test('a missing face angle is reported, not drawn', () => {
+  const { container } = render(<DeliveryOverlay shots={[{ ...A, ftt: null }]} />);
+  expect(container.textContent).toContain('A has no face angle data');
+  expect(container.querySelector('[data-kind="face"]')).toBeNull();
+  expect(container.querySelector('[data-kind="path-label"]')!.textContent).toBe('A path 2.1° R');
+});
+
+test('the target line is drawn after the shots so it stays on top', () => {
+  const { container } = render(<DeliveryOverlay shots={[A]} />);
+  const svg = container.querySelector('svg')!;
+  const kids = [...svg.children];
+  expect(kids.indexOf(svg.querySelector('[data-testid="target-line"]')!)).toBeGreaterThan(kids.indexOf(svg.querySelector('g[data-shot-id]')!));
+});

@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import type { TrajectoryCurve } from '@fsa/analytics';
 import { TrajectoryPlot, type TrajectoryPlotProps } from './TrajectoryPlot';
 
@@ -68,4 +68,32 @@ test('endLabels shows each carry', () => {
   const t = [...container.querySelectorAll('text')].find((e) => e.textContent === '248')!;
   expect(t).toBeTruthy();
   expect(t.parentElement).toHaveAttribute('fill', '#3987E5');
+});
+
+describe('end label separation', () => {
+  const two = (a: number, b: number): TrajectoryPlotProps['groups'] => [
+    { club: 'A', color: '#3987E5', curves: [curve('a', a)] },
+    { club: 'B', color: '#E58739', curves: [curve('b', b)] },
+  ];
+  const labels = (c: HTMLElement) => [...c.querySelectorAll('[data-testid="end-label"]')].map((e) => ({ t: e.textContent, anchor: e.getAttribute('text-anchor'), y: e.getAttribute('y') }));
+
+  test('close carries anchor the shorter at its end and the longer at its start', () => {
+    const { container } = render(<TrajectoryPlot groups={two(248, 245)} selectedId={null} endLabels />);
+    const l = labels(container);
+    expect(l.find((e) => e.t === '245')!.anchor).toBe('end');
+    expect(l.find((e) => e.t === '248')!.anchor).toBe('start');
+  });
+
+  test('equal carries are stacked', () => {
+    const { container } = render(<TrajectoryPlot groups={two(200, 200)} selectedId={null} endLabels />);
+    const l = labels(container);
+    expect(new Set(l.map((e) => `${e.anchor}/${e.y}`)).size).toBe(2);
+  });
+
+  test('distant carries stay centred on one line', () => {
+    const { container } = render(<TrajectoryPlot groups={two(250, 150)} selectedId={null} endLabels />);
+    const l = labels(container);
+    expect(new Set(l.map((e) => e.anchor))).toEqual(new Set(['middle']));
+    expect(new Set(l.map((e) => e.y)).size).toBe(1);
+  });
 });
