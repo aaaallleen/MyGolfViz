@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router';
 import { formatSessionDate, sessionTitle } from '@fsa/domain';
 import { Button } from '@fsa/ui';
@@ -7,7 +7,7 @@ import type { ShotDetail } from '../api';
 import { toShot } from '../toShot';
 import { CompareDiagrams, SLOT_COLORS } from './CompareDiagrams';
 import {
-  isEmptySet, nextSlot, readSet, rememberedSet, rememberSet, setSearch, SLOTS, slotIds, withoutShot, withShot,
+  EMPTY_SET, isEmptySet, nextSlot, readSet, rememberedSet, rememberSet, setSearch, SLOTS, slotIds, withBaseline, withoutShot, withShot,
   type CompareSet, type Slot,
 } from './compareState';
 import { ShotPicker } from './ShotPicker';
@@ -20,7 +20,7 @@ type SlotState = { status: 'loading' } | { status: 'found'; detail: ShotDetail }
 const COLORS = Object.fromEntries(SLOTS.map((s) => [`--compare-${s.toLowerCase()}`, SLOT_COLORS[s]])) as CSSProperties;
 const LOADING: SlotState = { status: 'loading' };
 
-// Shots already loaded on this page, by id, so Swap, removing C and re-picking a shot show it at once
+// Shots already loaded on this page, by id, so Make baseline, removing C and re-picking a shot show it at once
 // instead of flashing "Loading shot…". Each slot still refetches, so an edit made elsewhere lands.
 const loaded = new Map<string, ShotDetail>();
 /** Empties the loaded-shot memory; for tests. */
@@ -67,20 +67,27 @@ function slotLabel(slot: Slot, d: ShotDetail) {
   return <>{head}<span className="compare-slot__date">{date}</span>{d.shot.excluded ? ' · excluded' : ''}</>;
 }
 
-function SlotCard({ slot, state, onChoose, onRetry, onRemove }: {
+function SlotCard({ slot, state, onChoose, onRetry, onRemove, onMakeBaseline }: {
   slot: Slot;
   state: SlotState | null;
   onChoose(): void;
   onRetry(): void;
   /** C and D only: takes the shot off the page. */
   onRemove?(): void;
+  /** B, C and D only: makes this shot the baseline A. */
+  onMakeBaseline?(): void;
 }) {
   const choose = <Button onClick={onChoose}>Choose shot…</Button>;
   let label: ReactNode = `Shot ${slot}`;
   let body = choose;
   if (state?.status === 'found') {
     label = slotLabel(slot, state.detail);
-    body = <Button onClick={onChoose}>Change shot…</Button>;
+    body = (
+      <div className="compare-slot__actions">
+        <Button onClick={onChoose}>Change shot…</Button>
+        {onMakeBaseline && <Button onClick={onMakeBaseline}>Make baseline</Button>}
+      </div>
+    );
   } else if (state?.status === 'loading') {
     body = <p className="compare-slot__msg" role="status">Loading shot…</p>;
   } else if (state?.status === 'missing') {
@@ -126,6 +133,11 @@ export default function ComparePage() {
   const bFound = found('B');
   const empty = isEmptySet(set);
   const go = (p: CompareSet) => navigate({ pathname: location.pathname, search: setSearch(p) });
+  // Forget it first, so the Compare tab doesn't bring it back; Back still returns to it.
+  const clear = () => {
+    rememberSet(EMPTY_SET);
+    go(EMPTY_SET);
+  };
 
   // Remember what's shown for the Compare tab, leaving out shots that no longer exist.
   const missing = (slot: Slot) => loads[slot].state?.status === 'missing';
@@ -163,11 +175,12 @@ export default function ComparePage() {
   }, [pendingPickB, aSettled]);
 
   // A slot that holds a shot starts from that shot. An empty one starts from the baseline's session and club
-  // (B's, for an empty A).
+  // (another chosen shot's, for an empty A).
   const initialFor = (slot: Slot): { sessionId: string; club: string; shotId?: string } | null => {
     const own = found(slot);
     if (own) return ownShot(own);
-    const from = slot === 'A' ? bFound : aFound ?? bFound;
+    const other = (['B', 'C', 'D'] as const).map(found).find((d) => d !== null) ?? null;
+    const from = slot === 'A' ? other : aFound ?? other;
     return from ? startFrom(from) : null;
   };
   // Add shot opens the picker for the next free slot, C or D; picking a shot fills it.
@@ -179,28 +192,29 @@ export default function ComparePage() {
 
   return (
     <div className="compare" style={COLORS}>
-      <h1>Compare</h1>
+      <div className="compare-title">
+        <h1>Compare</h1>
+        {!empty && <Button onClick={clear}>Clear comparison</Button>}
+      </div>
       <div className="compare-head">
         {slots.map(({ slot }) => (
-          <Fragment key={slot}>
             <SlotCard
+              key={slot}
               slot={slot}
               state={loads[slot].state}
               onChoose={() => setPicking(slot)}
               onRetry={loads[slot].retry}
               onRemove={slot === 'C' || slot === 'D' ? () => go(withoutShot(set, slot)) : undefined}
+              onMakeBaseline={slot === 'A' ? undefined : () => go(withBaseline(set, slot))}
             />
-            {slot === 'A' && aFound && bFound && (
-              <Button className="compare-head__swap" onClick={() => go({ ...set, a: set.b, b: set.a })}>Swap</Button>
-            )}
-          </Fragment>
         ))}
         {addSlot && (
           <Button className="compare-head__add" onClick={() => setPicking(addSlot)}>+ Add shot</Button>
         )}
       </div>
       {empty && <p className="compare-hint">Pick two shots to see what changed</p>}
-      {aFound && bFound && (
+      {!empty && set.a === null && <p className="compare-hint">Choose shot A, the baseline, to see what changed</p>}
+      {aFound && shown.length >= 2 && (
         <div className={`compare-body${shown.length > 2 ? ' compare-body--many' : ''}`}>
           <CompareDiagrams shots={shown} />
           <WhatChanged

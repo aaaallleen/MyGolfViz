@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { Measurements, Shot } from '@fsa/domain';
-import { nextSlot, rememberedSet, rememberSet, readSet, sessionsNewestFirst, setSearch, shotPickLabel, slotIds, withoutShot, withShot } from './compareState';
+import { nextSlot, withBaseline, rememberedSet, rememberSet, readSet, sessionsNewestFirst, setSearch, shotPickLabel, slotIds, withoutShot, withShot } from './compareState';
 
 function shot(m: Partial<Measurements>): Shot {
   return { id: 'x', fileId: 'f', sourceRow: 3, shotLabel: '7', club: 'Driver', shotType: null, mode: null, location: null, m: m as Measurements, raw: {}, flags: [] };
@@ -29,8 +29,9 @@ describe('setSearch', () => {
 });
 
 describe('adding and removing shots', () => {
-  test('a shot can be added only once A and B are chosen, up to four shots', () => {
-    expect(nextSlot(set('x', null))).toBeNull();
+  test('a shot can be added from the start, up to four shots', () => {
+    expect(nextSlot(set(null, null))).toBe('C');
+    expect(nextSlot(set('x', null))).toBe('C');
     expect(nextSlot(set('x', 'y'))).toBe('C');
     expect(nextSlot(set('x', 'y', 'z'))).toBe('D');
     expect(nextSlot(set('x', 'y', 'z', 'w'))).toBeNull();
@@ -50,6 +51,21 @@ describe('adding and removing shots', () => {
   test('removing C moves D up', () => {
     expect(withoutShot(set('x', 'y', 'z', 'w'), 'C')).toEqual(set('x', 'y', 'w'));
     expect(withoutShot(set('x', 'y', 'z', 'w'), 'D')).toEqual(set('x', 'y', 'z'));
+  });
+});
+
+describe('withBaseline', () => {
+  test('B, C or D trades places with A', () => {
+    expect(withBaseline(set('x', 'y', 'z', 'w'), 'B')).toEqual(set('y', 'x', 'z', 'w'));
+    expect(withBaseline(set('x', 'y', 'z', 'w'), 'C')).toEqual(set('z', 'y', 'x', 'w'));
+    expect(withBaseline(set('x', 'y', 'z', 'w'), 'D')).toEqual(set('w', 'y', 'z', 'x'));
+  });
+  test('with A empty, the shot moves to A and its slot empties', () => {
+    expect(withBaseline(set(null, 'y'), 'B')).toEqual(set('y', null));
+    expect(withBaseline(set(null, 'y', 'z', 'w'), 'C')).toEqual(set('z', 'y', 'w'));
+  });
+  test('an unused C or D changes nothing', () => {
+    expect(withBaseline(set('x', 'y'), 'C')).toEqual(set('x', 'y'));
   });
 });
 

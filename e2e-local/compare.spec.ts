@@ -65,7 +65,7 @@ test('from the Compare tab: empty → pick A → pick B', async ({ page }) => {
 
   await pickBoth(page);
   await expect(label(page, 'B')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Swap' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Make baseline' })).toBeVisible();
   await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByText('What changed from A')).toBeVisible();
   await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(27);
@@ -120,7 +120,7 @@ test('the Compare tab reopens the last comparison', async ({ page }) => {
   await expect(label(page, 'B')).toBeVisible();
 });
 
-test('Add shot adds C and D, measured from the baseline A; removing C moves D up', async ({ page }) => {
+test('Add shot adds C and D against baseline A; remove, Make baseline and Clear comparison', async ({ page }) => {
   await signIn(page);
   const url = await pickBoth(page);
   const table = page.getByRole('table');
@@ -150,6 +150,23 @@ test('Add shot adds C and D, measured from the baseline A; removing C moves D up
   await expect(label(page, 'D')).toHaveCount(0);
   await expect(table.locator('thead th')).toHaveText(['Metric', 'A Baseline', 'B', 'C']);
   await expect(page.getByRole('button', { name: '+ Add shot' })).toBeVisible();
+
+  // B's Make baseline trades A and B.
+  const ids = () => Object.fromEntries(new URLSearchParams(new URL(page.url()).hash.split('?')[1]));
+  const before = ids();
+  await page.locator('.compare-slot--b').getByRole('button', { name: 'Make baseline' }).click();
+  await expect.poll(ids).toEqual({ ...before, a: before.b, b: before.a });
+  await expect(page.getByRole('button', { name: 'Swap' })).toHaveCount(0);
+
+  // Clear comparison empties the page, and the Compare tab doesn't bring it back.
+  await page.getByRole('button', { name: 'Clear comparison' }).click();
+  await expect(page.getByText(HINT)).toBeVisible();
+  await page.getByRole('link', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('link', { name: 'Compare', exact: true }).click();
+  await expect(page.getByText(HINT)).toBeVisible();
+  // Add shot works from the empty page too.
+  await page.getByRole('button', { name: '+ Add shot' }).click();
+  await expect(picker(page, 'C')).toBeVisible();
 });
 
 test('a deleted shot\'s slot says it\'s gone', async ({ page }) => {

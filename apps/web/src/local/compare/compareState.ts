@@ -34,9 +34,8 @@ export function setSearch(p: CompareSet): string {
 
 export const isEmptySet = (p: CompareSet): boolean => p.a === null && p.b === null && p.extra.length === 0;
 
-/** The slot Add shot fills next (C, then D), or null when A or B is still empty or four shots are shown. */
-export const nextSlot = (p: CompareSet): 'C' | 'D' | null =>
-  p.a !== null && p.b !== null ? (EXTRA_SLOTS[p.extra.length] ?? null) : null;
+/** The slot Add shot fills next (C, then D), or null once four shots are shown. A and B need not be chosen yet. */
+export const nextSlot = (p: CompareSet): 'C' | 'D' | null => EXTRA_SLOTS[p.extra.length] ?? null;
 
 /** Each slot that is in use, with its id: A and B always, then C and D while they hold a shot. */
 export function slotIds(p: CompareSet): { slot: Slot; id: string | null }[] {
@@ -61,6 +60,16 @@ export function withShot(p: CompareSet, slot: Slot, id: string): CompareSet {
 export function withoutShot(p: CompareSet, slot: 'C' | 'D'): CompareSet {
   const i = SLOTS.indexOf(slot) - 2;
   return { ...p, extra: p.extra.filter((_, j) => j !== i) };
+}
+
+/** The set with this slot's shot as the baseline A, and A's shot in its place; an empty A leaves B empty, or drops C or D. */
+export function withBaseline(p: CompareSet, slot: Exclude<Slot, 'A'>): CompareSet {
+  if (slot === 'B') return { ...p, a: p.b, b: p.a };
+  const i = SLOTS.indexOf(slot) - 2;
+  const id = p.extra[i];
+  if (id === undefined) return p;
+  const extra = p.a === null ? p.extra.filter((_, j) => j !== i) : p.extra.map((e, j) => (j === i ? (p.a as string) : e));
+  return { ...p, a: id, extra };
 }
 
 // In memory only: it lasts until the page reloads, by design.

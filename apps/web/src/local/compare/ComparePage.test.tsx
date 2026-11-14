@@ -77,7 +77,7 @@ describe('ComparePage', () => {
     renderAt(['/compare']);
     expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(2);
     expect(screen.getByText('Pick two shots to see what changed')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear comparison' })).toBeNull();
     expect(screen.queryByRole('table')).toBeNull();
     expect(api.getShot).not.toHaveBeenCalled();
   });
@@ -87,7 +87,8 @@ describe('ComparePage', () => {
     expect(await screen.findByText(lbl(A_LABEL))).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Change shot…' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
+    // A is already the baseline.
+    expect(screen.queryByRole('button', { name: 'Make baseline' })).toBeNull();
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByText('Pick two shots to see what changed')).toBeNull();
   });
@@ -110,10 +111,12 @@ describe('ComparePage', () => {
     expect(screen.getAllByRole('button', { name: 'Change shot…' })).toHaveLength(2);
   });
 
-  test('swap exchanges a and b in the URL, at once, with no loading flash', async () => {
+  test("B's Make baseline trades places with A, at once, with no loading flash; there is no Swap", async () => {
     renderAt(['/compare?a=A&b=B']);
     await screen.findByText(lbl(B_LABEL));
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }));
+    expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Make baseline' })).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Make baseline' }));
     expect(where()).toBe('/compare?a=B&b=A');
     expect(screen.getByText(lbl('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026'))).toBeInTheDocument();
     expect(screen.queryByText('Loading shot…')).toBeNull();
@@ -130,10 +133,49 @@ describe('ComparePage', () => {
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Metric', 'A Baseline', 'B']);
   });
 
-  test('Add shot appears only once A and B are chosen', async () => {
-    renderAt(['/compare?a=A']);
-    await screen.findByText(lbl(A_LABEL));
-    expect(screen.queryByRole('button', { name: '+ Add shot' })).toBeNull();
+  test('Add shot is there from the first visit, so C can be chosen before A and B', async () => {
+    renderAt(['/compare']);
+    await userEvent.click(screen.getByRole('button', { name: '+ Add shot' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Choose shot C' });
+    // Nothing is chosen yet, so the picker starts at the newest session; pick the one with shots.
+    await userEvent.selectOptions(within(dialog).getByLabelText('Session'), await within(dialog).findByRole('option', { name: 'Later · 7 Nov 2026' }));
+    await userEvent.selectOptions(within(dialog).getByLabelText('Shot'), await within(dialog).findByRole('option', { name: /^Shot 7/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Choose' }));
+    expect(where()).toBe('/compare?c=A');
+    expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(2);
+    expect(screen.getByText('Choose shot A, the baseline, to see what changed')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).toBeNull();
+  });
+
+  test('A and C are enough for the diagrams and the table', async () => {
+    renderAt(['/compare?a=A&c=C']);
+    await screen.findByText(lbl(C_LABEL));
+    const table = screen.getByRole('table', { name: TABLE });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Metric', 'A Baseline', 'C']);
+    expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(2);
+  });
+
+  test("C's Make baseline puts C in A and A in C", async () => {
+    renderAt(['/compare?a=A&b=B&c=C&d=D']);
+    await screen.findByText(lbl(D_LABEL));
+    expect(screen.getAllByRole('button', { name: 'Make baseline' })).toHaveLength(3);
+    const slotC = screen.getByText(lbl(C_LABEL)).closest('.compare-slot') as HTMLElement;
+    await userEvent.click(within(slotC).getByRole('button', { name: 'Make baseline' }));
+    expect(where()).toBe('/compare?a=C&b=B&c=A&d=D');
+    expect(screen.getByText(lbl('A · Driver · Shot 9 · Later · 7 Nov 2026'))).toBeInTheDocument();
+  });
+
+  test('Clear comparison empties the page, and the Compare tab no longer brings it back', async () => {
+    renderAt(['/compare?a=A&b=B&c=C']);
+    await screen.findByText(lbl(C_LABEL));
+    await userEvent.click(screen.getByRole('button', { name: 'Clear comparison' }));
+    expect(where()).toBe('/compare');
+    expect(screen.getByText('Pick two shots to see what changed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear comparison' })).toBeNull();
+    expect(rememberedSet()).toBeNull();
+    act(() => { void nav('/elsewhere'); });
+    await userEvent.click(screen.getByRole('link', { name: 'Compare' }));
+    expect(where()).toBe('/compare');
   });
 
   test("Add shot opens C's picker from A's session and club, and picking adds C", async () => {
@@ -177,10 +219,11 @@ describe('ComparePage', () => {
     expect(screen.getByRole('button', { name: '+ Add shot' })).toBeInTheDocument();
   });
 
-  test('swap keeps C and D', async () => {
+  test("B's Make baseline keeps C and D", async () => {
     renderAt(['/compare?a=A&b=B&c=C']);
     await screen.findByText(lbl(C_LABEL));
-    await userEvent.click(screen.getByRole('button', { name: 'Swap' }));
+    const slotB = screen.getByText(lbl(B_LABEL)).closest('.compare-slot') as HTMLElement;
+    await userEvent.click(within(slotB).getByRole('button', { name: 'Make baseline' }));
     expect(where()).toBe('/compare?a=B&b=A&c=C');
   });
 
