@@ -26,6 +26,7 @@ const DEFAULT_TITLES = [
 const tile = (page: Page, title: string) => page.getByRole('article', { name: title, exact: true });
 const apiOk = (page: Page, method: string, path: RegExp) =>
   page.waitForResponse((r) => r.request().method() === method && path.test(new URL(r.url()).pathname) && r.ok());
+const LAYOUT_SAVE = /\/settings\/progression\.layout$/;
 
 test('Progression across two sessions: scope, mishits, dashboard and target range survive a reload', async ({ page }) => {
   const a = withClub(FIXTURES[0], 'E2E Driver', 'P1.csv');
@@ -64,15 +65,25 @@ test('Progression across two sessions: scope, mishits, dashboard and target rang
   await expect(scope.getByText(`All ${total} shots`)).toBeVisible();
 
   // Stock shots only: the two excluded shots leave the numbers, the Mishit tile still counts them.
+  // This scope save (it carries the club too) must land before the reload below; the club's own save may still
+  // be in flight, so wait for the one with the new choice.
+  const savedScope = page.waitForResponse((r) =>
+    r.request().method() === 'PUT' && r.url().endsWith('/settings/progression.scope') && r.ok() &&
+    r.request().postDataJSON()?.value?.shots === 'stock');
   await scope.getByRole('button', { name: 'Stock shots only' }).click();
+  await savedScope;
   await expect(scope.getByText('Stock shots only · 2 excluded left out')).toBeVisible();
   await expect(tile(page, 'Mishit frequency')).toContainText(`2 of ${nB}`);
 
-  // Remove Spin, add Roll, set the Carry target range to 100–300.
+  // Remove Spin, add Roll, set the Carry target range to 100–300. Each layout save lands before the next change.
+  let savedLayout = apiOk(page, 'PUT', LAYOUT_SAVE);
   await page.getByRole('button', { name: 'Remove Spin' }).click();
+  await savedLayout;
   await expect(tile(page, 'Spin')).toHaveCount(0);
+  savedLayout = apiOk(page, 'PUT', LAYOUT_SAVE);
   await page.getByRole('button', { name: 'Add tile' }).click();
   await page.getByRole('menuitem', { name: 'Roll', exact: true }).click();
+  await savedLayout;
   await expect(tile(page, 'Roll')).toBeVisible();
 
   const carry = tile(page, 'Carry');
@@ -94,7 +105,9 @@ test('Progression across two sessions: scope, mishits, dashboard and target rang
     'true',
   );
 
-  // Club gapping lists the club (add it if the dashboard does not have it).
+  // Club gapping lists the club (add it if the dashboard does not have it). Other specs share the database and
+  // may add later sessions, so take every session rather than the last few of any club.
+  await page.getByRole('region', { name: 'Scope' }).getByLabel('Sessions', { exact: true }).selectOption({ label: 'All' });
   await page.getByRole('button', { name: 'Add tile' }).click();
   await page.getByRole('menuitem', { name: 'Club gapping', exact: true }).click();
   await expect(tile(page, 'Club gapping')).toContainText('E2E Driver');
