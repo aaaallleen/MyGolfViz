@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "tools/*"
   ],
   "engines": {
     "node": ">=24"
@@ -23,10 +24,11 @@
     "preview:e2e": "PAGES_BASE=/fsa-e2e/ npm run preview -w @fsa/web -- --port 4173 --strictPort",
     "e2e": "playwright test",
     "ci:public": "npm run typecheck && npm test && npm run build:public && npm run verify:public && npm run e2e",
-    "api:types": "uv run --project apps/api python -m mygolfviz_api.openapi_dump > apps/web/src/local/openapi.json && npx openapi-typescript apps/web/src/local/openapi.json -o apps/web/src/local/api-types.ts",
+    "api:types": "node scripts/api-types.mjs",
     "verify:local": "node scripts/verify-local-build.mjs apps/web/dist-local",
     "e2e:local": "playwright test -c playwright.local.config.ts",
-    "ci:local": "npm run api:test && npm run build:local && npm run verify:local && npm run e2e:local",
+    "api:types:check": "node scripts/api-types.mjs --check",
+    "ci:local": "npm run api:test && npm run api:types:check && npm run build:local && npm run verify:local && npm run e2e:local",
     "desktop:prep": "npm run build:local && uv sync --project apps/api && npm run build -w @fsa/desktop",
     "desktop:dev": "npm run desktop:prep && electron apps/desktop",
     "e2e:desktop": "npm run desktop:prep && playwright test -c playwright.desktop.config.ts",
@@ -56,14 +58,8 @@
     "@types/three": "0.187.0",
     "@vitejs/plugin-react": "^6.3.0",
     "jsdom": "^29.1.1",
-    "openapi-typescript": "7.13.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
-  },
-  "overrides": {
-    "openapi-typescript": {
-      "typescript": "$typescript"
-    }
   }
 }

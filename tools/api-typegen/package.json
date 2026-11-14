@@ -1,0 +1,10 @@
+{
+  "name": "@fsa/api-typegen",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generates apps/web/src/local/api-types.ts from the backend's OpenAPI schema. Kept apart so openapi-typescript gets the TypeScript 5 JavaScript API it needs (TypeScript 7, used everywhere else, has none).",
+  "dependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}
