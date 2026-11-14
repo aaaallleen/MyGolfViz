@@ -39,12 +39,6 @@ npm run e2e      # Playwright: builds the public bundle and runs privacy and res
 verification, and the end-to-end suite (install the browser once with
 `npx playwright install chromium`).
 
-## Deploy
-
-In the repository, go to Settings → Pages → Source and choose **GitHub Actions**. Pushing to
-`main` (or running the workflow manually) tests, builds and publishes the site. The base path
-is set automatically from the repository name.
-
 ## Local App
 
 The Local App keeps your sessions. A small backend on your own computer (FastAPI + SQLite) saves
