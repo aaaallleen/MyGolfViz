@@ -627,6 +627,26 @@
         "title": "SettingOut",
         "type": "object"
       },
+      "ShotDetail": {
+        "properties": {
+          "import": {
+            "$ref": "#/components/schemas/ImportRow"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionRow"
+          },
+          "shot": {
+            "$ref": "#/components/schemas/ShotOut"
+          }
+        },
+        "required": [
+          "shot",
+          "session",
+          "import"
+        ],
+        "title": "ShotDetail",
+        "type": "object"
+      },
       "ShotOut": {
         "properties": {
           "club": {
@@ -1584,6 +1604,45 @@
           }
         },
         "summary": "List Library Shots"
+      }
+    },
+    "/api/v1/shots/{shot_id}": {
+      "get": {
+        "operationId": "get_shot_detail_api_v1_shots__shot_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shot_id",
+            "required": true,
+            "schema": {
+              "title": "Shot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShotDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Shot Detail"
       }
     },
     "/api/v1/target-ranges": {

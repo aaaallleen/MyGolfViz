@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { ApiError, commitImport, getSetting, listLibraryShots, patchSession, request } from './api';
+import { ApiError, commitImport, getSetting, getShot, listLibraryShots, patchSession, request } from './api';
 import type { ImportManifest } from './importPayload';
 
 function mockFetch(status: number, body: unknown) {
@@ -126,5 +126,17 @@ describe('library client', () => {
   test('getSetting returns the stored value', async () => {
     mockFetch(200, { key: 'k', value: { a: 1 }, updatedAt: 't' });
     await expect(getSetting('k')).resolves.toEqual({ a: 1 });
+  });
+
+  test('getShot resolves null on 404', async () => {
+    mockFetch(404, { detail: 'Not found' });
+    await expect(getShot('nope')).resolves.toBeNull();
+  });
+
+  test('getShot returns the body on 200', async () => {
+    const body = { shot: { id: 's1' }, session: { id: 'a' }, import: { id: 'i' } };
+    const fn = mockFetch(200, body);
+    await expect(getShot('s1')).resolves.toEqual(body);
+    expect((fn.mock.calls[0] as unknown as [string])[0]).toBe('/api/v1/shots/s1');
   });
 });

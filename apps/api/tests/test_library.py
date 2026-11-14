@@ -123,3 +123,42 @@ def test_target_range_club_with_slash(client):
 def test_library_routes_need_token(anon):
     for p in ("/api/v1/shots", "/api/v1/settings/x", "/api/v1/target-ranges"):
         assert anon.get(p).status_code == 401
+
+
+def _first_later_shot(client, later):
+    return client.get("/api/v1/shots", params={"club": "Driver", "session_ids": [later]}).json()[0]
+
+
+def test_shot_detail_returns_shot_session_and_import(client):
+    later, _ = _seed(client)
+    row = _first_later_shot(client, later)
+    r = client.get(f"/api/v1/shots/{row['id']}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["shot"]["id"] == row["id"]
+    assert len(body["shot"]["m"]) == 27
+    assert "raw" in body["shot"]
+    assert body["session"]["id"] == later
+    assert body["session"]["name"] == "Later"
+    assert body["import"]["id"] == row["importId"]
+    assert body["shot"]["excluded"] is False
+
+
+def test_shot_detail_reports_exclusion(client):
+    later, _ = _seed(client)
+    row = _first_later_shot(client, later)
+    r = client.patch(f"/api/v1/sessions/{later}/exclusions", json={"exclude": [row["id"]]})
+    assert r.status_code == 200
+    assert client.get(f"/api/v1/shots/{row['id']}").json()["shot"]["excluded"] is True
+
+
+def test_shot_detail_unknown_id_is_404(client):
+    _seed(client)
+    assert client.get("/api/v1/shots/nope").status_code == 404
+
+
+def test_shot_detail_gone_after_import_removed(client):
+    later, _ = _seed(client)
+    row = _first_later_shot(client, later)
+    assert client.delete(f"/api/v1/imports/{row['importId']}").status_code == 204
+    assert client.get(f"/api/v1/shots/{row['id']}").status_code == 404

@@ -8,14 +8,16 @@ from sqlalchemy import select
 
 from .. import models
 from ..db import session_scope
-from ..queries import utc_now
+from ..queries import import_row, session_row, shot_out, utc_now
 from ..schemas import (
     LibraryShot,
     SettingIn,
     SettingOut,
+    ShotDetail,
     TargetRangeIn,
     TargetRangeOut,
 )
+from .sessions import not_found
 
 router = APIRouter(prefix="/api/v1")
 
@@ -64,6 +66,22 @@ def list_library_shots(
             )
             for s, imp, sess in db.execute(q).all()
         ]
+
+
+@router.get("/shots/{shot_id}", response_model=ShotDetail, response_model_by_alias=True)
+def get_shot_detail(shot_id: str, request: Request) -> ShotDetail:
+    with session_scope(request.app.state.engine) as db:
+        shot = db.get(models.Shot, shot_id)
+        imp = db.get(models.Import, shot.import_id) if shot else None
+        sess = db.get(models.Session, imp.session_id) if imp else None
+        if shot is None or imp is None or sess is None:
+            raise not_found()
+        excluded = db.get(models.Exclusion, (sess.id, imp.sha256, shot.source_row)) is not None
+        return ShotDetail(
+            shot=shot_out(shot, excluded),
+            session=session_row(db, sess),
+            import_=import_row(imp),
+        )
 
 
 def _setting_out(row: models.Setting) -> SettingOut:

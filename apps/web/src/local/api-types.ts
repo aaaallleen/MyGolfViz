@@ -230,6 +230,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shots/{shot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Shot Detail */
+        get: operations["get_shot_detail_api_v1_shots__shot_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/target-ranges": {
         parameters: {
             query?: never;
@@ -492,6 +509,12 @@ export interface components {
             updatedAt: string;
             /** Value */
             value: unknown;
+        };
+        /** ShotDetail */
+        ShotDetail: {
+            import: components["schemas"]["ImportRow"];
+            session: components["schemas"]["SessionRow"];
+            shot: components["schemas"]["ShotOut"];
         };
         /** ShotOut */
         ShotOut: {
@@ -1107,6 +1130,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryShot"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shot_detail_api_v1_shots__shot_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShotDetail"];
                 };
             };
             /** @description Validation Error */
