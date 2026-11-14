@@ -51,6 +51,14 @@ body {
   color: var(--text);
   font-weight: 500;
 }
+/* A link styled as a button: lay out like a <button> (centred label, border inside the height, no underline). */
+a.fsa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
 .fsa-btn--primary {
   background: var(--text);
   border-color: var(--text);

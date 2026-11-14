@@ -94,7 +94,12 @@ test('from the Shot Inspector: A filled in, B\'s picker open', async ({ page }) 
   const id = await page.locator('tr[data-shot-id]').first().getAttribute('data-shot-id');
   await page.getByRole('link', { name: 'Open shot inspector →' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Shot \d+ · / })).toBeVisible();
-  await page.getByRole('link', { name: 'Compare…' }).click();
+  // The Compare… link looks like the Exclude shot button beside it: same height, no underline.
+  const compare = page.getByRole('link', { name: 'Compare…' });
+  const exclude = page.getByRole('button', { name: 'Exclude shot' });
+  expect((await compare.boundingBox())!.height).toBe((await exclude.boundingBox())!.height);
+  await expect(compare).toHaveCSS('text-decoration-line', 'none');
+  await compare.click();
 
   await expect(page).toHaveURL(new RegExp(`#/compare\\?a=${id}$`));
   const b = picker(page, 'B');
