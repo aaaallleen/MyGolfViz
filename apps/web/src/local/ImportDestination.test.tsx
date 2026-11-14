@@ -160,7 +160,7 @@ describe('ImportResultPage', () => {
     expect(screen.getByText('2 files added · 34 shots added · 1 skipped · 1 not imported')).toBeInTheDocument();
     expect(screen.getByText('2 warnings')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open session' })).toHaveAttribute('href', '/sessions/s1');
-    expect(screen.getByRole('link', { name: 'Load more files' })).toHaveAttribute('href', '/import?session=s1');
+    expect(screen.getByRole('link', { name: 'Load more files' })).toHaveAttribute('href', '/import');
   });
 
   test.each([
