@@ -20,11 +20,12 @@ const LATER = 'Compare Later';
 const EARLIER = 'Compare Earlier';
 const HINT = 'Pick two shots to see what changed';
 
-const picker = (page: Page, slot: 'A' | 'B') => page.getByRole('dialog', { name: `Choose shot ${slot}` });
-const label = (page: Page, slot: 'A' | 'B') => page.getByText(new RegExp(`^${slot} · ${CLUB} · Shot \\d+ · `));
+type Slot = 'A' | 'B' | 'C' | 'D';
+const picker = (page: Page, slot: Slot) => page.getByRole('dialog', { name: `Choose shot ${slot}` });
+const label = (page: Page, slot: Slot) => page.getByText(new RegExp(`^${slot} · ${CLUB} · Shot \\d+ · `));
 
 /** Picks the first shot of the dialog's current session and club. */
-async function chooseFirstShot(page: Page, slot: 'A' | 'B') {
+async function chooseFirstShot(page: Page, slot: Slot) {
   const dialog = picker(page, slot);
   const shot = dialog.getByLabel('Shot', { exact: true });
   await expect(shot.getByRole('option')).not.toHaveCount(1); // "Choose a shot" plus the loaded shots
@@ -66,7 +67,7 @@ test('from the Compare tab: empty → pick A → pick B', async ({ page }) => {
   await expect(label(page, 'B')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Swap' })).toBeVisible();
   await expect(page.getByRole('table')).toBeVisible();
-  await expect(page.getByText('What changed · B → A')).toBeVisible();
+  await expect(page.getByText('What changed from A')).toBeVisible();
   await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(27);
 });
 
@@ -117,6 +118,38 @@ test('the Compare tab reopens the last comparison', async ({ page }) => {
   await page.getByRole('link', { name: 'Compare', exact: true }).click();
   await expect(page).toHaveURL(url);
   await expect(label(page, 'B')).toBeVisible();
+});
+
+test('Add shot adds C and D, measured from the baseline A; removing C moves D up', async ({ page }) => {
+  await signIn(page);
+  const url = await pickBoth(page);
+  const table = page.getByRole('table');
+  await expect(page.getByText('Baseline', { exact: true }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: '+ Add shot' }).click();
+  // An added shot starts from the baseline's session and club.
+  await expect(picker(page, 'C').getByLabel('Session', { exact: true }).locator('option:checked')).toHaveText(new RegExp(`^${LATER}`));
+  await chooseFirstShot(page, 'C');
+  await expect(page).toHaveURL(/#\/compare\?a=[^&]+&b=[^&]+&c=[^&]+$/);
+  expect(page.url().startsWith(`${url}&c=`)).toBe(true);
+  await expect(label(page, 'C')).toBeVisible();
+
+  await page.getByRole('button', { name: '+ Add shot' }).click();
+  await chooseFirstShot(page, 'D');
+  await expect(label(page, 'D')).toBeVisible();
+  await expect(page.getByRole('button', { name: '+ Add shot' })).toHaveCount(0);
+  await expect(table.locator('thead th')).toHaveText(['Metric', 'A Baseline', 'B', 'C', 'D']);
+  await expect(page.getByRole('img', { name: /^Side-view trajectories/ }).locator('path[data-shot-id]')).toHaveCount(4);
+
+  // Reload keeps all four.
+  await page.reload();
+  await expect(label(page, 'D')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Remove shot C' }).click();
+  await expect(page).toHaveURL(/#\/compare\?a=[^&]+&b=[^&]+&c=[^&]+$/);
+  await expect(label(page, 'D')).toHaveCount(0);
+  await expect(table.locator('thead th')).toHaveText(['Metric', 'A Baseline', 'B', 'C']);
+  await expect(page.getByRole('button', { name: '+ Add shot' })).toBeVisible();
 });
 
 test('a deleted shot\'s slot says it\'s gone', async ({ page }) => {

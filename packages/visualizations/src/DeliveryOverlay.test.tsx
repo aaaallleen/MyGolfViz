@@ -52,3 +52,15 @@ test('the target line is drawn after the shots so it stays on top', () => {
   const kids = [...svg.children];
   expect(kids.indexOf(svg.querySelector('[data-testid="target-line"]')!)).toBeGreaterThan(kids.indexOf(svg.querySelector('g[data-shot-id]')!));
 });
+
+test('the readouts are a list under the drawing, so four shots never crowd the target caption', () => {
+  const C: DeliveryShot = { id: 'c', label: 'C', color: '#F2C14E', clubPath: 4.2, ftt: 3.1 };
+  const D: DeliveryShot = { id: 'd', label: 'D', color: '#4FD1C5', clubPath: -3.3, ftt: -2.2 };
+  const { container } = render(<DeliveryOverlay shots={[A, B, C, D]} />);
+  const labels = [...container.querySelectorAll('[data-kind="path-label"]')];
+  expect(labels.map((e) => e.textContent)).toEqual([
+    'A path 2.1° R · face 1.0° R', 'B path 1.8° L · face 0.5° L', 'C path 4.2° R · face 3.1° R', 'D path 3.3° L · face 2.2° L',
+  ]);
+  for (const l of labels) expect(l.closest('svg')).toBeNull();
+  expect(container.querySelectorAll('[data-kind="path"]')).toHaveLength(4);
+});

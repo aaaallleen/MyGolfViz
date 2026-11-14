@@ -90,6 +90,32 @@ describe('end label separation', () => {
     expect(new Set(l.map((e) => `${e.anchor}/${e.y}`)).size).toBe(2);
   });
 
+  const many = (...carries: number[]): TrajectoryPlotProps['groups'] =>
+    carries.map((c, i) => ({ club: `S${i}`, color: '#3987E5', curves: [curve(`s${i}`, c)] }));
+
+  test('three close carries stack, one line each', () => {
+    const { container } = render(<TrajectoryPlot groups={many(248, 246, 244)} selectedId={null} endLabels />);
+    const l = labels(container);
+    expect(new Set(l.map((e) => e.y)).size).toBe(3);
+    expect(new Set(l.map((e) => e.anchor))).toEqual(new Set(['middle']));
+  });
+
+  test('four close carries stack in the order given, the first lowest', () => {
+    const { container } = render(<TrajectoryPlot groups={many(200, 200, 201, 203)} selectedId={null} endLabels />);
+    const ys = [...container.querySelectorAll('[data-testid="end-label"]')].map((e) => Number(e.getAttribute('y')));
+    expect(ys).toHaveLength(4);
+    expect([...ys].sort((p, q) => q - p)).toEqual(ys);
+    expect(new Set(ys).size).toBe(4);
+  });
+
+  test('a close pair splits while a distant carry stays centred', () => {
+    const { container } = render(<TrajectoryPlot groups={many(248, 245, 150)} selectedId={null} endLabels />);
+    const l = labels(container);
+    expect(l.find((e) => e.t === '245')!.anchor).toBe('end');
+    expect(l.find((e) => e.t === '248')!.anchor).toBe('start');
+    expect(l.find((e) => e.t === '150')!.anchor).toBe('middle');
+  });
+
   test('distant carries stay centred on one line', () => {
     const { container } = render(<TrajectoryPlot groups={two(250, 150)} selectedId={null} endLabels />);
     const l = labels(container);

@@ -1,33 +1,76 @@
 import { formatMeasurement, MISSING_MARK, type Shot } from '@fsa/domain';
 
-export interface ComparePair {
+/** The four Compare slots. A is the baseline every other shot is measured against. */
+export const SLOTS = ['A', 'B', 'C', 'D'] as const;
+export type Slot = (typeof SLOTS)[number];
+const EXTRA_SLOTS = ['C', 'D'] as const;
+
+/** The shots on the Compare page: A and B, plus up to two more (C, then D), always without gaps. */
+export interface CompareSet {
   a: string | null;
   b: string | null;
+  extra: string[];
 }
+
+export const EMPTY_SET: CompareSet = { a: null, b: null, extra: [] };
+const MAX_EXTRA = SLOTS.length - 2;
 
 const idOf = (v: string | null): string | null => (v !== null && v.trim() !== '' ? v : null);
 
-/** The two shot ids in a Compare URL; an empty or whitespace value is no shot. */
-export function readPair(search: URLSearchParams): ComparePair {
-  return { a: idOf(search.get('a')), b: idOf(search.get('b')) };
+/** The shot ids in a Compare URL; an empty or whitespace value is no shot, and a lone d moves up to C. */
+export function readSet(search: URLSearchParams): CompareSet {
+  const extra = [idOf(search.get('c')), idOf(search.get('d'))].filter((v): v is string => v !== null);
+  return { a: idOf(search.get('a')), b: idOf(search.get('b')), extra: extra.slice(0, MAX_EXTRA) };
 }
 
-/** The query string for a pair: '', '?a=x', '?b=y' or '?a=x&b=y'. */
-export function pairSearch(p: ComparePair): string {
+/** The query string for a set: '', '?a=x', '?a=x&b=y', '?a=x&b=y&c=z&d=w', … */
+export function setSearch(p: CompareSet): string {
   const parts: string[] = [];
   if (p.a !== null) parts.push(`a=${encodeURIComponent(p.a)}`);
   if (p.b !== null) parts.push(`b=${encodeURIComponent(p.b)}`);
+  p.extra.slice(0, MAX_EXTRA).forEach((id, i) => parts.push(`${'cd'[i]}=${encodeURIComponent(id)}`));
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
-// In memory only: it lasts until the page reloads, by design.
-let remembered: ComparePair | null = null;
+export const isEmptySet = (p: CompareSet): boolean => p.a === null && p.b === null && p.extra.length === 0;
 
-export function rememberPair(p: ComparePair): void {
-  remembered = p.a === null && p.b === null ? null : { a: p.a, b: p.b };
+/** The slot Add shot fills next (C, then D), or null when A or B is still empty or four shots are shown. */
+export const nextSlot = (p: CompareSet): 'C' | 'D' | null =>
+  p.a !== null && p.b !== null ? (EXTRA_SLOTS[p.extra.length] ?? null) : null;
+
+/** Each slot that is in use, with its id: A and B always, then C and D while they hold a shot. */
+export function slotIds(p: CompareSet): { slot: Slot; id: string | null }[] {
+  return [{ slot: 'A', id: p.a }, { slot: 'B', id: p.b }, ...p.extra.flatMap((id, i) => {
+    const slot = EXTRA_SLOTS[i];
+    return slot ? [{ slot, id }] : [];
+  })];
 }
 
-export function rememberedPair(): ComparePair | null {
+/** The set with one slot's shot replaced; for C or D one past the end, the shot is added. */
+export function withShot(p: CompareSet, slot: Slot, id: string): CompareSet {
+  if (slot === 'A') return { ...p, a: id };
+  if (slot === 'B') return { ...p, b: id };
+  const i = SLOTS.indexOf(slot) - 2;
+  const extra = [...p.extra];
+  if (i < extra.length) extra[i] = id;
+  else extra.push(id);
+  return { ...p, extra: extra.slice(0, MAX_EXTRA) };
+}
+
+/** The set without C or D; D moves up to C. */
+export function withoutShot(p: CompareSet, slot: 'C' | 'D'): CompareSet {
+  const i = SLOTS.indexOf(slot) - 2;
+  return { ...p, extra: p.extra.filter((_, j) => j !== i) };
+}
+
+// In memory only: it lasts until the page reloads, by design.
+let remembered: CompareSet | null = null;
+
+export function rememberSet(p: CompareSet): void {
+  remembered = isEmptySet(p) ? null : { a: p.a, b: p.b, extra: [...p.extra] };
+}
+
+export function rememberedSet(): CompareSet | null {
   return remembered;
 }
 

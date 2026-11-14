@@ -37,20 +37,37 @@ function apex(c: TrajectoryCurve): number {
 
 const LABEL_GAP = 26, LABEL_LIFT = 14;
 
-/** Keeps carry labels apart: the shorter of two close carries ends at its landing point, the longer starts there; equal carries stack. */
-function labelPlacement(c: TrajectoryCurve, all: TrajectoryCurve[], sx: (n: number) => number): { anchor: 'start' | 'middle' | 'end'; lift: number } {
-  const x = sx(c.p3[0]);
-  const idx = all.indexOf(c);
-  let anchor: 'start' | 'middle' | 'end' = 'middle';
-  let lift = 0;
-  all.forEach((o, j) => {
-    if (o === c) return;
-    const dx = x - sx(o.p3[0]);
-    if (Math.abs(dx) >= LABEL_GAP) return;
-    if (Math.abs(dx) < 0.5) { if (j < idx) lift = LABEL_LIFT; }
-    else anchor = dx < 0 ? 'end' : 'start';
-  });
-  return { anchor, lift };
+type LabelPlace = { anchor: 'start' | 'middle' | 'end'; lift: number };
+
+/**
+ * Keeps carry labels apart. Labels closer than LABEL_GAP form a cluster: a pair with different carries splits,
+ * the shorter ending at its landing point and the longer starting there; equal carries, or three or more close
+ * ones, stack upwards in the order they were given.
+ */
+function labelPlacements(curves: TrajectoryCurve[], sx: (n: number) => number): Map<TrajectoryCurve, LabelPlace> {
+  const out = new Map<TrajectoryCurve, LabelPlace>();
+  const x = (c: TrajectoryCurve) => sx(c.p3[0]);
+  const clusters: TrajectoryCurve[][] = [];
+  let last: TrajectoryCurve | null = null;
+  for (const c of [...curves].sort((p, q) => x(p) - x(q))) {
+    const open = clusters[clusters.length - 1];
+    if (open && last && x(c) - x(last) < LABEL_GAP) open.push(c);
+    else clusters.push([c]);
+    last = c;
+  }
+  for (const cl of clusters) {
+    const [lo, hi] = cl;
+    if (cl.length === 1 && lo) {
+      out.set(lo, { anchor: 'middle', lift: 0 });
+    } else if (cl.length === 2 && lo && hi && x(hi) - x(lo) >= 0.5) {
+      out.set(lo, { anchor: 'end', lift: 0 });
+      out.set(hi, { anchor: 'start', lift: 0 });
+    } else {
+      [...cl].sort((p, q) => curves.indexOf(p) - curves.indexOf(q))
+        .forEach((c, rank) => out.set(c, { anchor: 'middle', lift: rank * LABEL_LIFT }));
+    }
+  }
+  return out;
 }
 
 export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax, width = PATTERN_WIDTH, allOn = false, endLabels = false }: TrajectoryPlotProps) {
@@ -70,7 +87,7 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
 
   const sel = all.find(({ c }) => c.shotId === selectedId) ?? null;
   const ordered = [...groups].sort((a, b) => Number(a.club === highlightClub) - Number(b.club === highlightClub));
-  const endLabelCurves = ordered.flatMap((g) => g.curves);
+  const places = endLabels ? labelPlacements(ordered.flatMap((g) => g.curves), sx) : null;
   const d = (c: TrajectoryCurve) =>
     `M${r1(sx(c.p0[0]))} ${r1(sy(c.p0[1]))} C${r1(sx(c.p1[0]))} ${r1(sy(c.p1[1]))} ${r1(sx(c.p2[0]))} ${r1(sy(c.p2[1]))} ${r1(sx(c.p3[0]))} ${r1(sy(c.p3[1]))}`;
   const aria =
@@ -110,7 +127,7 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
         {endLabels && ordered.map((g) => (
           <g key={`end-${g.club}`} fill={g.color} fontSize={12} fontWeight={600} fontFamily={FONT}>
             {g.curves.map((c) => {
-              const { anchor, lift } = labelPlacement(c, endLabelCurves, sx);
+              const { anchor, lift } = places!.get(c)!;
               return (
                 <text key={c.shotId} data-testid="end-label" textAnchor={anchor} x={r1(sx(c.p3[0]))} y={r1(sy(0) - 8 - lift)}>{Math.round(c.p3[0])}</text>
               );

@@ -6,11 +6,11 @@ import { compareClubs, formatSessionDate } from '@fsa/domain';
 import * as api from '../api';
 import type { SessionRow, ShotOut } from '../api';
 import { toShot } from '../toShot';
-import { sessionsNewestFirst, shotPickLabel } from './compareState';
+import { sessionsNewestFirst, shotPickLabel, type Slot } from './compareState';
 import './compare.css';
 
 export interface ShotPickerProps {
-  slot: 'A' | 'B';
+  slot: Slot;
   open: boolean;
   onOpenChange(open: boolean): void;
   /** Starting session and club; null picks the newest session and its first club. */

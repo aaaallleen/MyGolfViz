@@ -26,13 +26,17 @@ export function DeliveryOverlay({ shots, width = 360 }: DeliveryOverlayProps) {
     if (s.clubPath !== null) drawn.push(`${s.label} path ${formatMeasurement('clubPath', s.clubPath)}`);
     if (s.ftt !== null) drawn.push(`${s.label} face ${formatMeasurement('ftt', s.ftt)}`);
   }
+  const legend = shots.flatMap((s) => {
+    const text = readout(s);
+    return text === null ? [] : [{ s, text }];
+  });
   const aria = `Top view of club path and face angle against the target line. ${drawn.join('. ')}`.trim();
 
   return (
     <div className="fsa-delivery">
       <svg role="img" aria-label={aria} viewBox={`0 0 ${width} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         <rect x={0} y={0} width={width} height={H} rx={8} fill={SURFACE} />
-        {shots.map((s, i) => {
+        {shots.map((s) => {
           const px = s.clubPath === null ? null : cx + len * Math.sin(rad(s.clubPath));
           const py = s.clubPath === null ? null : bottom - len * Math.cos(rad(s.clubPath));
           const midX = s.clubPath === null ? cx : (cx + px!) / 2;
@@ -47,17 +51,23 @@ export function DeliveryOverlay({ shots, width = 360 }: DeliveryOverlayProps) {
               {s.ftt !== null && (
                 <line data-kind="face" data-shot-id={s.id} x1={r1(midX - dx)} y1={r1(midY - dy)} x2={r1(midX + dx)} y2={r1(midY + dy)} strokeWidth={4} strokeLinecap="round" />
               )}
-              {readout(s) !== null && (
-                <text data-kind="path-label" x={8} y={18 + i * 16} stroke="none" fontSize={12} fontFamily={FONT}>
-                  {readout(s)}
-                </text>
-              )}
             </g>
           );
         })}
         <line data-testid="target-line" x1={cx} y1={bottom} x2={cx} y2={bottom - len} stroke={MUTED} strokeOpacity={0.8} strokeWidth={1.5} strokeDasharray="6 5" />
         <text x={cx} y={bottom - len - 6} textAnchor="middle" fill={MUTED} fontSize={11} fontFamily={FONT}>Target</text>
       </svg>
+      {/* The readouts sit under the drawing, one line per shot, so any number of them stays clear of the target line. */}
+      {legend.length > 0 && (
+        <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, fontFamily: FONT }}>
+          {legend.map(({ s, text }) => (
+            <li key={s.id} data-kind="path-label" data-shot-id={s.id} style={{ color: s.color, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span aria-hidden="true" style={{ flexShrink: 0, width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {shots.map((s) => (
         <div key={`miss-${s.id}`}>
           {s.clubPath === null && <p style={{ margin: '8px 0 0', fontSize: 13, color: MUTED }}>{`${s.label} has no club path data`}</p>}

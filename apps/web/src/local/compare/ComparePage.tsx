@@ -1,23 +1,32 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router';
 import { formatSessionDate, sessionTitle } from '@fsa/domain';
 import { Button } from '@fsa/ui';
-import { COMPARE_A, COMPARE_B } from '@fsa/visualizations';
 import * as api from '../api';
 import type { ShotDetail } from '../api';
 import { toShot } from '../toShot';
-import { CompareDiagrams } from './CompareDiagrams';
-import { pairSearch, readPair, rememberedPair, rememberPair, type ComparePair } from './compareState';
+import { CompareDiagrams, SLOT_COLORS } from './CompareDiagrams';
+import {
+  isEmptySet, nextSlot, readSet, rememberedSet, rememberSet, setSearch, SLOTS, slotIds, withoutShot, withShot,
+  type CompareSet, type Slot,
+} from './compareState';
 import { ShotPicker } from './ShotPicker';
 import { WhatChanged } from './WhatChanged';
 import './compare.css';
 
-type Slot = 'A' | 'B';
 type SlotState = { status: 'loading' } | { status: 'found'; detail: ShotDetail } | { status: 'missing' } | { status: 'error' };
 
 // The slot colours for the header and the table, from the same theme the diagrams draw with.
-const COLORS = { '--compare-a': COMPARE_A, '--compare-b': COMPARE_B } as CSSProperties;
+const COLORS = Object.fromEntries(SLOTS.map((s) => [`--compare-${s.toLowerCase()}`, SLOT_COLORS[s]])) as CSSProperties;
 const LOADING: SlotState = { status: 'loading' };
+
+// Shots already loaded on this page, by id, so Swap, removing C and re-picking a shot show it at once
+// instead of flashing "Loading shot…". Each slot still refetches, so an edit made elsewhere lands.
+const loaded = new Map<string, ShotDetail>();
+/** Empties the loaded-shot memory; for tests. */
+export function forgetLoadedShots(): void {
+  loaded.clear();
+}
 
 /** One slot's shot, fetched by id. Only the newest request's answer lands; null when the slot has no id. */
 function useShotSlot(id: string | null): { state: SlotState | null; retry(): void } {
@@ -27,16 +36,22 @@ function useShotSlot(id: string | null): { state: SlotState | null; retry(): voi
 
   useEffect(() => {
     const mine = ++request.current;
+    setAnswer(null);
     if (id === null) return;
-    setAnswer({ id, state: LOADING });
     api.getShot(id).then(
-      (d) => { if (request.current === mine) setAnswer({ id, state: d ? { status: 'found', detail: d } : { status: 'missing' } }); },
+      (d) => {
+        if (d) loaded.set(id, d);
+        else loaded.delete(id);
+        if (request.current === mine) setAnswer({ id, state: d ? { status: 'found', detail: d } : { status: 'missing' } });
+      },
       () => { if (request.current === mine) setAnswer({ id, state: { status: 'error' } }); },
     );
   }, [id, attempt]);
 
   if (id === null) return { state: null, retry: () => {} };
-  return { state: answer?.id === id ? answer.state : LOADING, retry: () => setAttempt((n) => n + 1) };
+  const known = loaded.get(id);
+  const waiting: SlotState = known ? { status: 'found', detail: known } : LOADING;
+  return { state: answer?.id === id ? answer.state : waiting, retry: () => setAttempt((n) => n + 1) };
 }
 
 const foundDetail = (s: SlotState | null): ShotDetail | null => (s?.status === 'found' ? s.detail : null);
@@ -52,7 +67,14 @@ function slotLabel(slot: Slot, d: ShotDetail) {
   return <>{head}<span className="compare-slot__date">{date}</span>{d.shot.excluded ? ' · excluded' : ''}</>;
 }
 
-function SlotCard({ slot, state, onChoose, onRetry }: { slot: Slot; state: SlotState | null; onChoose(): void; onRetry(): void }) {
+function SlotCard({ slot, state, onChoose, onRetry, onRemove }: {
+  slot: Slot;
+  state: SlotState | null;
+  onChoose(): void;
+  onRetry(): void;
+  /** C and D only: takes the shot off the page. */
+  onRemove?(): void;
+}) {
   const choose = <Button onClick={onChoose}>Choose shot…</Button>;
   let label: ReactNode = `Shot ${slot}`;
   let body = choose;
@@ -68,7 +90,14 @@ function SlotCard({ slot, state, onChoose, onRetry }: { slot: Slot; state: SlotS
   }
   return (
     <div className={`compare-slot compare-slot--${slot.toLowerCase()}`}>
-      <p className="compare-slot__label"><span className="compare-slot__swatch" aria-hidden="true" />{label}</p>
+      <div className="compare-slot__top">
+        {/* One span for the text, so the flex gap only separates it from the swatch. */}
+        <p className="compare-slot__label"><span className="compare-slot__swatch" aria-hidden="true" /><span>{label}</span></p>
+        {slot === 'A' && <span className="compare-baseline">Baseline</span>}
+        {onRemove && (
+          <Button variant="ghost" className="compare-slot__remove" aria-label={`Remove shot ${slot}`} onClick={onRemove}>×</Button>
+        )}
+      </div>
       {body}
     </div>
   );
@@ -76,35 +105,47 @@ function SlotCard({ slot, state, onChoose, onRetry }: { slot: Slot; state: SlotS
 
 export default function ComparePage() {
   const [params] = useSearchParams();
-  const pair = readPair(params);
+  const set = readSet(params);
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
-  const a = useShotSlot(pair.a);
-  const b = useShotSlot(pair.b);
+  // One hook per slot, always called, so the hook order never changes.
+  const loads: Record<Slot, ReturnType<typeof useShotSlot>> = {
+    A: useShotSlot(set.a),
+    B: useShotSlot(set.b),
+    C: useShotSlot(set.extra[0] ?? null),
+    D: useShotSlot(set.extra[1] ?? null),
+  };
   const [picking, setPicking] = useState<Slot | null>(null);
   // Set by the Inspector's Compare… link; B's picker opens once A has settled, so it can start from A.
   const [pendingPickB, setPendingPickB] = useState(false);
 
-  const aFound = foundDetail(a.state);
-  const bFound = foundDetail(b.state);
-  const empty = pair.a === null && pair.b === null;
-  const go = (p: ComparePair) => navigate({ pathname: location.pathname, search: pairSearch(p) });
+  const slots = slotIds(set);
+  const found = (slot: Slot) => foundDetail(loads[slot].state);
+  const aFound = found('A');
+  const bFound = found('B');
+  const empty = isEmptySet(set);
+  const go = (p: CompareSet) => navigate({ pathname: location.pathname, search: setSearch(p) });
 
-  // Remember what's shown for the Compare tab, leaving out a shot that no longer exists.
-  const aMissing = a.state?.status === 'missing';
-  const bMissing = b.state?.status === 'missing';
+  // Remember what's shown for the Compare tab, leaving out shots that no longer exist.
+  const missing = (slot: Slot) => loads[slot].state?.status === 'missing';
+  const missingKey = SLOTS.filter(missing).join('');
+  const search = setSearch(set);
   useEffect(() => {
-    if (pair.a === null && pair.b === null) return;
-    rememberPair({ a: aMissing ? null : pair.a, b: bMissing ? null : pair.b });
-  }, [pair.a, pair.b, aMissing, bMissing]);
+    if (empty) return;
+    rememberSet({
+      a: missing('A') ? null : set.a,
+      b: missing('B') ? null : set.b,
+      extra: set.extra.filter((_, i) => !missing(i === 0 ? 'C' : 'D')),
+    });
+  }, [search, missingKey]);
 
   // A nav click (PUSH) to bare /compare reopens the last comparison; Back, Forward and reload (POP) don't.
   // It runs once per location, so it never fights a later change on the same page.
   useEffect(() => {
     if (!empty || navigationType !== 'PUSH') return;
-    const last = rememberedPair();
-    if (last) navigate({ pathname: location.pathname, search: pairSearch(last) }, { replace: true });
+    const last = rememberedSet();
+    if (last) navigate({ pathname: location.pathname, search: setSearch(last) }, { replace: true });
   }, [location.key]);
 
   const pickB = (location.state as { pickB?: unknown } | null)?.pickB === true;
@@ -114,44 +155,68 @@ export default function ComparePage() {
     // Clear the state so a reload doesn't reopen the picker.
     navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
   }, [pickB]);
-  const aSettled = a.state?.status !== 'loading';
+  const aSettled = loads.A.state?.status !== 'loading';
   useEffect(() => {
     if (!pendingPickB || !aSettled) return;
     setPendingPickB(false);
     setPicking('B');
   }, [pendingPickB, aSettled]);
 
-  // A slot that holds a shot starts from that shot; an empty one starts from the other slot's session and club.
-  const initial: Record<Slot, { sessionId: string; club: string; shotId?: string } | null> = {
-    A: aFound ? ownShot(aFound) : bFound ? startFrom(bFound) : null,
-    B: bFound ? ownShot(bFound) : aFound ? startFrom(aFound) : null,
+  // A slot that holds a shot starts from that shot. An empty one starts from the baseline's session and club
+  // (B's, for an empty A).
+  const initialFor = (slot: Slot): { sessionId: string; club: string; shotId?: string } | null => {
+    const own = found(slot);
+    if (own) return ownShot(own);
+    const from = slot === 'A' ? bFound : aFound ?? bFound;
+    return from ? startFrom(from) : null;
   };
+  // Add shot opens the picker for the next free slot, C or D; picking a shot fills it.
+  const addSlot = nextSlot(set);
+  const shown = slots.flatMap(({ slot }) => {
+    const d = found(slot);
+    return d ? [{ slot, shot: toShot(d.shot) }] : [];
+  });
 
   return (
     <div className="compare" style={COLORS}>
       <h1>Compare</h1>
       <div className="compare-head">
-        <SlotCard slot="A" state={a.state} onChoose={() => setPicking('A')} onRetry={a.retry} />
-        {aFound && bFound && (
-          <Button className="compare-head__swap" onClick={() => go({ a: pair.b, b: pair.a })}>Swap</Button>
+        {slots.map(({ slot }) => (
+          <Fragment key={slot}>
+            <SlotCard
+              slot={slot}
+              state={loads[slot].state}
+              onChoose={() => setPicking(slot)}
+              onRetry={loads[slot].retry}
+              onRemove={slot === 'C' || slot === 'D' ? () => go(withoutShot(set, slot)) : undefined}
+            />
+            {slot === 'A' && aFound && bFound && (
+              <Button className="compare-head__swap" onClick={() => go({ ...set, a: set.b, b: set.a })}>Swap</Button>
+            )}
+          </Fragment>
+        ))}
+        {addSlot && (
+          <Button className="compare-head__add" onClick={() => setPicking(addSlot)}>+ Add shot</Button>
         )}
-        <SlotCard slot="B" state={b.state} onChoose={() => setPicking('B')} onRetry={b.retry} />
       </div>
       {empty && <p className="compare-hint">Pick two shots to see what changed</p>}
       {aFound && bFound && (
-        <div className="compare-body">
-          <CompareDiagrams a={toShot(aFound.shot)} b={toShot(bFound.shot)} />
-          <WhatChanged a={toShot(aFound.shot)} b={toShot(bFound.shot)} />
+        <div className={`compare-body${shown.length > 2 ? ' compare-body--many' : ''}`}>
+          <CompareDiagrams shots={shown} />
+          <WhatChanged
+            base={toShot(aFound.shot)}
+            others={shown.flatMap((s) => (s.slot === 'A' ? [] : [{ slot: s.slot, shot: s.shot }]))}
+          />
         </div>
       )}
-      {(['A', 'B'] as const).map((slot) => (
+      {SLOTS.map((slot) => (
         <ShotPicker
           key={slot}
           slot={slot}
           open={picking === slot}
           onOpenChange={(open) => setPicking(open ? slot : null)}
-          initial={initial[slot]}
-          onPick={(id) => go(slot === 'A' ? { ...pair, a: id } : { ...pair, b: id })}
+          initial={initialFor(slot)}
+          onPick={(id) => go(withShot(set, slot, id))}
         />
       ))}
     </div>

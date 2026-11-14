@@ -11,8 +11,9 @@ vi.mock('../api', () => ({
   getShots: vi.fn(),
 }));
 import * as api from '../api';
-import { rememberedPair, rememberPair } from './compareState';
-import ComparePage from './ComparePage';
+import { EMPTY_SET, rememberedSet, rememberSet } from './compareState';
+import ComparePage, { forgetLoadedShots } from './ComparePage';
+import { CHANGED_CAPTION } from './WhatChanged';
 
 const session = (id: string, name: string, date: string, clubs: string[]): SessionRow =>
   ({ id, name, date, notes: '', handedness: 'right', createdAt: `${date}T10:00:00Z`, updatedAt: '', shotCount: 3, fileCount: 1, clubs: clubs.map((club) => ({ club, count: 1 })) }) as SessionRow;
@@ -32,13 +33,18 @@ const A_LABEL = 'A · Driver · Shot 7 · Later · 7 Nov 2026';
 const B_LABEL = 'B · 7 Iron · Shot 3 · Earlier · 1 Oct 2026';
 // A slot label holds its date in a nowrap span, so match the whole label's text.
 const lbl = (t: string) => (_: string, el: Element | null) => !!el?.classList.contains('compare-slot__label') && el.textContent === t;
-const TABLE = 'What changed · B → A';
+const C = detail(shotOut('C', 'Driver', '9', { ...M, carry: 255 }), LATER);
+const D = detail(shotOut('D', '7 Iron', '4', { ...M, carry: 165, height: 82 }), EARLIER);
+const C_LABEL = 'C · Driver · Shot 9 · Later · 7 Nov 2026';
+const D_LABEL = 'D · 7 Iron · Shot 4 · Earlier · 1 Oct 2026';
+const TABLE = CHANGED_CAPTION;
 
 let FIXTURES: Record<string, ShotDetail>;
 
 beforeEach(() => {
-  rememberPair({ a: null, b: null });
-  FIXTURES = { A, B };
+  rememberSet(EMPTY_SET);
+  forgetLoadedShots();
+  FIXTURES = { A, B, C, D };
   vi.mocked(api.getShot).mockReset().mockImplementation(async (id) => FIXTURES[id] ?? null);
   vi.mocked(api.listSessions).mockReset().mockResolvedValue([EARLIER, LATER, NEWEST]);
   vi.mocked(api.getSession).mockReset().mockImplementation(async (id) => ({ session: [LATER, EARLIER, NEWEST].find((s) => s.id === id)!, imports: [{ id: 'imp', ordinal: 1 }] }) as SessionDetail);
@@ -104,11 +110,88 @@ describe('ComparePage', () => {
     expect(screen.getAllByRole('button', { name: 'Change shot…' })).toHaveLength(2);
   });
 
-  test('swap exchanges a and b in the URL', async () => {
+  test('swap exchanges a and b in the URL, at once, with no loading flash', async () => {
     renderAt(['/compare?a=A&b=B']);
-    await userEvent.click(await screen.findByRole('button', { name: 'Swap' }));
+    await screen.findByText(lbl(B_LABEL));
+    await userEvent.click(screen.getByRole('button', { name: 'Swap' }));
     expect(where()).toBe('/compare?a=B&b=A');
-    expect(await screen.findByText(lbl('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026'))).toBeInTheDocument();
+    expect(screen.getByText(lbl('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026'))).toBeInTheDocument();
+    expect(screen.queryByText('Loading shot…')).toBeNull();
+  });
+
+  test('A is marked as the baseline, in its slot and in the table', async () => {
+    renderAt(['/compare?a=A&b=B']);
+    await screen.findByText(lbl(B_LABEL));
+    const slotA = screen.getByText(lbl(A_LABEL)).closest('.compare-slot')!;
+    expect(within(slotA as HTMLElement).getByText('Baseline')).toBeInTheDocument();
+    const slotB = screen.getByText(lbl(B_LABEL)).closest('.compare-slot')!;
+    expect(within(slotB as HTMLElement).queryByText('Baseline')).toBeNull();
+    const table = screen.getByRole('table', { name: TABLE });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Metric', 'A Baseline', 'B']);
+  });
+
+  test('Add shot appears only once A and B are chosen', async () => {
+    renderAt(['/compare?a=A']);
+    await screen.findByText(lbl(A_LABEL));
+    expect(screen.queryByRole('button', { name: '+ Add shot' })).toBeNull();
+  });
+
+  test("Add shot opens C's picker from A's session and club, and picking adds C", async () => {
+    renderAt(['/compare?a=A&b=B']);
+    await screen.findByText(lbl(B_LABEL));
+    await userEvent.click(screen.getByRole('button', { name: '+ Add shot' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Choose shot C' });
+    await waitFor(() => expect(within(dialog).getByLabelText('Session')).toHaveDisplayValue('Later · 7 Nov 2026'));
+    expect(within(dialog).getByLabelText('Club')).toHaveDisplayValue('Driver');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Shot'), await within(dialog).findByRole('option', { name: /^Shot 7/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Choose' }));
+    expect(where()).toBe('/compare?a=A&b=B&c=A');
+    expect(await screen.findByText(lbl('C · Driver · Shot 7 · Later · 7 Nov 2026'))).toBeInTheDocument();
+    // Cancelling an Add shot picker adds nothing.
+    await userEvent.click(screen.getByRole('button', { name: '+ Add shot' }));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(where()).toBe('/compare?a=A&b=B&c=A');
+  });
+
+  test('four shots: every slot, every diagram and a column per shot; no more can be added', async () => {
+    renderAt(['/compare?a=A&b=B&c=C&d=D']);
+    for (const l of [A_LABEL, B_LABEL, C_LABEL, D_LABEL]) expect(await screen.findByText(lbl(l))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '+ Add shot' })).toBeNull();
+    expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(4);
+    expect(screen.getByRole('img', { name: /^Top view of club path/ }).querySelectorAll('[data-kind="path"]')).toHaveLength(4);
+    const table = screen.getByRole('table', { name: TABLE });
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Metric', 'A Baseline', 'B', 'C', 'D']);
+    // Only C and D can be removed.
+    expect(screen.queryByRole('button', { name: 'Remove shot A' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove shot B' })).toBeNull();
+  });
+
+  test('removing C moves D up to C, and Add shot comes back', async () => {
+    renderAt(['/compare?a=A&b=B&c=C&d=D']);
+    await screen.findByText(lbl(D_LABEL));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove shot C' }));
+    expect(where()).toBe('/compare?a=A&b=B&c=D');
+    expect(screen.getByText(lbl('C · 7 Iron · Shot 4 · Earlier · 1 Oct 2026'))).toBeInTheDocument();
+    expect(screen.queryByText('Loading shot…')).toBeNull();
+    expect(screen.getByRole('button', { name: '+ Add shot' })).toBeInTheDocument();
+  });
+
+  test('swap keeps C and D', async () => {
+    renderAt(['/compare?a=A&b=B&c=C']);
+    await screen.findByText(lbl(C_LABEL));
+    await userEvent.click(screen.getByRole('button', { name: 'Swap' }));
+    expect(where()).toBe('/compare?a=B&b=A&c=C');
+  });
+
+  test("a C that no longer exists says so, can be removed, and isn't remembered", async () => {
+    renderAt(['/compare?a=A&b=B&c=gone']);
+    expect(await screen.findByText('That shot is no longer in your library')).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: TABLE })).toBeInTheDocument();
+    expect(within(screen.getByRole('table', { name: TABLE })).getAllByRole('columnheader')).toHaveLength(3);
+    expect(rememberedSet()).toEqual({ a: 'A', b: 'B', extra: [] });
+    await userEvent.click(screen.getByRole('button', { name: 'Remove shot C' }));
+    expect(where()).toBe('/compare?a=A&b=B');
   });
 
   test('choosing a shot puts it in the URL', async () => {
@@ -147,7 +230,7 @@ describe('ComparePage', () => {
     expect(await screen.findByText(lbl(B_LABEL))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose shot…' })).toBeInTheDocument();
     expect(screen.queryByRole('table')).toBeNull();
-    expect(rememberedPair()).toEqual({ a: null, b: 'B' });
+    expect(rememberedSet()).toEqual({ a: null, b: 'B', extra: [] });
   });
 
   test('a failed load offers Retry', async () => {
@@ -215,10 +298,10 @@ describe('ComparePage', () => {
     await screen.findByText(lbl(B_LABEL));
     first.unmount();
 
-    rememberPair({ a: null, b: null });
+    rememberSet(EMPTY_SET);
     renderAt(['/compare', '/compare?a=A']);
     await screen.findByText(lbl(A_LABEL));
-    expect(rememberedPair()).toEqual({ a: 'A', b: null });
+    expect(rememberedSet()).toEqual({ a: 'A', b: null, extra: [] });
     act(() => { void nav(-1); });
     expect(where()).toBe('/compare');
     expect(screen.getByText('Pick two shots to see what changed')).toBeInTheDocument();
