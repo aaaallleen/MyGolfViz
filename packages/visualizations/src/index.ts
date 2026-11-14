@@ -1,4 +1,5 @@
 export { niceTicks } from './scale';
+export { BALL, CLUB, SOFT } from './theme';
 export { CLUB_SERIES, clubColors, patternXMax, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
 export { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 export { TrajectoryPlot, type TrajectoryPlotProps } from './TrajectoryPlot';

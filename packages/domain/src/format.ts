@@ -25,11 +25,17 @@ export interface MeasurementParts {
   suffix: string;
 }
 
+/** The unit text that follows a number, without a direction word: " yd", "°", "" for none. */
+export function unitSuffix(key: MeasurementKey): string {
+  const unit = fieldDef(key).unit;
+  return unit === 'deg' ? '°' : unit === 'none' ? '' : ` ${unit}`;
+}
+
 /** The pieces formatMeasurement joins, for callers that render the number separately. Null when not measured. */
 export function measurementParts(key: MeasurementKey, value: number | null): MeasurementParts | null {
   if (value === null || !Number.isFinite(value)) return null;
   const def = fieldDef(key);
-  const unit = def.unit === 'deg' ? '°' : def.unit === 'none' ? '' : ` ${def.unit}`;
+  const unit = unitSuffix(key);
   let dir = '';
   if (def.direction) {
     if (value === 0) dir = def.direction === 'toeheel' ? ' centered' : '';

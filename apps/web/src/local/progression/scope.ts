@@ -68,12 +68,13 @@ export function sessionsForClub(rows: readonly SessionRow[], club: string, scope
   return lastN(withClub, scope.last);
 }
 
-/** Sessions for Club gapping: picked when set, else the last N sessions of any club. */
+/** Sessions for Club gapping: the picked ones that still exist, else the last N sessions of any club. */
 export function sessionsForGapping(rows: readonly SessionRow[], scope: Scope): SessionRow[] {
   const ordered = orderSessions([...rows]);
-  if (scope.picked && scope.picked.length > 0) {
+  if (scope.picked) {
     const picked = new Set(scope.picked);
-    return ordered.filter((r) => picked.has(r.id));
+    const hit = ordered.filter((r) => picked.has(r.id));
+    if (hit.length > 0) return hit;
   }
   return lastN(ordered, scope.last);
 }

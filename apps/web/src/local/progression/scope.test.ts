@@ -63,6 +63,10 @@ describe('sessionsForGapping', () => {
     expect(sessionsForGapping(rows, { ...DEFAULT_SCOPE, last: 3 }).map((r) => r.id)).toEqual(['s6', 's7', 's8']);
     expect(sessionsForGapping(rows, { ...DEFAULT_SCOPE, picked: ['s3', 's1'] }).map((r) => r.id)).toEqual(['s1', 's3']);
   });
+  it('falls back to last N when none of the picked sessions exist any more', () => {
+    const scope = { ...DEFAULT_SCOPE, last: 3 as const, picked: ['deleted'] };
+    expect(sessionsForGapping(rows, scope).map((r) => r.id)).toEqual(['s6', 's7', 's8']);
+  });
 });
 
 describe('scopeLine', () => {

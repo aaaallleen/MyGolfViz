@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import {
   IMPACT_CONVENTION, DEFAULT_SESSION_DETAILS, NUMBER_LOCALE, formatImpact, formatMeasurement,
-  formatSessionDate, handednessLabel, measurementParts, numberFormat, sessionTitle,
+  formatSessionDate, handednessLabel, measurementParts, numberFormat, sessionTitle, unitSuffix,
 } from './index';
 
 const CASES = [
@@ -22,6 +22,14 @@ test.each(CASES)('formatMeasurement(%s, %s) = %s', (key, v, out) => {
 test.each(CASES.filter(([, v]) => v !== null))('measurementParts(%s, %s) rejoins to %s', (key, v, out) => {
   const p = measurementParts(key, v)!;
   expect(`${new Intl.NumberFormat(NUMBER_LOCALE, numberFormat(p.decimals)).format(p.number)}${p.suffix}`).toBe(out);
+});
+
+test('unitSuffix is the unit text without a direction word', () => {
+  expect(unitSuffix('carry')).toBe(' yd');
+  expect(unitSuffix('clubPath')).toBe('°');
+  expect(unitSuffix('lateral')).toBe(' yd');
+  expect(unitSuffix('smash')).toBe('');
+  expect(unitSuffix('spin')).toBe(' rpm');
 });
 
 test('measurementParts is null when not measured', () => {
