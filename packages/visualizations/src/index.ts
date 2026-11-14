@@ -9,6 +9,6 @@ export { HEAD_SPECS, type HeadSpec } from './heads/specs';
 export { flightCamera, projectPoint, type Camera, type CameraPreset } from './camera';
 export { BallFlight3D, type BallFlight3DProps } from './BallFlight3D';
 export { useReplayClock, ReplayControls, type ReplayClock } from './ReplayControls';
-export { TrendChart, type TrendChartProps, type TrendSeries } from './TrendChart';
+export { TrendChart, trendChartLeft, type TrendChartProps, type TrendSeries } from './TrendChart';
 export { GappingChart, type GappingChartProps } from './GappingChart';
 export { ImpactHeatmap, type ImpactHeatmapProps } from './ImpactHeatmap';

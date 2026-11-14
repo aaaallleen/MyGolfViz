@@ -24,6 +24,11 @@ export interface TrendChartProps {
   height?: number;
   /** Draw y = 0 when in range (signed metrics). */
   zeroLine?: boolean;
+  /**
+   * Smallest left margin. Linked charts stacked in one tile pass the largest `trendChartLeft` of them all,
+   * so their sessions sit at the same x.
+   */
+  minLeft?: number;
 }
 
 const W = 360, MIN_LEFT = 46, RIGHT = 10, TOP = 10, BOTTOM = 22;
@@ -45,7 +50,8 @@ function runs<T>(items: readonly (T | null | undefined)[]): number[][] {
   return out;
 }
 
-export function TrendChart({ title, sessions, series, target = null, formatTick, height = 160, zeroLine = false }: TrendChartProps) {
+/** The y domain and ticks for these values. */
+function yAxis({ series, target = null, formatTick }: Pick<TrendChartProps, 'series' | 'target' | 'formatTick'>) {
   const nums: number[] = [];
   for (const s of series) {
     for (const v of s.values) if (v != null && Number.isFinite(v)) nums.push(v);
@@ -67,6 +73,16 @@ export function TrendChart({ title, sessions, series, target = null, formatTick,
   // The plot starts right of the widest label, so long ones (`12,500 rpm`) are not clipped.
   const widest = Math.max(0, ...labels.map((l) => l.length));
   const left = Math.max(MIN_LEFT, Math.ceil(widest * CHAR_W) + LABEL_GAP + LABEL_PAD);
+  return { y0, y1, ticks, labels, left };
+}
+
+/** The left margin a chart with these series needs for its y labels. */
+export const trendChartLeft = (props: Pick<TrendChartProps, 'series' | 'target' | 'formatTick'>) => yAxis(props).left;
+
+export function TrendChart({ title, sessions, series, target = null, formatTick, height = 160, zeroLine = false, minLeft = 0 }: TrendChartProps) {
+  const axis = yAxis({ series, target, formatTick });
+  const { y0, y1, ticks, labels } = axis;
+  const left = Math.max(axis.left, minLeft);
 
   const plotT = TOP, plotB = height - BOTTOM;
   const sy = linear(y0, y1, plotB, plotT);

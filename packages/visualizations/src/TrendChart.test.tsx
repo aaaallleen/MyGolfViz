@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
-import { TrendChart, type TrendChartProps } from './TrendChart';
+import { TrendChart, trendChartLeft, type TrendChartProps } from './TrendChart';
 
 const sessions = [
   { label: 'S1', tooltip: 'S1 · Range practice · 1 Nov 2026 · n 20' },
@@ -101,4 +101,10 @@ test('the plot starts further right for longer labels', () => {
     return x;
   };
   expect(leftEdge((v) => `${v} rpm long label`)).toBeGreaterThan(leftEdge((v) => `${v}`));
+});
+
+test('minLeft moves the plot right; trendChartLeft gives the margin a chart needs', () => {
+  const need = trendChartLeft(base);
+  const { container } = render(<TrendChart {...base} minLeft={need + 20} />);
+  expect(Number(container.querySelector('line')!.getAttribute('x1'))).toBe(need + 20);
 });

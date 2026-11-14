@@ -118,6 +118,18 @@ describe('Speed & smash', () => {
     expect(speeds.querySelector('path[opacity="0.18"]')).toBeNull();
   });
 
+  test('the speed and smash charts share one left margin, so their sessions line up', async () => {
+    SHOTS = [
+      ...times(5, (i) => shot('a', 'Driver', { clubSpeed: 95 + i, ballSpeed: 140.5 + i, smash: 1.46 })),
+      ...times(5, (i) => shot('c', 'Driver', { clubSpeed: 98 + i, ballSpeed: 146.5 + i, smash: 1.48 })),
+    ];
+    renderPage(['speed-smash']);
+    const t = await screen.findByRole('article', { name: 'Speed & smash' });
+    const xs = (name: string) => ['S1', 'S2'].map((l) =>
+      within(within(t).getByRole('img', { name })).getByText(l).getAttribute('x'));
+    expect(xs('Smash by session')).toEqual(xs('Club and ball speed by session'));
+  });
+
   test('a part with no values in the latest session reads Not measured', async () => {
     SHOTS = times(5, (i) => shot('c', 'Driver', { clubSpeed: null, ballSpeed: 146 + i, smash: null }));
     SESSION_ROWS = [session('c', 'Late', 3, { Driver: 5 })];
@@ -169,6 +181,21 @@ describe('Impact location', () => {
     await waitFor(() => expect(within(tile('Impact location')).getAllByRole('option')).toHaveLength(5));
     expect(within(tile('Impact location')).getByLabelText('Sessions')).toHaveValue('all');
     expect(within(tile('Impact location')).getByText('Impact not measured: 4 of 14')).toBeInTheDocument();
+  });
+
+  test('a choice made for one set of sessions does not come back after the sessions change and return', async () => {
+    SESSION_ROWS = [...SESSION_ROWS, session('d', 'Range', 4, { Driver: 1 }), session('e', 'Course', 5, { Driver: 1 })];
+    settings['progression.scope'] = { club: 'Driver', last: 3, picked: null, shots: 'all', band: 'iqr' };
+    renderPage(['impact']);
+    const t = await screen.findByRole('article', { name: 'Impact location' });
+    await userEvent.selectOptions(within(t).getByLabelText('Sessions'), 'S1 · Late');
+    const scopeSessions = () => within(screen.getByRole('region', { name: 'Scope' })).getByLabelText('Sessions');
+    await userEvent.selectOptions(scopeSessions(), 'All');
+    await waitFor(() => expect(within(tile('Impact location')).getAllByRole('option')).toHaveLength(5));
+    await userEvent.selectOptions(scopeSessions(), 'Last 3');
+    await waitFor(() => expect(within(tile('Impact location')).getAllByRole('option')).toHaveLength(4));
+    expect(within(tile('Impact location')).getByLabelText('Sessions')).toHaveValue('all');
+    expect(within(tile('Impact location')).getByRole('img', { name: 'Impact heatmap · All shown sessions' })).toBeInTheDocument();
   });
 
   test('the Shots switch applies, and details give each session’s measured count and spread', async () => {

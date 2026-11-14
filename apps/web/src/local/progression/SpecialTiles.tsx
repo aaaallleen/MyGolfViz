@@ -5,7 +5,7 @@ import {
 } from '@fsa/analytics';
 import { formatMeasurement, formatSessionDate, NOT_MEASURED, NUMBER_LOCALE, numberFormat } from '@fsa/domain';
 import { SelectField } from '@fsa/ui';
-import { BALL, CLUB, GappingChart, ImpactHeatmap, SOFT, TrendChart, type TrendSeries } from '@fsa/visualizations';
+import { BALL, CLUB, GappingChart, ImpactHeatmap, SOFT, TrendChart, trendChartLeft, type TrendSeries } from '@fsa/visualizations';
 import * as api from '../api';
 import type { SessionRow } from '../api';
 import { formatPlain, tickFormatter } from './format';
@@ -153,19 +153,27 @@ function SpeedSmashTile({ def, sessions, shots, scope, controls }: SpecialTilePr
   const line = (name: string, color: string, stats: readonly MetricStats[]): TrendSeries =>
     ({ name, color, values: stats.map((s) => s.median), few: stats.map((s) => s.few) });
   const speedSeries = [line('Club speed', CLUB, club), line('Ball speed', BALL, ball)];
+  const smashSeries = [line('Smash', SOFT, smash)];
+  const speedTick = tickFormatter('ballSpeed'), smashTick = tickFormatter('smash');
+  // One left margin for both charts, so S1…Sn line up between them.
+  const left = Math.max(
+    trendChartLeft({ series: speedSeries, formatTick: speedTick }),
+    trendChartLeft({ series: smashSeries, formatTick: smashTick }),
+  );
   const chartSessions = sessions.map((s, i) => ({ label: label(i), tooltip: `${sessionText(s, i)} · n ${ball[i]!.total}` }));
 
   return (
     <TileFrame def={def} controls={controls}>
       <Headline value={`${speeds} · smash ${formatMeasurement('smash', sm)}`} what={`S${sessions.length} · medians`} long />
-      <TrendChart title="Club and ball speed by session" sessions={chartSessions} series={speedSeries} formatTick={tickFormatter('ballSpeed')} />
+      <TrendChart title="Club and ball speed by session" sessions={chartSessions} series={speedSeries} formatTick={speedTick} minLeft={left} />
       <Legend series={speedSeries} />
       <TrendChart
         title="Smash by session"
         sessions={chartSessions}
-        series={[line('Smash', SOFT, smash)]}
-        formatTick={tickFormatter('smash')}
+        series={smashSeries}
+        formatTick={smashTick}
         height={90}
+        minLeft={left}
       />
       <Details
         columns={['Club speed', 'Ball speed', 'Smash']}
@@ -183,6 +191,8 @@ function ImpactTile({ def, sessions, shots, scope, controls }: SpecialTileProps)
   // One session or all of them, for this tile only; back to all when the shown sessions change.
   const idsKey = ids.join('\n');
   const [pick, setPick] = useState({ forIds: idsKey, value: 'all' });
+  // A change of shown sessions drops the choice for good (adjusting state during render, not in an effect).
+  if (pick.forIds !== idsKey) setPick({ forIds: idsKey, value: 'all' });
   const selected = pick.forIds === idsKey && ids.includes(pick.value) ? pick.value : 'all';
   const index = ids.indexOf(selected);
 
