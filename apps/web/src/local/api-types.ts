@@ -195,6 +195,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Setting */
+        get: operations["get_setting_api_v1_settings__key__get"];
+        /** Put Setting */
+        put: operations["put_setting_api_v1_settings__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Library Shots */
+        get: operations["list_library_shots_api_v1_shots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/target-ranges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Target Ranges */
+        get: operations["list_target_ranges_api_v1_target_ranges_get"];
+        /** Put Target Range */
+        put: operations["put_target_range_api_v1_target_ranges_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/target-ranges/{range_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Target Range */
+        delete: operations["delete_target_range_api_v1_target_ranges__range_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -320,6 +390,27 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /** LibraryShot */
+        LibraryShot: {
+            /** Club */
+            club: string | null;
+            /** Excluded */
+            excluded: boolean;
+            /** Id */
+            id: string;
+            /** Importid */
+            importId: string;
+            /** M */
+            m: {
+                [key: string]: unknown;
+            };
+            /** Sessionid */
+            sessionId: string;
+            /** Shotlabel */
+            shotLabel: string | null;
+            /** Sourcerow */
+            sourceRow: number;
+        };
         /** SessionDetail */
         SessionDetail: {
             /** Imports */
@@ -388,6 +479,20 @@ export interface components {
             /** Updatedat */
             updatedAt: string;
         };
+        /** SettingIn */
+        SettingIn: {
+            /** Value */
+            value: unknown;
+        };
+        /** SettingOut */
+        SettingOut: {
+            /** Key */
+            key: string;
+            /** Updatedat */
+            updatedAt: string;
+            /** Value */
+            value: unknown;
+        };
         /** ShotOut */
         ShotOut: {
             /** Club */
@@ -418,6 +523,32 @@ export interface components {
             shotType: string | null;
             /** Sourcerow */
             sourceRow: number;
+        };
+        /** TargetRangeIn */
+        TargetRangeIn: {
+            /** Club */
+            club: string;
+            /** High */
+            high?: number | null;
+            /** Low */
+            low?: number | null;
+            /** Metric */
+            metric: string;
+        };
+        /** TargetRangeOut */
+        TargetRangeOut: {
+            /** Club */
+            club: string;
+            /** High */
+            high: number | null;
+            /** Id */
+            id: string;
+            /** Low */
+            low: number | null;
+            /** Metric */
+            metric: string;
+            /** Updatedat */
+            updatedAt: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -879,6 +1010,197 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ShotOut"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_setting_api_v1_settings__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_setting_api_v1_settings__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_library_shots_api_v1_shots_get: {
+        parameters: {
+            query?: {
+                club?: string | null;
+                session_ids?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryShot"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_target_ranges_api_v1_target_ranges_get: {
+        parameters: {
+            query?: {
+                club?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetRangeOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_target_range_api_v1_target_ranges_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetRangeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetRangeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_target_range_api_v1_target_ranges__range_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                range_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

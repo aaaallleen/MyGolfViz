@@ -23,6 +23,35 @@ export function cut(from: CsvFile, rows: number, name: string): CsvFile {
   return { name: basename(name), mimeType: 'text/csv', buffer: Buffer.from(lines.slice(0, rows + 1).join('\n')) };
 }
 
+/** Whether a CSV line is a shot: the `Shot` cell is a number. Summary rows (`Avg`, `Dev`) are not. */
+const isShotRow = (cells: string[], shotAt: number) => /^\d+$/.test((cells[shotAt] ?? '').trim());
+
+/** The number of shots in a fixture: its data rows, without summary rows. */
+export function shotCount(from: CsvFile): number {
+  const [header, ...rows] = from.buffer.toString('utf8').split(/\r?\n/);
+  const shotAt = header!.split(',').findIndex((h) => h.trim().toLowerCase() === 'shot');
+  return rows.filter((l) => l.trim() !== '' && isShotRow(l.split(','), shotAt)).length;
+}
+
+/**
+ * The same export with every shot's `Club` cell set to `club`, under a new name. Header and summary rows are
+ * kept as they are. The bytes, and so the hash, differ from every other file.
+ */
+export function withClub(from: CsvFile, club: string, name: string): CsvFile {
+  const [header, ...rows] = from.buffer.toString('utf8').split(/\r?\n/);
+  const cols = header!.split(',').map((h) => h.trim().toLowerCase());
+  const clubAt = cols.indexOf('club');
+  const shotAt = cols.indexOf('shot');
+  if (clubAt < 0 || shotAt < 0) throw new Error('fixture has no Club or Shot column');
+  const out = rows.map((line) => {
+    const cells = line.split(',');
+    if (!isShotRow(cells, shotAt)) return line;
+    cells[clubAt] = club;
+    return cells.join(',');
+  });
+  return { name: basename(name), mimeType: 'text/csv', buffer: Buffer.from([header, ...out].join('\n')) };
+}
+
 const csp = new WeakMap<Page, string[]>();
 
 /**

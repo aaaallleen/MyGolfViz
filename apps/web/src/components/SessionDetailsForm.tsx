@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { SessionDetails } from '@fsa/domain';
 import { SegmentedControl } from '@fsa/ui';
+import { DateField } from './DateField';
 
 export interface SessionDetailsFormProps {
   value: SessionDetails;
@@ -11,17 +12,30 @@ export interface SessionDetailsFormProps {
 
 export function SessionDetailsForm({ value, onChange, required = false }: SessionDetailsFormProps) {
   const id = useId();
+  const missingName = required && value.name.trim() === '';
   return (
     <div className="details-form">
-      <label className="field" htmlFor={`${id}-name`}>
-        <span>Session name</span>
-        <input id={`${id}-name`} type="text" autoComplete="off" className="field__input fsa-touch" placeholder="Untitled session" value={value.name} required={required} aria-invalid={required && value.name.trim() === '' ? true : undefined} onChange={(e) => onChange({ name: e.target.value })} />
-        {required && value.name.trim() === '' && <span role="alert" className="field__error">Name is required</span>}
-      </label>
-      <label className="field" htmlFor={`${id}-date`}>
-        <span>Date</span>
-        <input id={`${id}-date`} type="date" autoComplete="off" className="field__input fsa-touch" value={value.date ?? ''} required={required} onChange={(e) => { if (required && !e.target.value) return; onChange({ date: e.target.value || null }); }} />
-      </label>
+      <div className="field">
+        <label htmlFor={`${id}-name`}>Session name</label>
+        <input
+          id={`${id}-name`}
+          type="text"
+          autoComplete="off"
+          className={missingName ? 'field__input field__input--missing fsa-touch' : 'field__input fsa-touch'}
+          // A missing name is said inside the box, in red, so the row of fields keeps one height.
+          placeholder={missingName ? 'Name is required' : 'Untitled session'}
+          value={value.name}
+          required={required}
+          aria-invalid={missingName ? true : undefined}
+          aria-describedby={missingName ? `${id}-name-error` : undefined}
+          onChange={(e) => onChange({ name: e.target.value })}
+        />
+        {missingName && <span id={`${id}-name-error`} className="visually-hidden">Name is required</span>}
+      </div>
+      <div className="field">
+        <label htmlFor={`${id}-date`}>Date</label>
+        <DateField id={`${id}-date`} value={value.date} required={required} onChange={(date) => onChange({ date })} />
+      </div>
       <label className="field field--wide" htmlFor={`${id}-notes`}>
         <span>Notes</span>
         <textarea id={`${id}-notes`} autoComplete="off" className="field__input" rows={3} value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} />

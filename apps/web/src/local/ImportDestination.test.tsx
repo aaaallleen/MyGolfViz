@@ -48,6 +48,18 @@ describe('ImportDestination', () => {
     expect(screen.getByRole('radio', { name: 'New session' })).toBeChecked();
   });
 
+  test('?date= from the library calendar pre-fills a new session with that date', async () => {
+    renderIt([], '/import?date=2026-10-03');
+    await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('2026-10-03'));
+    expect(screen.getByRole('radio', { name: 'New session' })).toBeChecked();
+  });
+
+  test('a malformed ?date= falls back to today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 12, 21, 0) });
+    renderIt([], '/import?date=2026-02-30');
+    await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('2026-11-12'));
+  });
+
   test('?session=s1 preselects Existing session and that session', async () => {
     renderIt([], '/import?session=s1');
     expect(await screen.findByRole('radio', { name: 'Existing session' })).toBeChecked();
@@ -160,7 +172,7 @@ describe('ImportResultPage', () => {
     expect(screen.getByText('2 files added · 34 shots added · 1 skipped · 1 not imported')).toBeInTheDocument();
     expect(screen.getByText('2 warnings')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open session' })).toHaveAttribute('href', '/sessions/s1');
-    expect(screen.getByRole('link', { name: 'Load more files' })).toHaveAttribute('href', '/import?session=s1');
+    expect(screen.getByRole('link', { name: 'Load more files' })).toHaveAttribute('href', '/import');
   });
 
   test.each([

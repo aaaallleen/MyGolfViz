@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { EmptyState } from '@fsa/ui';
 import { AppShell } from '../layout/AppShell';
@@ -10,6 +10,8 @@ import { OpenSessionProvider } from './OpenSession';
 import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
 import { useSessionSync } from './useSessionSync';
+
+const ProgressionPage = lazy(() => import('./progression/ProgressionPage'));
 
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
@@ -40,6 +42,7 @@ export default function LocalRoutes() {
         <Route path="/sessions" element={<LibraryPage />} />
         <Route path="/sessions/:id" element={<SessionRoute page="overview" />} />
         <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
+        <Route path="/progression" element={<Suspense fallback={null}><ProgressionPage /></Suspense>} />
         <Route path="/import" element={<LoadPage />} />
         <Route path="/import/result" element={<ImportResultPage />} />
         <Route path="/help" element={<HelpPage />} />

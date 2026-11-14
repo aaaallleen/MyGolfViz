@@ -78,3 +78,13 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    position". Never "Total Dispersion".
 7. **Shot table.** Shows every filtered row (no 8-row pagination). Rows are grouped by club when
    "All" clubs is selected.
+8. **Progression (Local App).**
+   - The page is a flat grid of tiles, each with its category as a small eyebrow above the title; there are no category sections.
+   - One dashboard-level **Band** toggle (P25–P75 / P10–P90) sets the band on every tile.
+   - A session with fewer than 5 values for a metric is labelled `few shots` and drawn hollow. The label shows only when 0 < n < 5; n 0 is no shots at all.
+   - For accuracy tiles (lateral, launch direction, curve) the target range applies to the absolute value, |value|.
+   - Target ranges are keyed by club and sent in the request body, not the URL, so club names with spaces or a slash round-trip.
+   - Changing the club clears a hand-picked session set; the pick belongs to the club it was made for.
+   - The scope bar, with its Shots choice line, is sticky, so the choice of all or stock shots is always on screen.
+   - While an answer for a new club or sessions loads, the previous tiles stay on screen, dimmed.
+   - Speed & smash draws two charts that share one x alignment, so the same session sits at the same x in both.

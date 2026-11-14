@@ -12,6 +12,9 @@ export type ExclusionsIn = S['ExclusionsIn'];
 export type ExclusionsOut = S['ExclusionsOut'];
 export type CheckResponse = S['CheckResponse'];
 export type ImportResponse = S['ImportResponse'];
+export type LibraryShot = S['LibraryShot'];
+export type TargetRange = S['TargetRangeOut'];
+export type TargetRangeIn = S['TargetRangeIn'];
 
 export const UNAUTHORISED_EVENT = 'mygolfviz:unauthorised';
 
@@ -79,3 +82,46 @@ export function commitImport(manifest: ImportManifest, files: { field: string; f
   for (const f of files) form.append(f.field, f.file, f.name);
   return send<ImportResponse>('/api/v1/imports', { method: 'POST', body: form });
 }
+
+/** Session ids per `GET /shots`: 200 ids of about 49 bytes each stay well under the server's 16 KB request head. */
+const SHOTS_IDS_PER_REQUEST = 200;
+
+function fetchLibraryShots(club: string | undefined, sessionIds: readonly string[]): Promise<LibraryShot[]> {
+  const q = new URLSearchParams();
+  if (club) q.set('club', club);
+  for (const id of sessionIds) q.append('session_ids', id);
+  const qs = q.toString();
+  return request<LibraryShot[]>('GET', `/api/v1/shots${qs ? `?${qs}` : ''}`);
+}
+
+/**
+ * Shots of the club (or every club) in the sessions (or every session). A long session list goes out over
+ * several requests; the answers join in the order of `sessionIds`, which callers give in session order.
+ */
+export async function listLibraryShots(opts: { club?: string; sessionIds?: string[] } = {}): Promise<LibraryShot[]> {
+  const ids = opts.sessionIds ?? [];
+  if (ids.length <= SHOTS_IDS_PER_REQUEST) return fetchLibraryShots(opts.club, ids);
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += SHOTS_IDS_PER_REQUEST) chunks.push(ids.slice(i, i + SHOTS_IDS_PER_REQUEST));
+  return (await Promise.all(chunks.map((chunk) => fetchLibraryShots(opts.club, chunk)))).flat();
+}
+
+export async function getSetting<T>(key: string): Promise<T | null> {
+  try {
+    return (await request<{ value: T }>('GET', `/api/v1/settings/${enc(key)}`)).value;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function putSetting(key: string, value: unknown): Promise<void> {
+  await request('PUT', `/api/v1/settings/${enc(key)}`, { value });
+}
+
+export function listTargetRanges(club?: string): Promise<TargetRange[]> {
+  const qs = club ? `?${new URLSearchParams({ club })}` : '';
+  return request<TargetRange[]>('GET', `/api/v1/target-ranges${qs}`);
+}
+export const putTargetRange = (body: TargetRangeIn) => request<TargetRange>('PUT', '/api/v1/target-ranges', body);
+export const deleteTargetRange = (id: string) => request<void>('DELETE', `/api/v1/target-ranges/${enc(id)}`);

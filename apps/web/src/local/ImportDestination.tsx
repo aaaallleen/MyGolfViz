@@ -9,6 +9,7 @@ import { useWorkingSet } from '../state/store';
 import * as api from './api';
 import type { CheckResponse, SessionRow } from './api';
 import type { ImportTarget } from './importPayload';
+import { parseYmd } from '../components/calendarDates';
 import { todayLocal, sortSessions } from './library';
 import { useImportCommit } from './useImportCommit';
 import { useOpenSession } from './OpenSession';
@@ -33,11 +34,15 @@ export function ImportDestination({ staged, value, onChange }: {
   else lastId.current = value.sessionId;
   const newest = useMemo(() => sortSessions(sessions ?? [], 'date-desc'), [sessions]);
 
-  // On first render: ?session=<id> picks Existing session; otherwise a new session gets today's local date.
+  // On first render: ?session=<id> picks Existing session; otherwise a new session gets the ?date= from the library
+  // calendar's "Add session data", or today's local date.
   useEffect(() => {
     const id = params.get('session');
+    const date = params.get('date');
     if (id) onChange({ sessionId: id, accept: value.accept });
-    else if (!isExisting(value) && value.newSession.date === '') onChange({ ...value, newSession: { ...value.newSession, date: todayLocal() } });
+    else if (!isExisting(value) && value.newSession.date === '') {
+      onChange({ ...value, newSession: { ...value.newSession, date: parseYmd(date) ? date! : todayLocal() } });
+    }
   }, []);
 
   useEffect(() => {

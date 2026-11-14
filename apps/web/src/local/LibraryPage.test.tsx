@@ -151,6 +151,29 @@ describe('calendar', () => {
     expect(screen.getByText('1 session')).toBeInTheDocument();
   });
 
+  test('clicking anywhere in a day box picks that day; a day with no session offers Add session data', async () => {
+    const { container } = renderPage('/sessions?view=calendar');
+    await screen.findByRole('link', { name: 'Open Driver range' });
+    const box = container.querySelector<HTMLElement>('.lib-day:not(.is-out):not(.is-today)')!;
+    const label = box.querySelector('.lib-day__num')!.getAttribute('aria-label')!;
+    await userEvent.click(box);
+    expect(box).toHaveClass('is-selected');
+    expect(screen.getByRole('heading', { level: 2, name: label })).toBeInTheDocument();
+    expect(screen.getByText('0 sessions')).toBeInTheDocument();
+    const add = screen.getByRole('link', { name: 'Add session data' });
+    expect(add.getAttribute('href')).toMatch(/^\/import\?date=\d{4}-\d{2}-\d{2}$/);
+    await userEvent.click(add);
+    expect(screen.getByTestId('where')).toHaveTextContent('/import');
+  });
+
+  test('a day with sessions shows Add session data above its sessions', async () => {
+    renderPage('/sessions?view=calendar');
+    const card = await screen.findByRole('link', { name: 'Open Driver range' });
+    const add = screen.getByRole('link', { name: 'Add session data' });
+    expect(add).toHaveAttribute('href', `/import?date=${todayLocal()}`);
+    expect(add.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test('the segmented control switches to the calendar', async () => {
     renderPage();
     await screen.findByText('Iron work');

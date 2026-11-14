@@ -25,11 +25,19 @@ describe('Nav (local build)', () => {
     expect(add).not.toHaveClass('fsa-btn--primary');
   });
 
-  test('keeps the order Sessions, +, Help', () => {
+  test('keeps the order Sessions, Progression, +, Help', () => {
     vi.stubEnv('VITE_APP_MODE', 'local');
     renderNav();
     const names = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
-    expect(names).toEqual(['Sessions', 'Load Session CSV', 'Help']);
+    expect(names).toEqual(['Sessions', 'Progression', 'Load Session CSV', 'Help']);
+  });
+
+  test('Progression links to /progression and is marked current there', () => {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    renderNav('/progression');
+    const link = screen.getByRole('link', { name: 'Progression' });
+    expect(link).toHaveAttribute('href', '/progression');
+    expect(link).toHaveAttribute('aria-current', 'page');
   });
 
   test('is marked current on the import page', () => {

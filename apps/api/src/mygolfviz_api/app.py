@@ -14,6 +14,7 @@ from .config import Settings
 from .db import make_engine, session_scope
 from .migrate import db_path, upgrade
 from .routers import imports as imports_router
+from .routers import library as library_router
 from .routers import sessions as sessions_router
 from .routers import shots as shots_router
 from .security import SecurityMiddleware
@@ -108,6 +109,7 @@ def create_app(settings: Settings, on_migrating: Callable[[], None] | None = Non
     app.include_router(imports_router.router)
     app.include_router(sessions_router.router)
     app.include_router(shots_router.router)
+    app.include_router(library_router.router)
 
     @app.get("/api/v1/health")
     def health() -> dict:

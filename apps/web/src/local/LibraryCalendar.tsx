@@ -46,7 +46,8 @@ export function LibraryCalendar({ rows }: { rows: SessionRow[] }) {
             const list = byDate.get(d.date) ?? [];
             const classes = ['lib-day', d.inMonth ? '' : 'is-out', d.date === today ? 'is-today' : '', d.date === selected ? 'is-selected' : ''].filter(Boolean).join(' ');
             return (
-              <div key={d.date} className={classes}>
+              // The whole box picks the day (the number button stays for the keyboard); session chips open their session.
+              <div key={d.date} className={classes} onClick={() => setSelected(d.date)}>
                 <button
                   type="button"
                   className="lib-day__num"
@@ -78,6 +79,7 @@ export function LibraryCalendar({ rows }: { rows: SessionRow[] }) {
             <h2>{DAY_FORMAT.format(utc(selected))}</h2>
             <span className="lib-muted">{plural(daySessions.length, 'session')}</span>
           </div>
+          <Link className="fsa-btn fsa-btn--primary fsa-touch lib-day-panel__add" to={`/import?date=${selected}`}>Add session data</Link>
           {daySessions.map((s) => (
             <Link key={s.id} to={`/sessions/${s.id}`} className="lib-day-session" aria-label={`Open ${s.name}`}>
               <span className="lib-name">{s.name}</span>

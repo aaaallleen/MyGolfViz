@@ -64,6 +64,42 @@ body { margin: 0; }
 .field--wide { flex-basis: 100%; }
 .field__input { box-sizing: border-box; padding: 0 12px; border-radius: var(--radius-control); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
 textarea.field__input { padding: 10px 12px; }
+.field__input::placeholder { color: var(--muted); opacity: 1; }
+.field__input--missing { border-color: var(--danger); }
+.field__input--missing::placeholder { color: var(--danger); }
+.field__input:focus-visible { outline: 2px solid var(--club); outline-offset: 1px; }
+
+/* Date: type it, or pick it from the calendar button inside the box. */
+.date-field { position: relative; display: flex; }
+.date-field__input { flex: 1 1 auto; min-width: 0; padding-right: 48px; color-scheme: dark; }
+.date-field__input::-webkit-calendar-picker-indicator { display: none; }
+.date-field__button { position: absolute; top: 0; right: 0; bottom: 0; width: var(--touch-target); min-height: var(--touch-target); padding: 0; border: 0; border-left: 1px solid var(--border); border-radius: 0 var(--radius-control) var(--radius-control) 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text); cursor: pointer; }
+.date-field__button:hover, .date-field__button[data-popup-open] { background: var(--surface-raised); }
+.date-field__button:focus-visible { outline: 2px solid var(--club); outline-offset: -2px; }
+.date-pop__positioner { z-index: 50; }
+.date-pop { padding: 12px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: 0 12px 32px rgb(0 0 0 / 0.45); color: var(--text); transform-origin: var(--transform-origin); }
+@media (prefers-reduced-motion: no-preference) {
+  .date-pop { transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1), transform 150ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .date-pop[data-starting-style], .date-pop[data-ending-style] { opacity: 0; transform: scale(0.96); }
+}
+.date-cal { display: flex; flex-direction: column; gap: 8px; width: 280px; }
+.date-cal__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.date-cal__month { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.date-cal__nav { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text-2); cursor: pointer; }
+.date-cal__nav:hover { background: var(--surface); color: var(--text); }
+.date-cal__grid { display: flex; flex-direction: column; gap: 2px; }
+.date-cal__row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.date-cal__weekday { padding: 4px 0; text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.date-cal__row [role="gridcell"] { display: flex; }
+.date-cal__day { flex: 1; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.date-cal__day:hover { background: var(--surface); }
+.date-cal__day.is-out { color: var(--muted); }
+.date-cal__day.is-today { border-color: var(--border-strong); font-weight: 600; }
+.date-cal__day.is-selected { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
+.date-cal__day:focus-visible { outline: 2px solid var(--club); outline-offset: 1px; }
+.date-cal__foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border); }
+.date-cal__link { min-height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--club); font: inherit; font-size: 13px; cursor: pointer; }
+.date-cal__link:hover { background: var(--surface); color: var(--link-hover); }
 .preview-list { margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .preview-row { display: flex; align-items: center; gap: 16px; padding: 10px 8px 10px 20px; border-bottom: 1px solid var(--border); }
 .preview-row:last-child { border-bottom: 0; }
@@ -419,12 +455,13 @@ textarea.field__input { padding: 10px 12px; }
 .lib-cal__arrow { width: var(--touch-target); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .lib-cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .lib-cal__weekdays { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.lib-day { min-height: 96px; box-sizing: border-box; padding: 8px; border-radius: var(--radius-control); background: var(--surface-sunken); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lib-day { min-height: 96px; box-sizing: border-box; padding: 8px; border-radius: var(--radius-control); background: var(--surface-sunken); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; min-width: 0; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .lib-day:not(.is-selected):not(.is-today):hover { border-color: var(--border-strong); } }
 .lib-day.is-out { background: transparent; }
 .lib-day.is-out .lib-day__num { color: var(--muted); }
 .lib-day.is-today { border-color: var(--text); }
 .lib-day.is-selected { background: var(--row-selected); }
-.lib-day__num { align-self: flex-start; min-width: 28px; min-height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: left; }
+.lib-day__num { cursor: pointer; align-self: flex-start; min-width: 28px; min-height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: left; }
 .lib-day__num:focus-visible, .lib-day__session:focus-visible { outline: 2px solid var(--club); outline-offset: 2px; }
 .lib-day__session { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 6px; background: var(--ball); color: var(--bg); text-decoration: none; min-width: 0; }
 .lib-day__name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -437,6 +474,7 @@ textarea.field__input { padding: 10px 12px; }
 .lib-cal__side { flex: 1 1 300px; min-width: 0; }
 .lib-day-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .lib-day-panel h2 { font-size: 18px; }
+.lib-day-panel__add { display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; padding: 0 18px; text-decoration: none; }
 .lib-day-session { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border); text-decoration: none; color: var(--text); }
 .lib-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .lib-stats div { display: flex; flex-direction: column; gap: 2px; }
