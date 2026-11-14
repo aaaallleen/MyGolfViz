@@ -88,3 +88,10 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    - The scope bar, with its Shots choice line, is sticky, so the choice of all or stock shots is always on screen.
    - While an answer for a new club or sessions loads, the previous tiles stay on screen, dimmed.
    - Speed & smash draws two charts that share one x alignment, so the same session sits at the same x in both.
+9. **Compare (Local App).**
+   - Layout B: the two shots' diagrams on the left, the "What changed" table on the right; one column on narrow windows.
+   - Shot A is white (`COMPARE_A`) and shot B is purple (`COMPARE_B`), in the header, the diagrams and the table.
+   - Δ = A − B, shown signed with the unit and no colouring: nothing is "better" or "worse". Rows sort by |Δ| / `COMPARE_SCALE`, biggest change first; a row with a missing side reads `n/a` and sorts last.
+   - The comparison lives in the URL (`/compare?a=…&b=…`, either may be absent), so every state reloads and works with Back.
+   - The Compare tab remembers the last comparison per window, in memory only: a click on the tab restores it, Back and reload do not, so Back is never trapped.
+   - The picker goes session → club → shot, sessions newest first, with an `F2`-style badge on shots when the session has 2 or more files. The B picker starts from A's session and club.
