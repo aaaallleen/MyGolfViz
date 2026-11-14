@@ -25,11 +25,11 @@ describe('Nav (local build)', () => {
     expect(add).not.toHaveClass('fsa-btn--primary');
   });
 
-  test('keeps the order Sessions, Progression, +, Help', () => {
+  test('keeps the order Sessions, Progression, Compare, +, Help', () => {
     vi.stubEnv('VITE_APP_MODE', 'local');
     renderNav();
     const names = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
-    expect(names).toEqual(['Sessions', 'Progression', 'Load Session CSV', 'Help']);
+    expect(names).toEqual(['Sessions', 'Progression', 'Compare', 'Load Session CSV', 'Help']);
   });
 
   test('Progression links to /progression and is marked current there', () => {
@@ -37,6 +37,14 @@ describe('Nav (local build)', () => {
     renderNav('/progression');
     const link = screen.getByRole('link', { name: 'Progression' });
     expect(link).toHaveAttribute('href', '/progression');
+    expect(link).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('Compare links to /compare and is marked current there', () => {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    renderNav('/compare');
+    const link = screen.getByRole('link', { name: 'Compare' });
+    expect(link).toHaveAttribute('href', '/compare');
     expect(link).toHaveAttribute('aria-current', 'page');
   });
 

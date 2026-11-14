@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from .. import models
 from ..db import session_scope
-from ..queries import excluded_shot_ids, import_row, renumber, touch, utc_now
+from ..queries import excluded_shot_ids, import_row, renumber, shot_out, touch, utc_now
 from ..schemas import ExclusionsIn, ExclusionsOut, ImportPatch, ImportRow, ShotOut
 from ..storage import STORE_LOCK
 from .sessions import get_session_or_404, not_found
@@ -34,20 +34,7 @@ def list_shots(session_id: str, request: Request) -> list[ShotOut]:
             .order_by(models.Import.ordinal, models.Shot.source_row)
         ).all()
         return [
-            ShotOut(
-                id=s.id,
-                import_id=s.import_id,
-                source_row=s.source_row,
-                shot_label=s.shot_label,
-                club=s.club,
-                shot_type=s.shot_type,
-                mode=s.mode,
-                location=s.location,
-                m=s.measurements,
-                raw=s.raw,
-                flags=list(s.flags or []),
-                excluded=(sha, s.source_row) in excluded,
-            )
+            shot_out(s, (sha, s.source_row) in excluded)
             for s, sha in rows
         ]
 

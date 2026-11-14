@@ -5,3 +5,4 @@ export * from './trajectory';
 export * from './workingSet';
 export * from './replay';
 export * from './progression';
+export * from './compare';

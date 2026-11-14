@@ -13,6 +13,7 @@ export type ExclusionsOut = S['ExclusionsOut'];
 export type CheckResponse = S['CheckResponse'];
 export type ImportResponse = S['ImportResponse'];
 export type LibraryShot = S['LibraryShot'];
+export type ShotDetail = S['ShotDetail'];
 export type TargetRange = S['TargetRangeOut'];
 export type TargetRangeIn = S['TargetRangeIn'];
 
@@ -109,6 +110,15 @@ export async function listLibraryShots(opts: { club?: string; sessionIds?: strin
 export async function getSetting<T>(key: string): Promise<T | null> {
   try {
     return (await request<{ value: T }>('GET', `/api/v1/settings/${enc(key)}`)).value;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function getShot(id: string): Promise<ShotDetail | null> {
+  try {
+    return await request<ShotDetail>('GET', `/api/v1/shots/${enc(id)}`);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;

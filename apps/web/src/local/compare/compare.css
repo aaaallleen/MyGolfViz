@@ -1,0 +1,68 @@
+.shot-picker__field { display: flex; flex-direction: column; gap: 6px; }
+.shot-picker__field label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.shot-picker__field .fsa-select { width: 100%; }
+.shot-picker__state { display: flex; flex-direction: column; gap: 12px; }
+
+/* Compare page (local build) */
+.compare { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.compare h1 { font-family: var(--font-display); font-size: 34px; line-height: 1.1; margin: 0; }
+.compare h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.compare-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Slot cards in one row that wraps: A, B, then C and D, then Add shot. */
+.compare-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.compare-head__add { align-self: center; flex: none; }
+.compare-slot { flex: 1 1 200px; min-width: 0; padding: 14px 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--slot-color); border-radius: var(--radius-card); }
+@media (max-width: 599px) {
+  .compare-slot { flex-basis: 100%; }
+  .compare-head__add { align-self: flex-start; }
+}
+.compare-slot--a { --slot-color: var(--compare-a); }
+.compare-slot--b { --slot-color: var(--compare-b); }
+.compare-slot--c { --slot-color: var(--compare-c); }
+.compare-slot--d { --slot-color: var(--compare-d); }
+.compare-slot__top { width: 100%; display: flex; align-items: flex-start; gap: 8px; }
+.compare-slot__label { flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: baseline; gap: 8px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.compare-slot__remove { flex: none; min-width: 44px; margin: -12px -12px 0 0; padding: 0 12px; font-size: 20px; line-height: 1; color: var(--text-2); }
+/* Shot A is the baseline every change is measured from. */
+.compare-baseline { flex: none; margin-block: -2px; padding: 2px 8px; border-radius: var(--radius-pill); border: 1px solid var(--compare-a); color: var(--compare-a); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.4; }
+.compare-table .compare-baseline { margin-inline-start: 4px; font-size: 10px; padding: 1px 6px; vertical-align: 1px; }
+.compare-slot__date { white-space: nowrap; }
+.compare-slot__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.compare-slot__swatch { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--slot-color); }
+.compare-slot__msg { margin: 0; color: var(--text-2); font-size: 14px; }
+.compare-hint { margin: 0; color: var(--text-2); }
+.compare-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+
+/* Diagrams left, table right on wide windows; one column below 1024 px. With three or four shots the table
+   needs more room: half the width from 1200 px, and below the diagrams until then. */
+.compare-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 1024px) {
+  .compare-body:not(.compare-body--many) { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+}
+@media (min-width: 1200px) {
+  .compare-body--many { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.compare-diagrams { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.compare-diagram { min-width: 0; }
+.compare-diagram .fsa-delivery { max-width: 360px; }
+
+/* The table wraps metric names first; a scroll inside the card is the last resort, never a page scroll. */
+.compare-changed { min-width: 0; overflow-x: auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.compare-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.compare-table caption { margin-bottom: 8px; text-align: left; font-weight: 600; color: var(--text); }
+.compare-table th, .compare-table td { padding: 6px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+.compare-table thead th { font-size: 12px; font-weight: 500; color: var(--muted); }
+.compare-table thead th:first-child { text-align: left; }
+.compare-table tbody th { text-align: left; font-weight: 500; color: var(--text); }
+/* The values are what to read; each change from A is a quieter reference line under its value. */
+.compare-table td { color: var(--text); white-space: nowrap; vertical-align: top; }
+.compare-table__value, .compare-table__delta { display: block; }
+.compare-table__delta { margin-top: 1px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.compare-table tbody tr:last-child > * { border-bottom: 0; }
+.compare-table thead th.compare-table__slot { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.compare-table .compare-table__slot--a { color: var(--compare-a); }
+.compare-table .compare-table__slot--b { color: var(--compare-b); }
+.compare-table .compare-table__slot--c { color: var(--compare-c); }
+.compare-table .compare-table__slot--d { color: var(--compare-d); }

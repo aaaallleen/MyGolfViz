@@ -14,6 +14,10 @@ export interface TrajectoryPlotProps {
   xMax?: number;
   /** viewBox width; pass the top view's value so the two line up. */
   width?: number;
+  /** Draw every group at full emphasis (Compare's two shots). */
+  allOn?: boolean;
+  /** Label each curve's carry (yd) at its landing point, in its group colour. */
+  endLabels?: boolean;
 }
 
 const T = 20, BOTTOM = 40;
@@ -31,7 +35,42 @@ function apex(c: TrajectoryCurve): number {
   return max;
 }
 
-export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax, width = PATTERN_WIDTH }: TrajectoryPlotProps) {
+const LABEL_GAP = 26, LABEL_LIFT = 14;
+
+type LabelPlace = { anchor: 'start' | 'middle' | 'end'; lift: number };
+
+/**
+ * Keeps carry labels apart. Labels closer than LABEL_GAP form a cluster: a pair with different carries splits,
+ * the shorter ending at its landing point and the longer starting there; equal carries, or three or more close
+ * ones, stack upwards in the order they were given.
+ */
+function labelPlacements(curves: TrajectoryCurve[], sx: (n: number) => number): Map<TrajectoryCurve, LabelPlace> {
+  const out = new Map<TrajectoryCurve, LabelPlace>();
+  const x = (c: TrajectoryCurve) => sx(c.p3[0]);
+  const clusters: TrajectoryCurve[][] = [];
+  let last: TrajectoryCurve | null = null;
+  for (const c of [...curves].sort((p, q) => x(p) - x(q))) {
+    const open = clusters[clusters.length - 1];
+    if (open && last && x(c) - x(last) < LABEL_GAP) open.push(c);
+    else clusters.push([c]);
+    last = c;
+  }
+  for (const cl of clusters) {
+    const [lo, hi] = cl;
+    if (cl.length === 1 && lo) {
+      out.set(lo, { anchor: 'middle', lift: 0 });
+    } else if (cl.length === 2 && lo && hi && x(hi) - x(lo) >= 0.5) {
+      out.set(lo, { anchor: 'end', lift: 0 });
+      out.set(hi, { anchor: 'start', lift: 0 });
+    } else {
+      [...cl].sort((p, q) => curves.indexOf(p) - curves.indexOf(q))
+        .forEach((c, rank) => out.set(c, { anchor: 'middle', lift: rank * LABEL_LIFT }));
+    }
+  }
+  return out;
+}
+
+export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax, width = PATTERN_WIDTH, allOn = false, endLabels = false }: TrajectoryPlotProps) {
   const all = groups.flatMap((g) => g.curves.map((c) => ({ c, g })));
   if (all.length === 0) {
     return <p className="fsa-trajectory fsa-trajectory--empty">No shots with launch, apex, descent and carry</p>;
@@ -48,6 +87,7 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
 
   const sel = all.find(({ c }) => c.shotId === selectedId) ?? null;
   const ordered = [...groups].sort((a, b) => Number(a.club === highlightClub) - Number(b.club === highlightClub));
+  const places = endLabels ? labelPlacements(ordered.flatMap((g) => g.curves), sx) : null;
   const d = (c: TrajectoryCurve) =>
     `M${r1(sx(c.p0[0]))} ${r1(sy(c.p0[1]))} C${r1(sx(c.p1[0]))} ${r1(sy(c.p1[1]))} ${r1(sx(c.p2[0]))} ${r1(sy(c.p2[1]))} ${r1(sx(c.p3[0]))} ${r1(sy(c.p3[1]))}`;
   const aria =
@@ -69,7 +109,7 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
         </g>
         <line x1={L} y1={B} x2={R} y2={B} stroke={MUTED} strokeWidth={1.5} />
         {ordered.map((g) => {
-          const level = emphasis(g.club, highlightClub);
+          const level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return (
             <g key={g.club} fill="none" stroke={g.color} strokeOpacity={LINE[level]} strokeWidth={level === 'on' ? 1.75 : 1.25}>
               {g.curves.filter((c) => c.shotId !== selectedId).map((c) => (
@@ -84,6 +124,16 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
             <circle cx={r1(sx(sel.c.p3[0]))} cy={r1(sy(0))} r={5} fill={INK} />
           </g>
         )}
+        {endLabels && ordered.map((g) => (
+          <g key={`end-${g.club}`} fill={g.color} fontSize={12} fontWeight={600} fontFamily={FONT}>
+            {g.curves.map((c) => {
+              const { anchor, lift } = places!.get(c)!;
+              return (
+                <text key={c.shotId} data-testid="end-label" textAnchor={anchor} x={r1(sx(c.p3[0]))} y={r1(sy(0) - 8 - lift)}>{Math.round(c.p3[0])}</text>
+              );
+            })}
+          </g>
+        ))}
         <g fill={MUTED} fontSize={12} fontFamily={FONT}>
           {yTicks.map((t) => <text key={`ty${t}`} x={8} y={r1(sy(t / 3) + 4)}>{t} ft</text>)}
           {xTicks.map((t) => <text key={`tx${t}`} x={r1(sx(t))} y={r1(B + 18)} textAnchor="middle">{t}</text>)}

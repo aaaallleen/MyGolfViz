@@ -15,7 +15,7 @@ vi.mock('./api', () => ({
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 vi.mock('../routes', async () => {
   const { ImportsPanel } = await import('./ImportsPanel');
-  return { OverviewPage: () => <ImportsPanel />, InspectorPage: () => null };
+  return { OverviewPage: () => <ImportsPanel />, InspectorPage: (await import('../pages/InspectorPage')).InspectorPage };
 });
 import * as api from './api';
 import { SessionRoute } from './SessionRoute';
@@ -38,15 +38,16 @@ function Preload({ children }: { children: React.ReactNode }) {
   return ws.sessionId === 's1' ? <>{children}</> : null;
 }
 
-const tree = (preload: boolean) => {
+const tree = (preload: boolean, entry = '/sessions/s1') => {
   const routes = (
     <Routes>
       <Route path="/sessions" element={<Link to="/sessions/s1">open</Link>} />
+      <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
       <Route path="/sessions/:id" element={<><Link to="/sessions">back</Link><SessionRoute page="overview" /></>} />
     </Routes>
   );
   return (
-    <MemoryRouter initialEntries={['/sessions/s1']}>
+    <MemoryRouter initialEntries={[entry]}>
       <WorkingSetProvider>
         <OpenSessionProvider>{preload ? <Preload>{routes}</Preload> : routes}</OpenSessionProvider>
       </WorkingSetProvider>
@@ -68,5 +69,15 @@ describe('SessionRoute and the files panel', () => {
     render(tree(true));
     expect(await screen.findByRole('heading', { name: 'Files' })).toBeInTheDocument();
     await waitFor(() => expect(api.getSession).toHaveBeenCalledTimes(1));
+  });
+
+  test('the Shot Inspector offers Compare… for the open shot in local mode', async () => {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    try {
+      render(tree(false, '/sessions/s1/inspect'));
+      expect(await screen.findByRole('link', { name: 'Compare…' })).toHaveAttribute('href', '/compare?a=x1');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

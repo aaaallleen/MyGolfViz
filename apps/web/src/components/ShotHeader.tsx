@@ -39,6 +39,9 @@ export function ShotHeader({ shot, shots, ordered, excludedIds, excluded, files,
         <div className="inspector-head__title-row">
           <h1>{`Shot ${label} · ${shot.club}`}</h1>
           {excluded ? <span className="excluded-tag">Excluded</span> : <Button onClick={onExclude}>Exclude shot</Button>}
+          {paths.compare !== null && (
+            <Link className="fsa-btn fsa-btn--secondary fsa-touch" to={{ pathname: paths.compare, search: `?a=${encodeURIComponent(shot.id)}` }} state={{ pickB: true }}>Compare…</Link>
+          )}
         </div>
         <ul className="inspector-head__chips" aria-label="Shot details">
           <li>{`File ${file?.ordinal ?? '?'} · ${file?.name ?? ''}`}</li>

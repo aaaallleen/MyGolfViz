@@ -59,6 +59,25 @@ def import_row(i: models.Import):
     )
 
 
+def shot_out(s: models.Shot, excluded: bool):
+    from .schemas import ShotOut
+
+    return ShotOut(
+        id=s.id,
+        import_id=s.import_id,
+        source_row=s.source_row,
+        shot_label=s.shot_label,
+        club=s.club,
+        shot_type=s.shot_type,
+        mode=s.mode,
+        location=s.location,
+        m=s.measurements,
+        raw=s.raw,
+        flags=list(s.flags or []),
+        excluded=excluded,
+    )
+
+
 def session_imports(db: DbSession, session_id: str) -> list[models.Import]:
     return list(
         db.scalars(

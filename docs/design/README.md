@@ -88,3 +88,15 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    - The scope bar, with its Shots choice line, is sticky, so the choice of all or stock shots is always on screen.
    - While an answer for a new club or sessions loads, the previous tiles stay on screen, dimmed.
    - Speed & smash draws two charts that share one x alignment, so the same session sits at the same x in both.
+9. **Compare (Local App).**
+   - Two to four shots. A and B are always there; **+ Add shot** adds C, then D, from the first visit on (it goes away at four). C and D each have a × to remove them; removing C moves D up to C. The diagrams and table show once A and at least one other shot are chosen.
+   - **Clear comparison** (beside the title, once any shot is chosen) empties the page and makes the Compare tab forget it; Back still returns to it.
+   - **Shot A is the baseline**: it carries a "Baseline" tag in its slot and in the table header, and every change is measured from it.
+   - Layout B: the shots' diagrams on the left, the "What changed from A" table on the right; one column on narrow windows. With three or four shots the table takes half the width from 1200 px and sits below the diagrams under that.
+   - The top view is **Ball flight (top view)**: each shot's flight is drawn from the tee to its landing dot in its colour, leaving along its launch direction (H-launch), the same curve as the 3D replay; it is labelled illustrative, and a shot without H-launch is drawn straight with a note.
+   - Shot A is white (`COMPARE_A`), B purple (`COMPARE_B`), C amber (`COMPARE_C`) and D teal (`COMPARE_D`), in the header, the diagrams and the table.
+   - The table has the baseline column A, then one column per other shot showing its value and, under it, Δ = that shot − A in a smaller, muted grey (the values are what to read; Δ is a reference), signed with the unit and no colouring: nothing is "better" or "worse". Rows sort by the biggest |Δ| / `COMPARE_SCALE` across the shots; a missing value reads `n/a` and a row with no Δ at all sorts last.
+   - There is no Swap: B, C and D each have **Make baseline**, which trades that shot with A.
+   - The comparison lives in the URL (`/compare?a=…&b=…&c=…&d=…`; any may be absent, a lone d reads as C), so every state reloads and works with Back.
+   - The Compare tab remembers the last comparison per window, in memory only: a click on the tab restores it, Back and reload do not, so Back is never trapped.
+   - The picker goes session → club → shot, sessions newest first, with an `F2`-style badge on shots when the session has 2 or more files. An empty slot's picker starts from the baseline's session and club (another chosen shot's, for an empty A); a filled slot's starts from its own shot.

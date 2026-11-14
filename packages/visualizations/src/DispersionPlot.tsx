@@ -16,7 +16,15 @@ export interface DispersionPlotProps {
   selectedLaunchH?: number | null;
   /** viewBox width; the plot keeps one yard the same length on both axes. */
   width?: number;
-  onSelect(shotId: string): void;
+  /** Draw every group at full emphasis (Compare's two shots). */
+  allOn?: boolean;
+  /**
+   * Shots whose ball flight is drawn from the tee to the landing dot in their group's colour, with each
+   * shot's horizontal launch (deg, right +; null draws a straight line). Compare draws every shot this way.
+   */
+  flightPaths?: Readonly<Record<string, number | null>>;
+  /** Makes landing dots clickable; without it they are plain marks. */
+  onSelect?(shotId: string): void;
   labelFor(shotId: string): string;
 }
 
@@ -38,7 +46,7 @@ const r1 = (n: number) => Number(n.toFixed(1));
 const r3 = (n: number) => Number(n.toFixed(3));
 const tickLat = (t: number) => (t === 0 ? 'Target' : `${Math.abs(t)} ${t < 0 ? 'L' : 'R'}`);
 
-export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, onSelect, labelFor }: DispersionPlotProps) {
+export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, allOn = false, flightPaths, onSelect, labelFor }: DispersionPlotProps) {
   const note = NOTE[mode];
   const points = groups.flatMap((g) => g.stats.points);
 
@@ -74,6 +82,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
   const aria =
     `Top-down dispersion of ${word.toLowerCase()} distance from the tee against lateral landing, one colour per club, with a target centre line.` +
     (highlightClub ? ` ${highlightClub} highlighted.` : '') +
+    (flightPaths ? ' Each shot’s ball flight is drawn from the tee to where it lands.' : '') +
     (sel ? ` Selected ${labelFor(sel.shotId)} lands at ${r1(sel.y)} yards, ${r1(Math.abs(sel.x))} yards ${sel.x < 0 ? 'left' : 'right'}.` : '');
 
   // Ellipse: the unit circle mapped by the principal axes. Data is (lateral, distance); the screen
@@ -83,13 +92,14 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
     return `matrix(${[k * e.rx * s, k * e.rx * c, k * e.ry * c, -k * e.ry * s, sx(e.cy), sy(e.cx)].map(r3).join(' ')})`;
   };
 
-  // The selected shot's path seen from above: leaves the tee along its launch direction, ends where it lands.
-  let path: string | null = null;
-  if (sel) {
-    const lh = selectedLaunchH === null ? null : (selectedLaunchH * Math.PI) / 180;
-    const ctrlLat = lh === null ? sel.x / 2 : (sel.y / 2) * Math.tan(lh);
-    path = `M${r1(sx(0))} ${r1(sy(0))} Q${r1(sx(sel.y / 2))} ${r1(sy(ctrlLat))} ${r1(sx(sel.y))} ${r1(sy(sel.x))}`;
-  }
+  // A ball flight seen from above: leaves the tee along its launch direction and ends where it lands
+  // (the same curve the 3D replay draws). Without a launch direction it is a straight line.
+  const flight = (p: { x: number; y: number }, launchH: number | null) => {
+    const lh = launchH === null ? null : (launchH * Math.PI) / 180;
+    const ctrlLat = lh === null ? p.x / 2 : (p.y / 2) * Math.tan(lh);
+    return `M${r1(sx(0))} ${r1(sy(0))} Q${r1(sx(p.y / 2))} ${r1(sy(ctrlLat))} ${r1(sx(p.y))} ${r1(sy(p.x))}`;
+  };
+  const path = sel ? flight(sel, selectedLaunchH) : null;
   const labelLeft = sel !== null && sx(sel.y) > R - 140;
 
   return (
@@ -113,7 +123,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           <text x={8} y={18} fontSize={11}>Lateral landing (yd) · left above the target line</text>
         </g>
         {ordered.map((g) => {
-          const e = g.stats.ellipse, level = emphasis(g.club, highlightClub);
+          const e = g.stats.ellipse, level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return e && (
             <circle key={`el-${g.club}`} data-testid="ellipse" data-club={g.club} cx={0} cy={0} r={1} transform={ellipseMatrix(e)}
               fill={g.color} fillOpacity={FILL[level]} stroke={g.color} strokeOpacity={RING[level]}
@@ -121,7 +131,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           );
         })}
         {ordered.map((g) => {
-          const c = g.stats.centroid, level = emphasis(g.club, highlightClub);
+          const c = g.stats.centroid, level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return c && (
             <g key={`mean-${g.club}`} data-testid="centroid" data-club={g.club} stroke={g.color} strokeOpacity={RING[level]} strokeWidth={1.5}>
               <line x1={r1(sx(c.y) - 6)} y1={r1(sy(c.x))} x2={r1(sx(c.y) + 6)} y2={r1(sy(c.x))} />
@@ -129,14 +139,21 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
             </g>
           );
         })}
+        {flightPaths && ordered.map((g) => (
+          <g key={`fl-${g.club}`} fill="none" stroke={g.color} strokeOpacity={0.85} strokeWidth={2} strokeLinecap="round">
+            {g.stats.points.filter((p) => p.shotId in flightPaths).map((p) => (
+              <path key={p.shotId} data-testid="flight-path" data-shot-id={p.shotId} d={flight(p, flightPaths[p.shotId] ?? null)} />
+            ))}
+          </g>
+        ))}
         {ordered.map((g) => {
-          const level = emphasis(g.club, highlightClub);
+          const level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return (
             <g key={`pts-${g.club}`} fill={g.color} fillOpacity={DOT[level]}
               {...(level === 'on' ? { stroke: SURFACE, strokeWidth: 1.5 } : {})}>
               {g.stats.points.filter((p) => p.shotId !== selectedId).map((p) => (
                 <circle key={p.shotId} data-shot-id={p.shotId} data-club={g.club} cx={r1(sx(p.y))} cy={r1(sy(p.x))} r={level === 'on' ? 5.5 : 5}
-                  style={{ cursor: 'pointer' }} onClick={() => onSelect(p.shotId)} />
+                  {...(onSelect ? { style: { cursor: 'pointer' }, onClick: () => onSelect(p.shotId) } : {})} />
               ))}
             </g>
           );
@@ -145,7 +162,8 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           <g>
             <path data-testid="selected-path" d={path} fill="none" stroke={INK} strokeOpacity={0.7} strokeWidth={1.5} />
             <circle data-shot-id={sel.shotId} aria-current="true" cx={r1(sx(sel.y))} cy={r1(sy(sel.x))} r={8}
-              fill={INK} stroke={SURFACE} strokeWidth={2} style={{ cursor: 'pointer' }} onClick={() => onSelect(sel.shotId)} />
+              fill={INK} stroke={SURFACE} strokeWidth={2}
+              {...(onSelect ? { style: { cursor: 'pointer' }, onClick: () => onSelect(sel.shotId) } : {})} />
             <text x={r1(sx(sel.y) + (labelLeft ? -14 : 14))} y={r1(sy(sel.x) - 8)} textAnchor={labelLeft ? 'end' : 'start'}
               fill={INK} fontSize={13} fontWeight={600} fontFamily={FONT} stroke={SURFACE} strokeWidth={3} paintOrder="stroke">
               {labelFor(sel.shotId)}

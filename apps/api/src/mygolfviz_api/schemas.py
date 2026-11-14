@@ -119,6 +119,12 @@ class ShotOut(CamelModel):
     excluded: bool
 
 
+class ShotDetail(CamelModel):
+    shot: ShotOut
+    session: SessionRow
+    import_: ImportRow = Field(alias="import")
+
+
 class LibraryShot(CamelModel):
     id: str
     session_id: str
