@@ -44,14 +44,25 @@ export interface TileFrameProps {
   subtitle?: ReactNode;
   /** Extra class on the article, e.g. `prog-tile--wide`. */
   className?: string;
-  children?: ReactNode;
+  /** The big number and the change line. */
+  headline?: ReactNode;
+  /** The chart(s). */
+  body?: ReactNode;
+  /** Legend, caption, notes and the target range control. */
+  notes?: ReactNode;
+  /** The Details expander. */
+  footer?: ReactNode;
 }
 
-export function TileFrame({ def, controls, subtitle, className, children }: TileFrameProps) {
+/**
+ * A dashboard tile in five rows: title, headline, chart, notes, details. The rows are shared with the other tiles
+ * in the same grid row (CSS subgrid), so headlines, charts and Details line up across tiles of different contents.
+ */
+export function TileFrame({ def, controls, subtitle, className, headline, body, notes, footer }: TileFrameProps) {
   const id = useId();
   return (
     <article className={className ? `prog-tile ${className}` : 'prog-tile'} aria-labelledby={id}>
-      <header className="prog-tile__head">
+      <header className="prog-tile__head" data-slot="head">
         <div>
           <div className="prog-tile__eyebrow">{categoryTitle(def)}</div>
           <h2 id={id} className="prog-tile__title">{def.title}</h2>
@@ -59,7 +70,10 @@ export function TileFrame({ def, controls, subtitle, className, children }: Tile
         </div>
         <div className="prog-tile__controls">{controls}</div>
       </header>
-      {children}
+      <div className="prog-tile__slot" data-slot="headline">{headline}</div>
+      <div className="prog-tile__slot" data-slot="body">{body}</div>
+      <div className="prog-tile__slot" data-slot="notes">{notes}</div>
+      <div className="prog-tile__slot" data-slot="footer">{footer}</div>
     </article>
   );
 }
@@ -172,65 +186,77 @@ export function MetricTile({ def, sessions, shots, scope, range, controls, range
   const what = variation ? 'SD' : accuracy ? 'median distance from the line' : 'median';
 
   return (
-    <TileFrame def={def} controls={controls}>
-      <div className="prog-tile__headline">
-        <span className="prog-tile__value">{headline}</span>
-        <span className="prog-tile__what">{`S${last} · ${what}`}</span>
-        {latestInRange && <span className="prog-tile__inrange">{`${Math.round(latestInRange.pct)}% in range`}</span>}
-      </div>
-      {changeLine && <div className="prog-tile__change">{changeLine}</div>}
-      <TrendChart
-        title={`${def.title} by session`}
-        sessions={chartSessions}
-        series={series}
-        target={target}
-        formatTick={tickFormatter(key)}
-        // Signed values (L/R, up/down, ahead/behind): show where zero is.
-        zeroLine={fieldDef(key).direction !== null && !variation}
-      />
-      {variation ? (
-        <p className="prog-tile__caption">Lower = more consistent</p>
-      ) : (
-        <ul className="prog-legend">
-          {series.map((s) => (
-            <li key={s.name}>
-              <span className="prog-legend__swatch" style={{ background: s.color }} aria-hidden="true" />
-              {s.name}
-            </li>
-          ))}
-          <li className="prog-legend__band">{`Band: ${BAND_LABEL[scope.band]}`}</li>
-          {target && (
-            <li>
-              <span className="prog-legend__target" aria-hidden="true" />
-              {`Target range: ${rangeText(key, target, accuracy)}`}
-            </li>
-          )}
-        </ul>
+    <TileFrame
+      def={def}
+      controls={controls}
+      headline={(
+        <>
+          <div className="prog-tile__headline">
+            <span className="prog-tile__value">{headline}</span>
+            <span className="prog-tile__what">{`S${last} · ${what}`}</span>
+            {latestInRange && <span className="prog-tile__inrange">{`${Math.round(latestInRange.pct)}% in range`}</span>}
+          </div>
+          {changeLine && <div className="prog-tile__change">{changeLine}</div>}
+        </>
       )}
-      {rangeEditor && (editingRange ? (
-        <TargetRangeForm
-          metric={key}
-          abs={accuracy}
-          range={range}
-          onSave={(low, high) => { rangeEditor.save(low, high); closeRange(); }}
-          onClear={() => { rangeEditor.clear(); closeRange(); }}
-          onCancel={closeRange}
+      body={(
+        <TrendChart
+          title={`${def.title} by session`}
+          sessions={chartSessions}
+          series={series}
+          target={target}
+          formatTick={tickFormatter(key)}
+          // Signed values (L/R, up/down, ahead/behind): show where zero is.
+          zeroLine={fieldDef(key).direction !== null && !variation}
         />
-      ) : (
-        <div className="prog-tile__range">
-          {/* aria-disabled, not disabled, while a save is in flight: the button keeps focus after the form closes. */}
-          <button
-            ref={rangeButton}
-            type="button"
-            className="fsa-btn fsa-btn--ghost fsa-touch"
-            aria-disabled={rangeEditor.busy}
-            onClick={() => { if (!rangeEditor.busy) setEditingRange(true); }}
-          >
-            Set target range
-          </button>
-        </div>
-      ))}
-      <TileDetails metric={key} sessions={sessions} stats={stats} abs={accuracy} signed={signed} hasRange={target !== null} />
-    </TileFrame>
+      )}
+      notes={(
+        <>
+          {variation ? (
+            <p className="prog-tile__caption">Lower = more consistent</p>
+          ) : (
+            <ul className="prog-legend">
+              {series.map((s) => (
+                <li key={s.name}>
+                  <span className="prog-legend__swatch" style={{ background: s.color }} aria-hidden="true" />
+                  {s.name}
+                </li>
+              ))}
+              <li className="prog-legend__band">{`Band: ${BAND_LABEL[scope.band]}`}</li>
+              {target && (
+                <li>
+                  <span className="prog-legend__target" aria-hidden="true" />
+                  {`Target range: ${rangeText(key, target, accuracy)}`}
+                </li>
+              )}
+            </ul>
+          )}
+          {rangeEditor && (editingRange ? (
+            <TargetRangeForm
+              metric={key}
+              abs={accuracy}
+              range={range}
+              onSave={(low, high) => { rangeEditor.save(low, high); closeRange(); }}
+              onClear={() => { rangeEditor.clear(); closeRange(); }}
+              onCancel={closeRange}
+            />
+          ) : (
+            <div className="prog-tile__range">
+              {/* aria-disabled, not disabled, while a save is in flight: the button keeps focus after the form closes. */}
+              <button
+                ref={rangeButton}
+                type="button"
+                className="fsa-btn fsa-btn--ghost fsa-touch"
+                aria-disabled={rangeEditor.busy}
+                onClick={() => { if (!rangeEditor.busy) setEditingRange(true); }}
+              >
+                Set target range
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+      footer={<TileDetails metric={key} sessions={sessions} stats={stats} abs={accuracy} signed={signed} hasRange={target !== null} />}
+    />
   );
 }

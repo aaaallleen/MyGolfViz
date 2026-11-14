@@ -115,22 +115,29 @@ function MishitTile({ def, sessions, shots, controls }: SpecialTileProps) {
 
   return (
     // Mishits are the excluded shots, so the Shots switch does not apply.
-    <TileFrame def={def} controls={controls} subtitle="All shots">
-      <Headline
-        value={latest ? `${latest.excluded} of ${latest.total} · ${Math.round(latest.rate * 100)}%` : NOT_MEASURED}
-        what={`S${sessions.length} · excluded of all shots`}
-      />
-      <TrendChart title={`${def.title} by session`} sessions={chartSessions} series={series} formatTick={percent} />
-      <p className="prog-tile__caption">A mishit is a shot you excluded.</p>
-      <Details
-        columns={['Excluded', 'Shots', 'Rate']}
-        sessions={sessions}
-        cells={(i) => {
-          const f = freq[i];
-          return f ? [f.excluded, <>{f.total}{few[i] && <span className="prog-few"> · few shots</span>}</>, percent(f.rate * 100)] : [0, 0, NOT_MEASURED];
-        }}
-      />
-    </TileFrame>
+    <TileFrame
+      def={def}
+      controls={controls}
+      subtitle="All shots"
+      headline={(
+        <Headline
+          value={latest ? `${latest.excluded} of ${latest.total} · ${Math.round(latest.rate * 100)}%` : NOT_MEASURED}
+          what={`S${sessions.length} · excluded of all shots`}
+        />
+      )}
+      body={<TrendChart title={`${def.title} by session`} sessions={chartSessions} series={series} formatTick={percent} />}
+      notes={<p className="prog-tile__caption">A mishit is a shot you excluded.</p>}
+      footer={(
+        <Details
+          columns={['Excluded', 'Shots', 'Rate']}
+          sessions={sessions}
+          cells={(i) => {
+            const f = freq[i];
+            return f ? [f.excluded, <>{f.total}{few[i] && <span className="prog-few"> · few shots</span>}</>, percent(f.rate * 100)] : [0, 0, NOT_MEASURED];
+          }}
+        />
+      )}
+    />
   );
 }
 
@@ -163,24 +170,32 @@ function SpeedSmashTile({ def, sessions, shots, scope, controls }: SpecialTilePr
   const chartSessions = sessions.map((s, i) => ({ label: label(i), tooltip: `${sessionText(s, i)} · n ${ball[i]!.total}` }));
 
   return (
-    <TileFrame def={def} controls={controls}>
-      <Headline value={`${speeds} · smash ${formatMeasurement('smash', sm)}`} what={`S${sessions.length} · medians`} long />
-      <TrendChart title="Club and ball speed by session" sessions={chartSessions} series={speedSeries} formatTick={speedTick} minLeft={left} />
-      <Legend series={speedSeries} />
-      <TrendChart
-        title="Smash by session"
-        sessions={chartSessions}
-        series={smashSeries}
-        formatTick={smashTick}
-        height={90}
-        minLeft={left}
-      />
-      <Details
-        columns={['Club speed', 'Ball speed', 'Smash']}
-        sessions={sessions}
-        cells={(i) => all.map((stats, k) => `${formatMeasurement(SPEED_KEYS[k]!, stats[i]!.median)}${fewText(stats[i]!)}`)}
-      />
-    </TileFrame>
+    <TileFrame
+      def={def}
+      controls={controls}
+      headline={<Headline value={`${speeds} · smash ${formatMeasurement('smash', sm)}`} what={`S${sessions.length} · medians`} long />}
+      body={<TrendChart title="Club and ball speed by session" sessions={chartSessions} series={speedSeries} formatTick={speedTick} minLeft={left} />}
+      notes={(
+        <>
+          <Legend series={speedSeries} />
+          <TrendChart
+            title="Smash by session"
+            sessions={chartSessions}
+            series={smashSeries}
+            formatTick={smashTick}
+            height={90}
+            minLeft={left}
+          />
+        </>
+      )}
+      footer={(
+        <Details
+          columns={['Club speed', 'Ball speed', 'Smash']}
+          sessions={sessions}
+          cells={(i) => all.map((stats, k) => `${formatMeasurement(SPEED_KEYS[k]!, stats[i]!.median)}${fewText(stats[i]!)}`)}
+        />
+      )}
+    />
   );
 }
 
@@ -215,36 +230,43 @@ function ImpactTile({ def, sessions, shots, scope, controls }: SpecialTileProps)
   }));
 
   return (
-    <TileFrame def={def} controls={controls} className="prog-tile--wide">
-      <Headline value={inches(latest)} what={`S${sessions.length} · mean distance from face centre`} />
-      <div className="prog-impact">
-        <div className="prog-impact__map">
-          <SelectField label="Sessions" value={selected} options={options} onChange={(value) => setPick({ forIds: idsKey, value })} />
-          <ImpactHeatmap counts={map.counts} title={`Impact heatmap · ${options[index + 1]!.label}`} />
-          {notMeasured > 0 && <p className="prog-tile__note">{`Impact not measured: ${notMeasured} of ${map.total}`}</p>}
+    <TileFrame
+      def={def}
+      controls={controls}
+      className="prog-tile--wide"
+      headline={<Headline value={inches(latest)} what={`S${sessions.length} · mean distance from face centre`} />}
+      body={(
+        <div className="prog-impact">
+          <div className="prog-impact__map">
+            <SelectField label="Sessions" value={selected} options={options} onChange={(value) => setPick({ forIds: idsKey, value })} />
+            <ImpactHeatmap counts={map.counts} title={`Impact heatmap · ${options[index + 1]!.label}`} />
+            {notMeasured > 0 && <p className="prog-tile__note">{`Impact not measured: ${notMeasured} of ${map.total}`}</p>}
+          </div>
+          <div className="prog-impact__trend">
+            <TrendChart
+              title="Distance from face centre"
+              sessions={chartSessions}
+              series={[{ name: 'Mean distance', color: BALL, values: stats.map((s) => s.meanDistance), few: measuredFew }]}
+              formatTick={tickFormatter('impactLateral')}
+            />
+            <p className="prog-tile__caption">Distance from face centre · mean per session</p>
+          </div>
         </div>
-        <div className="prog-impact__trend">
-          <TrendChart
-            title="Distance from face centre"
-            sessions={chartSessions}
-            series={[{ name: 'Mean distance', color: BALL, values: stats.map((s) => s.meanDistance), few: measuredFew }]}
-            formatTick={tickFormatter('impactLateral')}
-          />
-          <p className="prog-tile__caption">Distance from face centre · mean per session</p>
-        </div>
-      </div>
-      <Details
-        columns={['Measured', 'Mean distance', 'SD of distance', 'SD lateral', 'SD vertical']}
-        sessions={sessions}
-        cells={(i) => {
-          const st = stats[i]!;
-          return [
-            <>{`${st.measured} of ${st.total}`}{measuredFew[i] && <span className="prog-few"> · few shots</span>}</>,
-            inches(st.meanDistance), inches(st.sdDistance), inches(st.sdLateral), formatPlain('impactVertical', st.sdVertical),
-          ];
-        }}
-      />
-    </TileFrame>
+      )}
+      footer={(
+        <Details
+          columns={['Measured', 'Mean distance', 'SD of distance', 'SD lateral', 'SD vertical']}
+          sessions={sessions}
+          cells={(i) => {
+            const st = stats[i]!;
+            return [
+              <>{`${st.measured} of ${st.total}`}{measuredFew[i] && <span className="prog-few"> · few shots</span>}</>,
+              inches(st.meanDistance), inches(st.sdDistance), inches(st.sdLateral), formatPlain('impactVertical', st.sdVertical),
+            ];
+          }}
+        />
+      )}
+    />
   );
 }
 
@@ -290,21 +312,22 @@ function GappingTile({ def, rows, scope, controls }: SpecialTileProps) {
   const subtitle = scope.shots === 'stock' ? `${which} · ${shots ? scopeLine(shots, 'stock') : 'Stock shots only'}` : which;
 
   return (
-    <TileFrame def={def} controls={controls} subtitle={subtitle}>
-      {failed ? (
+    <TileFrame
+      def={def}
+      controls={controls}
+      subtitle={subtitle}
+      body={failed ? (
         <p className="prog-tile__note" role="status">Couldn't load the shots for gapping.</p>
       ) : (
         <div className={`prog-gapping${loading && gaps ? ' prog-gapping--loading' : ''}`} aria-busy={loading}>
-          {gaps && (gaps.length > 0 ? (
-            <>
-              <GappingChart rows={gaps} formatValue={(v) => formatPlain('carry', v)} />
-              <p className="prog-tile__caption">Bar: P25–P75 · line: median · hollow bar: few shots</p>
-            </>
-          ) : (
-            <p className="prog-tile__note">No carry measured in these sessions.</p>
-          ))}
+          {gaps && (gaps.length > 0
+            ? <GappingChart rows={gaps} formatValue={(v) => formatPlain('carry', v)} />
+            : <p className="prog-tile__note">No carry measured in these sessions.</p>)}
         </div>
       )}
-    </TileFrame>
+      notes={!failed && gaps && gaps.length > 0 && (
+        <p className="prog-tile__caption">Bar: P25–P75 · line: median · hollow bar: few shots</p>
+      )}
+    />
   );
 }
