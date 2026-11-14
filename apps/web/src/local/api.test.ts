@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { ApiError, commitImport, patchSession, request } from './api';
+import { ApiError, commitImport, getSetting, listLibraryShots, patchSession, request } from './api';
 import type { ImportManifest } from './importPayload';
 
 function mockFetch(status: number, body: unknown) {
@@ -79,5 +79,34 @@ describe('commitImport', () => {
     expect(form).toBeInstanceOf(FormData);
     expect(JSON.parse(form.get('manifest') as string)).toEqual(manifest);
     expect((form.get('f0') as File).name).toBe('a.csv');
+  });
+});
+
+describe('library client', () => {
+  test('listLibraryShots repeats session_ids and encodes the club', async () => {
+    const fn = mockFetch(200, []);
+    await listLibraryShots({ club: '7 Iron', sessionIds: ['a', 'b'] });
+    const url = new URL((fn.mock.calls[0] as unknown as [string])[0], 'http://x');
+    expect(url.pathname).toBe('/api/v1/shots');
+    expect(url.searchParams.get('club')).toBe('7 Iron');
+    expect(url.searchParams.getAll('session_ids')).toEqual(['a', 'b']);
+  });
+
+  test('listLibraryShots omits empty params', async () => {
+    const fn = mockFetch(200, []);
+    await listLibraryShots({});
+    expect((fn.mock.calls[0] as unknown as [string])[0]).toBe('/api/v1/shots');
+  });
+
+  test('getSetting resolves null on 404 and throws ApiError on 500', async () => {
+    mockFetch(404, { detail: 'setting not set' });
+    await expect(getSetting('progression.layout')).resolves.toBeNull();
+    mockFetch(500, { detail: 'boom' });
+    await expect(getSetting('progression.layout')).rejects.toBeInstanceOf(ApiError);
+  });
+
+  test('getSetting returns the stored value', async () => {
+    mockFetch(200, { key: 'k', value: { a: 1 }, updatedAt: 't' });
+    await expect(getSetting('k')).resolves.toEqual({ a: 1 });
   });
 });

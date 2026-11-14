@@ -12,6 +12,9 @@ export type ExclusionsIn = S['ExclusionsIn'];
 export type ExclusionsOut = S['ExclusionsOut'];
 export type CheckResponse = S['CheckResponse'];
 export type ImportResponse = S['ImportResponse'];
+export type LibraryShot = S['LibraryShot'];
+export type TargetRange = S['TargetRangeOut'];
+export type TargetRangeIn = S['TargetRangeIn'];
 
 export const UNAUTHORISED_EVENT = 'mygolfviz:unauthorised';
 
@@ -79,3 +82,31 @@ export function commitImport(manifest: ImportManifest, files: { field: string; f
   for (const f of files) form.append(f.field, f.file, f.name);
   return send<ImportResponse>('/api/v1/imports', { method: 'POST', body: form });
 }
+
+export function listLibraryShots(opts: { club?: string; sessionIds?: string[] } = {}): Promise<LibraryShot[]> {
+  const q = new URLSearchParams();
+  if (opts.club) q.set('club', opts.club);
+  for (const id of opts.sessionIds ?? []) q.append('session_ids', id);
+  const qs = q.toString();
+  return request<LibraryShot[]>('GET', `/api/v1/shots${qs ? `?${qs}` : ''}`);
+}
+
+export async function getSetting<T>(key: string): Promise<T | null> {
+  try {
+    return (await request<{ value: T }>('GET', `/api/v1/settings/${enc(key)}`)).value;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function putSetting(key: string, value: unknown): Promise<void> {
+  await request('PUT', `/api/v1/settings/${enc(key)}`, { value });
+}
+
+export function listTargetRanges(club?: string): Promise<TargetRange[]> {
+  const qs = club ? `?${new URLSearchParams({ club })}` : '';
+  return request<TargetRange[]>('GET', `/api/v1/target-ranges${qs}`);
+}
+export const putTargetRange = (body: TargetRangeIn) => request<TargetRange>('PUT', '/api/v1/target-ranges', body);
+export const deleteTargetRange = (id: string) => request<void>('DELETE', `/api/v1/target-ranges/${enc(id)}`);

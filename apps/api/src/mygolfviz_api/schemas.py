@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from datetime import date as _date
-from typing import Annotated, Literal
+import json
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
@@ -116,6 +117,73 @@ class ShotOut(CamelModel):
     raw: dict
     flags: list[str]
     excluded: bool
+
+
+class LibraryShot(CamelModel):
+    id: str
+    session_id: str
+    import_id: str
+    source_row: int
+    shot_label: str | None
+    club: str | None
+    m: dict
+    excluded: bool
+
+
+class SettingIn(CamelModel):
+    value: Any
+
+    @field_validator("value")
+    @classmethod
+    def _size(cls, v: Any) -> Any:
+        if len(json.dumps(v).encode()) > 65536:
+            raise ValueError("value must be at most 65536 bytes")
+        return v
+
+
+class SettingOut(CamelModel):
+    key: str
+    value: Any
+    updated_at: str
+
+
+class TargetRangeIn(CamelModel):
+    club: str
+    metric: str
+    low: float | None = Field(default=None, allow_inf_nan=False)
+    high: float | None = Field(default=None, allow_inf_nan=False)
+
+    @field_validator("club")
+    @classmethod
+    def _club(cls, v: str) -> str:
+        v = v.strip()
+        if not 1 <= len(v) <= 100:
+            raise ValueError("club must be 1-100 characters")
+        return v
+
+    @field_validator("metric")
+    @classmethod
+    def _metric(cls, v: str) -> str:
+        if v not in Measurements.model_fields:
+            raise ValueError("unknown metric")
+        return v
+
+    @model_validator(mode="after")
+    def _bounds(self) -> "TargetRangeIn":
+        if self.low is None and self.high is None:
+            raise ValueError("low or high is required")
+        if self.low is not None and self.high is not None and self.low > self.high:
+            raise ValueError("low must not exceed high")
+        return self
+
+
+class TargetRangeOut(CamelModel):
+    id: str
+    club: str
+    metric: str
+    low: float | None
+    high: float | None
+    updated_at: str
 
 
 class ImportOrderIn(CamelModel):
