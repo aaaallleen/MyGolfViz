@@ -50,3 +50,22 @@ test('empty curves show the empty message', () => {
   expect(container.textContent).toContain('No shots with launch, apex, descent and carry');
   expect(container.querySelectorAll('path')).toHaveLength(0);
 });
+
+test('allOn draws every group at full strength', () => {
+  const { container, rerender } = render(<TrajectoryPlot groups={groups} selectedId={null} />);
+  const op = (id: string) => path(container, id).parentElement!.getAttribute('stroke-opacity');
+  expect(op('a')).toBe('0.4');
+  rerender(<TrajectoryPlot groups={groups} selectedId={null} allOn />);
+  expect(op('a')).toBe('0.9');
+  expect(op('c')).toBe('0.9');
+});
+
+test('endLabels shows each carry', () => {
+  const odd: TrajectoryPlotProps['groups'] = [{ club: 'Driver', color: '#3987E5', curves: [curve('z', 248.4)] }];
+  const { container, rerender } = render(<TrajectoryPlot groups={odd} selectedId={null} />);
+  expect(container.textContent).not.toContain('248');
+  rerender(<TrajectoryPlot groups={odd} selectedId={null} endLabels />);
+  const t = [...container.querySelectorAll('text')].find((e) => e.textContent === '248')!;
+  expect(t).toBeTruthy();
+  expect(t.parentElement).toHaveAttribute('fill', '#3987E5');
+});

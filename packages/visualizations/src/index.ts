@@ -1,5 +1,5 @@
 export { niceTicks } from './scale';
-export { BALL, CLUB, SOFT } from './theme';
+export { BALL, CLUB, SOFT, COMPARE_A, COMPARE_B } from './theme';
 export { CLUB_SERIES, clubColors, patternXMax, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
 export { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 export { TrajectoryPlot, type TrajectoryPlotProps } from './TrajectoryPlot';
@@ -12,3 +12,4 @@ export { useReplayClock, ReplayControls, type ReplayClock } from './ReplayContro
 export { TrendChart, trendChartLeft, type TrendChartProps, type TrendSeries } from './TrendChart';
 export { GappingChart, type GappingChartProps } from './GappingChart';
 export { ImpactHeatmap, type ImpactHeatmapProps } from './ImpactHeatmap';
+export { DeliveryOverlay, type DeliveryOverlayProps, type DeliveryShot } from './DeliveryOverlay';

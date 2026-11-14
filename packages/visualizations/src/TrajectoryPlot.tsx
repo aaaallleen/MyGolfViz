@@ -14,6 +14,10 @@ export interface TrajectoryPlotProps {
   xMax?: number;
   /** viewBox width; pass the top view's value so the two line up. */
   width?: number;
+  /** Draw every group at full emphasis (Compare's two shots). */
+  allOn?: boolean;
+  /** Label each curve's carry (yd) at its landing point, in its group colour. */
+  endLabels?: boolean;
 }
 
 const T = 20, BOTTOM = 40;
@@ -31,7 +35,7 @@ function apex(c: TrajectoryCurve): number {
   return max;
 }
 
-export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax, width = PATTERN_WIDTH }: TrajectoryPlotProps) {
+export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax, width = PATTERN_WIDTH, allOn = false, endLabels = false }: TrajectoryPlotProps) {
   const all = groups.flatMap((g) => g.curves.map((c) => ({ c, g })));
   if (all.length === 0) {
     return <p className="fsa-trajectory fsa-trajectory--empty">No shots with launch, apex, descent and carry</p>;
@@ -69,7 +73,7 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
         </g>
         <line x1={L} y1={B} x2={R} y2={B} stroke={MUTED} strokeWidth={1.5} />
         {ordered.map((g) => {
-          const level = emphasis(g.club, highlightClub);
+          const level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return (
             <g key={g.club} fill="none" stroke={g.color} strokeOpacity={LINE[level]} strokeWidth={level === 'on' ? 1.75 : 1.25}>
               {g.curves.filter((c) => c.shotId !== selectedId).map((c) => (
@@ -84,6 +88,13 @@ export function TrajectoryPlot({ groups, selectedId, highlightClub = null, xMax,
             <circle cx={r1(sx(sel.c.p3[0]))} cy={r1(sy(0))} r={5} fill={INK} />
           </g>
         )}
+        {endLabels && ordered.map((g) => (
+          <g key={`end-${g.club}`} fill={g.color} fontSize={12} fontWeight={600} fontFamily={FONT} textAnchor="middle">
+            {g.curves.map((c) => (
+              <text key={c.shotId} data-testid="end-label" x={r1(sx(c.p3[0]))} y={r1(sy(0) - 8)}>{Math.round(c.p3[0])}</text>
+            ))}
+          </g>
+        ))}
         <g fill={MUTED} fontSize={12} fontFamily={FONT}>
           {yTicks.map((t) => <text key={`ty${t}`} x={8} y={r1(sy(t / 3) + 4)}>{t} ft</text>)}
           {xTicks.map((t) => <text key={`tx${t}`} x={r1(sx(t))} y={r1(B + 18)} textAnchor="middle">{t}</text>)}

@@ -176,3 +176,16 @@ test('no points in any club: the empty message, no circles', () => {
   expect(container.textContent).toContain('No shots with both lateral and carry values');
   expect(container.querySelectorAll('circle')).toHaveLength(0);
 });
+
+test('allOn draws every dot at full strength', () => {
+  const one = (id: string, x: number, y: number): DispersionStats => ({ ...wedge, points: [{ shotId: id, x, y }], ellipse: null });
+  const two: DispersionPlotProps['groups'] = [
+    { club: 'Shot A', color: '#EAF0EC', stats: one('p', 1, 150) },
+    { club: 'Shot B', color: '#C08CFF', stats: one('q', -2, 140) },
+  ];
+  const { container, rerender } = renderPlot({ groups: two });
+  expect(circle(container, 'p').parentElement).toHaveAttribute('fill-opacity', '0.45');
+  rerender(<DispersionPlot mode="carry" groups={two} xMax={200} selectedId={null} highlightClub={null} onSelect={vi.fn()} labelFor={labelFor} allOn />);
+  expect(circle(container, 'p').parentElement).toHaveAttribute('fill-opacity', '0.95');
+  expect(circle(container, 'q').parentElement).toHaveAttribute('fill-opacity', '0.95');
+});

@@ -12,3 +12,6 @@ export const BALL_EDGE = '#0D1210';
 export const FONT = 'Inter, sans-serif';
 export const DISPLAY_FONT = "'Space Grotesk', sans-serif";
 export const PANEL = '#151C19';
+/** Compare page: shot A is the ink colour, shot B a distinct purple. */
+export const COMPARE_A = INK;
+export const COMPARE_B = '#C08CFF';

@@ -16,6 +16,8 @@ export interface DispersionPlotProps {
   selectedLaunchH?: number | null;
   /** viewBox width; the plot keeps one yard the same length on both axes. */
   width?: number;
+  /** Draw every group at full emphasis (Compare's two shots). */
+  allOn?: boolean;
   onSelect(shotId: string): void;
   labelFor(shotId: string): string;
 }
@@ -38,7 +40,7 @@ const r1 = (n: number) => Number(n.toFixed(1));
 const r3 = (n: number) => Number(n.toFixed(3));
 const tickLat = (t: number) => (t === 0 ? 'Target' : `${Math.abs(t)} ${t < 0 ? 'L' : 'R'}`);
 
-export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, onSelect, labelFor }: DispersionPlotProps) {
+export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, selectedLaunchH = null, width = PATTERN_WIDTH, allOn = false, onSelect, labelFor }: DispersionPlotProps) {
   const note = NOTE[mode];
   const points = groups.flatMap((g) => g.stats.points);
 
@@ -113,7 +115,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           <text x={8} y={18} fontSize={11}>Lateral landing (yd) · left above the target line</text>
         </g>
         {ordered.map((g) => {
-          const e = g.stats.ellipse, level = emphasis(g.club, highlightClub);
+          const e = g.stats.ellipse, level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return e && (
             <circle key={`el-${g.club}`} data-testid="ellipse" data-club={g.club} cx={0} cy={0} r={1} transform={ellipseMatrix(e)}
               fill={g.color} fillOpacity={FILL[level]} stroke={g.color} strokeOpacity={RING[level]}
@@ -121,7 +123,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           );
         })}
         {ordered.map((g) => {
-          const c = g.stats.centroid, level = emphasis(g.club, highlightClub);
+          const c = g.stats.centroid, level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return c && (
             <g key={`mean-${g.club}`} data-testid="centroid" data-club={g.club} stroke={g.color} strokeOpacity={RING[level]} strokeWidth={1.5}>
               <line x1={r1(sx(c.y) - 6)} y1={r1(sy(c.x))} x2={r1(sx(c.y) + 6)} y2={r1(sy(c.x))} />
@@ -130,7 +132,7 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           );
         })}
         {ordered.map((g) => {
-          const level = emphasis(g.club, highlightClub);
+          const level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return (
             <g key={`pts-${g.club}`} fill={g.color} fillOpacity={DOT[level]}
               {...(level === 'on' ? { stroke: SURFACE, strokeWidth: 1.5 } : {})}>
