@@ -12,9 +12,28 @@ export function HelpPage() {
         <>
           <PrivacyNotice />
           <p>This viewer is stateless: it keeps no copy of your files once the page is refreshed or closed. While the page is open, the data lives only in this tab's memory.</p>
-          <p>
-            <a href={`${REPO_URL}#local-app`}>Want saved history? Run Local App</a>
-          </p>
+          <section className="help__local" aria-labelledby="help-local">
+            <h2 id="help-local">Get the local version</h2>
+            <p>The local version keeps your sessions. It runs on your own computer, saves every session there, and never uploads anything.</p>
+            <ul>
+              <li><strong>A session library:</strong> every session you have loaded, as a list or on a calendar.</li>
+              <li><strong>Sessions you can come back to:</strong> name, date, notes, excluded shots and file order are all saved.</li>
+              <li><strong>Progression:</strong> one club across your sessions (carry, dispersion, spin, strike and more), with target ranges.</li>
+              <li><strong>The same Overview and Shot Inspector</strong> you use here.</li>
+            </ul>
+            <div className="help__ways">
+              <div className="help__way">
+                <h3>Mac app</h3>
+                <p>For Apple Silicon Macs. MyGolfViz in its own window. You build it once with one command (that needs Node and uv), then open it like any other app.</p>
+                <a href={`${REPO_URL}#mac-app`}>How to build the Mac app</a>
+              </div>
+              <div className="help__way">
+                <h3>In your browser</h3>
+                <p>Start it from a terminal with <code>npm run local</code> and open the link it prints. Needs Node and uv.</p>
+                <a href={`${REPO_URL}#local-app`}>How to run it in your browser</a>
+              </div>
+            </div>
+          </section>
         </>
       )}
 

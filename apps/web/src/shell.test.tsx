@@ -50,10 +50,13 @@ describe('app shell', () => {
     expect(screen.getByRole('button', { name: 'Load Session CSV' })).toBeInTheDocument();
   });
 
-  test('Help shows the stateless copy and the local-app link', () => {
+  test('Help shows the stateless copy and how to get the local version', () => {
     renderAt('/help');
     expect(screen.getByText(/Browser-only analysis\. Your CSV files are read and analyzed in this tab\. Nothing is uploaded, saved or sent anywhere\. Refreshing or closing the page ends the analysis\./)).toBeInTheDocument();
     expect(screen.getByText("This viewer is stateless: it keeps no copy of your files once the page is refreshed or closed. While the page is open, the data lives only in this tab's memory.")).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Want saved history? Run Local App' })).toHaveAttribute('href', `${REPO_URL}#local-app`);
+    expect(screen.getByRole('heading', { level: 2, name: 'Get the local version' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'Mac app' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'How to build the Mac app' })).toHaveAttribute('href', `${REPO_URL}#mac-app`);
+    expect(screen.getByRole('link', { name: 'How to run it in your browser' })).toHaveAttribute('href', `${REPO_URL}#local-app`);
   });
 });
