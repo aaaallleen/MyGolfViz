@@ -26,6 +26,11 @@ const panel = () => screen.getByRole('tabpanel');
 const tab = (name: string) => screen.getByRole('tab', { name });
 
 describe('InspectorPage', () => {
+  test('the public build has no Compare… link', () => {
+    open();
+    expect(screen.queryByRole('link', { name: 'Compare…' })).not.toBeInTheDocument();
+  });
+
   test('opened with no shot selected, it shows the first visible shot and selects it', () => {
     const v = open();
     const first = v.store().visibleShots[0]!;
