@@ -3,6 +3,9 @@ import { formatMeasurement, formatSessionDate, NOT_MEASURED, type MeasurementKey
 import type { SessionRow } from '../api';
 import { formatPlain } from './format';
 
+/** `few shots` only when there are some: n 0 is no shots at all. */
+export const isFew = (s: MetricStats) => s.few && s.n > 0;
+
 export interface TileDetailsProps {
   metric: MeasurementKey;
   /** Shown sessions, oldest first (S1…Sn). */
@@ -57,7 +60,7 @@ export function TileDetails({ metric, sessions, stats, abs = false, signed = nul
                   <td>{formatSessionDate(s.date, { setByYou: false })}</td>
                   <td>
                     {st.n}
-                    {st.few && <span className="prog-few"> · few shots</span>}
+                    {isFew(st) && <span className="prog-few"> · few shots</span>}
                   </td>
                   <td>{st.missing}</td>
                   <td>{st.total}</td>

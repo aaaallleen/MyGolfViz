@@ -1,12 +1,13 @@
-import { useId, useMemo, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { change, seriesForMetric, type MetricStats, type ProgressionShot, type Range } from '@fsa/analytics';
 import { fieldDef, formatMeasurement, formatSessionDate, type MeasurementKey } from '@fsa/domain';
 import { BALL, CLUB, SOFT, TrendChart, type TrendSeries } from '@fsa/visualizations';
 import type { SessionRow, TargetRange } from '../api';
 import { formatChange, formatPlain, tickFormatter } from './format';
 import type { Scope } from './scope';
+import { TargetRangeForm } from './TargetRangeForm';
 import { CATEGORIES, type TileDef } from './tiles';
-import { TileDetails } from './TileDetails';
+import { isFew, TileDetails } from './TileDetails';
 
 export interface MetricTileProps {
   def: TileDef;
@@ -16,8 +17,17 @@ export interface MetricTileProps {
   shots: readonly ProgressionShot[];
   scope: Scope;
   range: TargetRange | null;
-  /** Move / remove buttons (filled by the dashboard editor). */
-  controls?: ReactNode;
+  /** Move / remove buttons from the dashboard editor. */
+  controls: ReactNode;
+  /** Metric and accuracy tiles: editing the target range. Absent, the tile offers no `Set target range`. */
+  rangeEditor?: RangeEditor;
+}
+
+export interface RangeEditor {
+  save: (low: number | null, high: number | null) => void;
+  clear: () => void;
+  /** A save or clear is in flight. */
+  busy: boolean;
 }
 
 const BAND_LABEL = { iqr: 'P25–P75', p10p90: 'P10–P90' } as const;
@@ -27,7 +37,7 @@ const colorFor = (key: MeasurementKey) => (fieldDef(key).group === 'club' ? CLUB
 
 const categoryTitle = (def: TileDef) => CATEGORIES.find((c) => c.id === def.category)?.title ?? '';
 
-export function TileFrame({ def, controls, children }: { def: TileDef; controls?: ReactNode; children?: ReactNode }) {
+export function TileFrame({ def, controls, children }: { def: TileDef; controls: ReactNode; children?: ReactNode }) {
   const id = useId();
   return (
     <article className="prog-tile" aria-labelledby={id}>
@@ -36,11 +46,44 @@ export function TileFrame({ def, controls, children }: { def: TileDef; controls?
           <div className="prog-tile__eyebrow">{categoryTitle(def)}</div>
           <h2 id={id} className="prog-tile__title">{def.title}</h2>
         </div>
-        {controls && <div className="prog-tile__controls">{controls}</div>}
+        <div className="prog-tile__controls">{controls}</div>
       </header>
       {children}
     </article>
   );
+}
+
+const ICON = { width: 14, height: 14, viewBox: '0 0 14 14', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
+
+export interface TileControlsProps {
+  title: string;
+  first: boolean;
+  last: boolean;
+  onMove: (delta: -1 | 1) => void;
+  onRemove: () => void;
+}
+
+/** Icon buttons: `Move {title} earlier`, `Move {title} later`, `Remove {title}`. */
+export function TileControls({ title, first, last, onMove, onRemove }: TileControlsProps) {
+  return (
+    <>
+      <button type="button" className="prog-tile__ctl fsa-touch" aria-label={`Move ${title} earlier`} disabled={first} onClick={() => onMove(-1)}>
+        <svg aria-hidden="true" {...ICON}><path d="M9 2L4 7l5 5" /></svg>
+      </button>
+      <button type="button" className="prog-tile__ctl fsa-touch" aria-label={`Move ${title} later`} disabled={last} onClick={() => onMove(1)}>
+        <svg aria-hidden="true" {...ICON}><path d="M5 2l5 5-5 5" /></svg>
+      </button>
+      <button type="button" className="prog-tile__ctl fsa-touch" aria-label={`Remove ${title}`} onClick={onRemove}>
+        <svg aria-hidden="true" {...ICON}><path d="M3 3l8 8M11 3l-8 8" /></svg>
+      </button>
+    </>
+  );
+}
+
+function rangeText(key: MeasurementKey, r: Range, abs: boolean): string {
+  const fmt = (v: number) => (abs ? formatPlain(key, v) : formatMeasurement(key, v));
+  if (r.low !== null && r.high !== null) return `${fmt(r.low)} – ${fmt(r.high)}`;
+  return r.low !== null ? `≥ ${fmt(r.low)}` : `≤ ${fmt(r.high!)}`;
 }
 
 function bandsOf(stats: readonly MetricStats[], band: Scope['band']): ([number, number] | null)[] {
@@ -51,7 +94,18 @@ function bandsOf(stats: readonly MetricStats[], band: Scope['band']): ([number, 
 }
 
 /** Standard, accuracy (|value| plus the signed median as bias) and variation (SD per session) tiles. */
-export function MetricTile({ def, sessions, shots, scope, range, controls }: MetricTileProps) {
+export function MetricTile({ def, sessions, shots, scope, range, controls, rangeEditor }: MetricTileProps) {
+  const [editingRange, setEditingRange] = useState(false);
+  // Closing the form puts focus back on `Set target range`.
+  const rangeButton = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!editingRange && refocus.current) {
+      refocus.current = false;
+      rangeButton.current?.focus();
+    }
+  }, [editingRange]);
+  const closeRange = () => { refocus.current = true; setEditingRange(false); };
   const key = def.metric!;
   const accuracy = def.kind === 'accuracy';
   const variation = def.kind === 'variation';
@@ -75,6 +129,7 @@ export function MetricTile({ def, sessions, shots, scope, range, controls }: Met
   const latest = values.length ? values[values.length - 1]! : null;
   const plain = accuracy || variation;
   const headline = plain ? formatPlain(key, latest) : formatMeasurement(key, latest);
+  const latestInRange = stats.length ? stats[stats.length - 1]!.inRange : null;
   // No change line when the latest session has no value: an older pair would read as the latest change.
   let changeLine: string | null = null;
   if (latest !== null) {
@@ -100,7 +155,7 @@ export function MetricTile({ def, sessions, shots, scope, range, controls }: Met
   }
   const chartSessions = sessions.map((s, i) => ({
     label: `S${i + 1}`,
-    tooltip: `S${i + 1} · ${s.name} · ${formatSessionDate(s.date, { setByYou: false })} · n ${stats[i]!.n}${stats[i]!.few ? ' · few shots' : ''}`,
+    tooltip: `S${i + 1} · ${s.name} · ${formatSessionDate(s.date, { setByYou: false })} · n ${stats[i]!.n}${isFew(stats[i]!) ? ' · few shots' : ''}`,
   }));
   const last = sessions.length;
   const what = variation ? 'SD' : accuracy ? 'median distance from the line' : 'median';
@@ -110,6 +165,7 @@ export function MetricTile({ def, sessions, shots, scope, range, controls }: Met
       <div className="prog-tile__headline">
         <span className="prog-tile__value">{headline}</span>
         <span className="prog-tile__what">{`S${last} · ${what}`}</span>
+        {latestInRange && <span className="prog-tile__inrange">{`${Math.round(latestInRange.pct)}% in range`}</span>}
       </div>
       {changeLine && <div className="prog-tile__change">{changeLine}</div>}
       <TrendChart
@@ -132,8 +188,37 @@ export function MetricTile({ def, sessions, shots, scope, range, controls }: Met
             </li>
           ))}
           <li className="prog-legend__band">{`Band: ${BAND_LABEL[scope.band]}`}</li>
+          {target && (
+            <li>
+              <span className="prog-legend__target" aria-hidden="true" />
+              {`Target range: ${rangeText(key, target, accuracy)}`}
+            </li>
+          )}
         </ul>
       )}
+      {rangeEditor && (editingRange ? (
+        <TargetRangeForm
+          metric={key}
+          abs={accuracy}
+          range={range}
+          onSave={(low, high) => { rangeEditor.save(low, high); closeRange(); }}
+          onClear={() => { rangeEditor.clear(); closeRange(); }}
+          onCancel={closeRange}
+        />
+      ) : (
+        <div className="prog-tile__range">
+          {/* aria-disabled, not disabled, while a save is in flight: the button keeps focus after the form closes. */}
+          <button
+            ref={rangeButton}
+            type="button"
+            className="fsa-btn fsa-btn--ghost fsa-touch"
+            aria-disabled={rangeEditor.busy}
+            onClick={() => { if (!rangeEditor.busy) setEditingRange(true); }}
+          >
+            Set target range
+          </button>
+        </div>
+      ))}
       <TileDetails metric={key} sessions={sessions} stats={stats} abs={accuracy} signed={signed} hasRange={target !== null} />
     </TileFrame>
   );

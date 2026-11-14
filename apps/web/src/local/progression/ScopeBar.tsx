@@ -56,7 +56,7 @@ export function ScopeBar({ rows, club, shown, scope, onChange, line }: ScopeBarP
   };
 
   return (
-    <section className="prog-scope" aria-label="Scope">
+    <section className="prog-scope prog-scope--sticky" aria-label="Scope">
       <div className="prog-scope__controls">
         <SelectField
           label="Club"

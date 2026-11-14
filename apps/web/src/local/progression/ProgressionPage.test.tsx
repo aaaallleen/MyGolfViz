@@ -187,9 +187,11 @@ describe('ProgressionPage', () => {
     expect(within(chart(carry)).getByText('S2')).toBeInTheDocument();
     const s1 = detailsRow('Carry', 'S1');
     expect(s1[1]).toHaveTextContent('Early');
-    expect(s1[3]!.textContent).toMatch(/^0\b/);
+    // n 0 is not "few shots": there are none.
+    expect(s1[3]!.textContent).toBe('0');
     expect(s1[6]).toHaveTextContent('Not measured');
     expect(detailsRow('Carry', 'S2')[3]!.textContent).toMatch(/^4\b.*few shots/);
+    expect(within(chart(carry)).getByText(/^S2 · Late · 3 Jan 2026 · n 4 · few shots · /)).toBeInTheDocument();
     expect(within(carry).getByText('First session shown')).toBeInTheDocument();
   });
 
