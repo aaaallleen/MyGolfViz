@@ -1,0 +1,218 @@
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate, type InitialEntry, type NavigateFunction } from 'react-router';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ImportRow, SessionDetail, SessionRow, ShotDetail, ShotOut } from '../api';
+
+vi.mock('../api', () => ({
+  getShot: vi.fn(),
+  listSessions: vi.fn(),
+  getSession: vi.fn(),
+  getShots: vi.fn(),
+}));
+import * as api from '../api';
+import { rememberedPair, rememberPair } from './compareState';
+import ComparePage from './ComparePage';
+
+const session = (id: string, name: string, date: string, clubs: string[]): SessionRow =>
+  ({ id, name, date, notes: '', handedness: 'right', createdAt: `${date}T10:00:00Z`, updatedAt: '', shotCount: 3, fileCount: 1, clubs: clubs.map((club) => ({ club, count: 1 })) }) as SessionRow;
+const LATER = session('later', 'Later', '2026-11-07', ['7 Iron', 'Driver']);
+const EARLIER = session('earlier', 'Earlier', '2026-10-01', ['7 Iron']);
+// The newest session, so a picker that ignored its starting session would land here instead.
+const NEWEST = session('newest', 'Newest', '2026-11-10', ['Wedge']);
+
+const M = { carry: 248, height: 95, launchV: 12, descentV: 38, lateral: 4, clubPath: 2.1, ftt: 1.2, spin: 2410 };
+const shotOut = (id: string, club: string, label: string, m: Record<string, number | null>, excluded = false): ShotOut =>
+  ({ id, importId: 'imp', sourceRow: 1, shotLabel: label, club, excluded, shotType: null, mode: null, location: null, raw: {}, flags: [], m }) as unknown as ShotOut;
+const detail = (shot: ShotOut, s: SessionRow): ShotDetail => ({ shot, session: s, import: { id: 'imp', ordinal: 1 } as ImportRow });
+
+const A = detail(shotOut('A', 'Driver', '7', M), LATER);
+const B = detail(shotOut('B', '7 Iron', '3', { ...M, carry: 160, height: 80, spin: 2980 }), EARLIER);
+const A_LABEL = 'A · Driver · Shot 7 · Later · 7 Nov 2026';
+const B_LABEL = 'B · 7 Iron · Shot 3 · Earlier · 1 Oct 2026';
+const TABLE = 'What changed · B → A';
+
+let FIXTURES: Record<string, ShotDetail>;
+
+beforeEach(() => {
+  rememberPair({ a: null, b: null });
+  FIXTURES = { A, B };
+  vi.mocked(api.getShot).mockReset().mockImplementation(async (id) => FIXTURES[id] ?? null);
+  vi.mocked(api.listSessions).mockReset().mockResolvedValue([EARLIER, LATER, NEWEST]);
+  vi.mocked(api.getSession).mockReset().mockImplementation(async (id) => ({ session: [LATER, EARLIER, NEWEST].find((s) => s.id === id)!, imports: [{ id: 'imp', ordinal: 1 }] }) as SessionDetail);
+  vi.mocked(api.getShots).mockReset().mockImplementation(async (id) => (id === 'later' ? [A.shot] : id === 'earlier' ? [B.shot] : []));
+});
+
+let nav: NavigateFunction;
+function Probe() {
+  const loc = useLocation();
+  nav = useNavigate();
+  return <output data-testid="loc" data-state={JSON.stringify(loc.state ?? null)}>{`${loc.pathname}${loc.search}`}</output>;
+}
+
+function renderAt(entries: InitialEntry[]) {
+  return render(
+    <MemoryRouter initialEntries={entries}>
+      <Routes>
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/elsewhere" element={<Link to="/compare">Compare</Link>} />
+      </Routes>
+      <Probe />
+    </MemoryRouter>,
+  );
+}
+const where = () => screen.getByTestId('loc').textContent;
+const sideView = () => screen.getByRole('img', { name: /^Side-view trajectories/ });
+
+describe('ComparePage', () => {
+  test('empty page offers two pickers and the hint', () => {
+    renderAt(['/compare']);
+    expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(2);
+    expect(screen.getByText('Pick two shots to see what changed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(api.getShot).not.toHaveBeenCalled();
+  });
+
+  test("only A shows its label and B's Choose shot…", async () => {
+    renderAt(['/compare?a=A']);
+    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Choose shot…' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Change shot…' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Swap' })).toBeNull();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByText('Pick two shots to see what changed')).toBeNull();
+  });
+
+  test('an excluded shot says so in its label', async () => {
+    FIXTURES.A = detail(shotOut('A', 'Driver', '7', M, true), LATER);
+    renderAt(['/compare?a=A']);
+    expect(await screen.findByText(`${A_LABEL} · excluded`)).toBeInTheDocument();
+  });
+
+  test('both show labels, diagrams and the table', async () => {
+    const { container } = renderAt(['/compare?a=A&b=B']);
+    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
+    expect(screen.getByText(B_LABEL)).toBeInTheDocument();
+    expect(sideView()).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /^Top-down dispersion/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /^Top view of club path/ })).toBeInTheDocument();
+    expect(container.querySelectorAll('svg[role="img"]')).toHaveLength(3);
+    expect(screen.getByRole('table', { name: TABLE })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Change shot…' })).toHaveLength(2);
+  });
+
+  test('swap exchanges a and b in the URL', async () => {
+    renderAt(['/compare?a=A&b=B']);
+    await userEvent.click(await screen.findByRole('button', { name: 'Swap' }));
+    expect(where()).toBe('/compare?a=B&b=A');
+    expect(await screen.findByText('A · 7 Iron · Shot 3 · Earlier · 1 Oct 2026')).toBeInTheDocument();
+  });
+
+  test('choosing a shot puts it in the URL', async () => {
+    renderAt(['/compare?b=B']);
+    await screen.findByText(B_LABEL);
+    await userEvent.click(screen.getByRole('button', { name: 'Choose shot…' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Choose shot A' });
+    // B is set and A is empty, so A's picker starts from B's session and club.
+    await waitFor(() => expect(within(dialog).getByLabelText('Session')).toHaveDisplayValue('Earlier · 1 Oct 2026'));
+    await userEvent.selectOptions(within(dialog).getByLabelText('Shot'), await within(dialog).findByRole('option', { name: /^Shot 3/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Choose' }));
+    expect(where()).toBe('/compare?a=B&b=B');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  test('a shot that no longer exists leaves its slot empty and keeps the other', async () => {
+    renderAt(['/compare?a=gone&b=B']);
+    expect(await screen.findByText('That shot is no longer in your library')).toBeInTheDocument();
+    expect(await screen.findByText(B_LABEL)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose shot…' })).toBeInTheDocument();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(rememberedPair()).toEqual({ a: null, b: 'B' });
+  });
+
+  test('a failed load offers Retry', async () => {
+    vi.mocked(api.getShot).mockRejectedValueOnce(new Error('boom'));
+    renderAt(['/compare?a=A']);
+    expect(await screen.findByText("Couldn't load that shot")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText(A_LABEL)).toBeInTheDocument();
+  });
+
+  test('empty id counts as absent', async () => {
+    renderAt(['/compare?a=&b=B']);
+    expect(await screen.findByText(B_LABEL)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose shot…' })).toBeInTheDocument();
+    expect(screen.queryByText('That shot is no longer in your library')).toBeNull();
+    expect(api.getShot).toHaveBeenCalledTimes(1);
+    expect(api.getShot).toHaveBeenCalledWith('B');
+  });
+
+  test("a stale answer doesn't overwrite a newer one", async () => {
+    const pending: Record<string, (d: ShotDetail) => void> = {};
+    vi.mocked(api.getShot).mockImplementation((id) => new Promise((resolve) => { pending[id] = resolve; }));
+    renderAt(['/compare?a=A1']);
+    await waitFor(() => expect(pending.A1).toBeDefined());
+    act(() => { void nav('/compare?a=A2'); });
+    await waitFor(() => expect(pending.A2).toBeDefined());
+    await act(async () => pending.A2!(detail(shotOut('A2', 'Driver', '2', M), LATER)));
+    expect(screen.getByText('A · Driver · Shot 2 · Later · 7 Nov 2026')).toBeInTheDocument();
+    await act(async () => pending.A1!(detail(shotOut('A1', 'Driver', '1', M), LATER)));
+    expect(screen.getByText('A · Driver · Shot 2 · Later · 7 Nov 2026')).toBeInTheDocument();
+    expect(screen.queryByText('A · Driver · Shot 1 · Later · 7 Nov 2026')).toBeNull();
+  });
+
+  test('different clubs share one distance axis', async () => {
+    FIXTURES.B = detail(shotOut('B', 'Wedge', '3', { ...M, carry: 90, height: 60, lateral: -2 }), EARLIER);
+    renderAt(['/compare?a=A&b=B']);
+    await screen.findByText(A_LABEL);
+    const ticks = [...sideView().querySelectorAll('text')].map((t) => t.textContent ?? '').filter((t) => /^\d+$/.test(t)).map(Number);
+    expect(Math.max(...ticks)).toBeGreaterThanOrEqual(248);
+    expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(2);
+    expect(within(screen.getByRole('table', { name: TABLE })).getAllByRole('row')).toHaveLength(28);
+  });
+
+  test('a shot without trajectory data is noted, the other still drawn', async () => {
+    FIXTURES.B = detail(shotOut('B', '7 Iron', '3', { ...M, carry: 160, height: null }), EARLIER);
+    renderAt(['/compare?a=A&b=B']);
+    expect(await screen.findByText('Shot B has no trajectory data')).toBeInTheDocument();
+    expect(screen.queryByText('Shot A has no trajectory data')).toBeNull();
+    expect(sideView().querySelectorAll('path[data-shot-id]')).toHaveLength(1);
+  });
+
+  test('a shot without a landing position is noted', async () => {
+    FIXTURES.A = detail(shotOut('A', 'Driver', '7', { ...M, lateral: null }), LATER);
+    renderAt(['/compare?a=A&b=B']);
+    expect(await screen.findByText('Shot A has no landing position')).toBeInTheDocument();
+    expect(screen.queryByText('Shot B has no landing position')).toBeNull();
+  });
+
+  test('nav click restores the last comparison, Back does not', async () => {
+    const first = renderAt(['/compare?a=A&b=B']);
+    await screen.findByText(B_LABEL);
+    act(() => { void nav('/elsewhere'); });
+    await userEvent.click(screen.getByRole('link', { name: 'Compare' }));
+    await waitFor(() => expect(where()).toBe('/compare?a=A&b=B'));
+    await screen.findByText(B_LABEL);
+    first.unmount();
+
+    rememberPair({ a: null, b: null });
+    renderAt(['/compare', '/compare?a=A']);
+    await screen.findByText(A_LABEL);
+    expect(rememberedPair()).toEqual({ a: 'A', b: null });
+    act(() => { void nav(-1); });
+    expect(where()).toBe('/compare');
+    expect(screen.getByText('Pick two shots to see what changed')).toBeInTheDocument();
+    expect(where()).toBe('/compare');
+  });
+
+  test("arriving from the Inspector opens B's picker", async () => {
+    renderAt([{ pathname: '/compare', search: '?a=A', state: { pickB: true } }]);
+    const dialog = await screen.findByRole('dialog', { name: 'Choose shot B' });
+    await waitFor(() => expect(within(dialog).getByLabelText('Session')).toHaveDisplayValue('Later · 7 Nov 2026'));
+    expect(within(dialog).getByLabelText('Club')).toHaveDisplayValue('Driver');
+    expect(screen.getByTestId('loc')).toHaveAttribute('data-state', 'null');
+    expect(where()).toBe('/compare?a=A');
+    await waitFor(() => expect(within(dialog).getByLabelText('Shot')).toBeEnabled());
+  });
+});
