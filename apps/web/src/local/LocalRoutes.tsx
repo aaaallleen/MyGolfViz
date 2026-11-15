@@ -14,6 +14,7 @@ import { useSessionSync } from './useSessionSync';
 
 const ProgressionPage = lazy(() => import('./progression/ProgressionPage'));
 const ComparePage = lazy(() => import('./compare/ComparePage'));
+const GappingPage = lazy(() => import('./gapping/GappingPage'));
 
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
@@ -47,6 +48,7 @@ export default function LocalRoutes() {
         <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
         <Route path="/progression" element={<Suspense fallback={null}><ProgressionPage /></Suspense>} />
         <Route path="/compare" element={<Suspense fallback={null}><ComparePage /></Suspense>} />
+        <Route path="/gapping" element={<Suspense fallback={null}><GappingPage /></Suspense>} />
         <Route path="/import" element={<LoadPage />} />
         <Route path="/import/result" element={<ImportResultPage />} />
         <Route path="/help" element={<HelpPage />} />

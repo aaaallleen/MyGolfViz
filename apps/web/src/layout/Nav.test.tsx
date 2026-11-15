@@ -10,6 +10,9 @@ const renderNav = (path = '/sessions') =>
     </MemoryRouter>,
   );
 
+const navNames = () =>
+  within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
+
 afterEach(() => vi.unstubAllEnvs());
 
 describe('Nav (local build)', () => {
@@ -25,11 +28,18 @@ describe('Nav (local build)', () => {
     expect(add).not.toHaveClass('fsa-btn--primary');
   });
 
-  test('keeps the order Sessions, Progression, Compare, +, Help', () => {
+  test('keeps the order Sessions, Progression, Compare, Gapping, +, Help', () => {
     vi.stubEnv('VITE_APP_MODE', 'local');
     renderNav();
-    const names = within(screen.getByRole('navigation')).getAllByRole('link').map((a) => a.getAttribute('aria-label') ?? a.textContent);
-    expect(names).toEqual(['Sessions', 'Progression', 'Compare', 'Load Session CSV', 'Help']);
+    expect(navNames()).toEqual(['Sessions', 'Progression', 'Compare', 'Gapping', 'Load Session CSV', 'Help']);
+  });
+
+  test('Gapping links to /gapping and is marked current there', () => {
+    vi.stubEnv('VITE_APP_MODE', 'local');
+    renderNav('/gapping');
+    const link = screen.getByRole('link', { name: 'Gapping' });
+    expect(link).toHaveAttribute('href', '/gapping');
+    expect(link).toHaveAttribute('aria-current', 'page');
   });
 
   test('Progression links to /progression and is marked current there', () => {
@@ -63,5 +73,12 @@ describe('Nav (public build)', () => {
     expect(load.textContent).toBe('Load Session CSV');
     expect(load).toHaveClass('fsa-btn--primary');
     expect(load.querySelector('svg')).toBeNull();
+  });
+
+  test('has no Gapping item', () => {
+    vi.stubEnv('VITE_APP_MODE', 'public');
+    renderNav('/');
+    expect(navNames()).not.toContain('Gapping');
+    expect(screen.queryByRole('link', { name: 'Gapping' })).not.toBeInTheDocument();
   });
 });

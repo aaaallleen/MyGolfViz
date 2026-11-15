@@ -17,6 +17,7 @@ export const LOCAL_NAV: readonly { to: string; label: string; icon?: 'add' }[] =
   { to: '/sessions', label: 'Sessions' },
   { to: '/progression', label: 'Progression' },
   { to: '/compare', label: 'Compare' },
+  { to: '/gapping', label: 'Gapping' },
   { to: '/import', label: 'Load Session CSV', icon: 'add' },
   { to: '/help', label: 'Help' },
 ];
