@@ -268,3 +268,17 @@ describe('GappingPage', () => {
     expect(bodyRows()).toHaveLength(2);
   });
 });
+
+test('the plot’s distance axis reaches past an every-shot ellipse, not just the dots', async () => {
+  // A topped Driver at 120 yd stretches its Every-shot ellipse past 300 yd, beyond the 260 yd dots' 300 yd axis.
+  SHOTS.push(shot('s2', 'Driver', 120, 0));
+  renderPage();
+  await screen.findByRole('table');
+  await userEvent.click(within(screen.getByRole('group', { name: 'Ellipse' })).getByRole('button', { name: 'Every shot' }));
+  const used = SHOTS.filter((s) => !s.excluded).map(toProgressionShot);
+  const e = gappingTable(used, 'all').find((r) => r.club === 'Driver')!.dispersion.ellipse!;
+  expect(e.cy + e.halfY).toBeGreaterThan(300);
+  const plot = document.querySelector('.gapping-plot')!;
+  const ticks = Array.from(plot.querySelectorAll('text[text-anchor="middle"]')).map((t) => Number(t.textContent));
+  expect(Math.max(...ticks)).toBeGreaterThanOrEqual(e.cy + e.halfY);
+});

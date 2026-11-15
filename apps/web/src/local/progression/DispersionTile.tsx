@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { dispersionBySession, FEW_SHOTS, type DispersionStats, type EllipseKind } from '@fsa/analytics';
-import { formatSessionDate } from '@fsa/domain';
+import { formatSessionDate, NUMBER_LOCALE } from '@fsa/domain';
 import { SegmentedControl } from '@fsa/ui';
 import { CLUB_SERIES, SpreadPlot, spreadBounds } from '@fsa/visualizations';
 import { useWorkingSet } from '../../state/store';
@@ -8,10 +8,17 @@ import { TileFrame } from './MetricTile';
 import type { SpecialTileProps } from './SpecialTiles';
 
 const MAX_OVERLAID = 8;
-const PLOT_WIDTH = 300;
+/** Overlaid: the one plot's viewBox width. */
+const OVERLAID_WIDTH = 300;
+/**
+ * Side by side: the smallest cell (px) and each plot's viewBox width, kept equal so a plot is never drawn below
+ * its own scale (its 11-unit text stays at least 11 px).
+ */
+const CELL_WIDTH = 180;
+const GRID_COLUMNS = { gridTemplateColumns: `repeat(auto-fill, minmax(${CELL_WIDTH}px, 1fr))` };
 
 const dateOf = (date: string) => formatSessionDate(date, { setByYou: false });
-const yards = (v: number) => Math.round(v).toLocaleString('en-US');
+const yards = (v: number) => Math.round(v).toLocaleString(NUMBER_LOCALE);
 /** Under 3 landed shots there is no ellipse to draw. */
 const needsShots = (st: DispersionStats) => st.points.length < 3;
 const size = (st: DispersionStats) =>
@@ -60,7 +67,7 @@ export function DispersionTile({ def, sessions, shots, scope, controls, onScope 
           <SpreadPlot
             groups={shown.map((s, i) => ({ key: s.id, label: dateOf(s.date), color: colorOf(i), stats: stats[i]! }))}
             bounds={bounds}
-            width={PLOT_WIDTH}
+            width={OVERLAID_WIDTH}
             ariaLabel="Dispersion, sessions overlaid"
           />
         </div>
@@ -94,7 +101,7 @@ export function DispersionTile({ def, sessions, shots, scope, controls, onScope 
     );
   } else {
     body = (
-      <ul className="prog-dispersion__grid">
+      <ul className="prog-dispersion__grid" style={GRID_COLUMNS}>
         {shown.map((s, i) => {
           const st = stats[i]!;
           const z = size(st);
@@ -104,7 +111,7 @@ export function DispersionTile({ def, sessions, shots, scope, controls, onScope 
               <SpreadPlot
                 groups={[{ key: s.id, label: dateOf(s.date), color: colorOf(0), stats: st }]}
                 bounds={bounds}
-                width={PLOT_WIDTH}
+                width={CELL_WIDTH}
                 ariaLabel={`Dispersion, ${dateOf(s.date)}`}
               />
               {z ? (

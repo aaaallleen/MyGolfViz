@@ -1,3 +1,4 @@
+import type { DispersionStats } from '@fsa/analytics';
 import { compareClubs } from '@fsa/domain';
 import { niceTicks } from './scale';
 
@@ -32,6 +33,27 @@ export function patternXMax(maxDistance: number): number {
   const ticks = niceTicks(0, top, 6);
   const step = ticks.length > 1 ? ticks[1]! - ticks[0]! : top;
   return Math.max(step, Math.ceil(top / step - 1e-9) * step);
+}
+
+/**
+ * How far a top view's marks reach (yd): the farthest distance from the tee and the widest offset from the
+ * target line, over every landing dot and every ellipse box (centre ± half extents), so no ellipse runs off
+ * the plot. Size the distance axis with `patternXMax(reach.distance)`.
+ */
+export function patternReach(groups: readonly { stats: DispersionStats }[]): { distance: number; lateral: number } {
+  let distance = 0, lateral = 0;
+  for (const { stats } of groups) {
+    for (const p of stats.points) {
+      distance = Math.max(distance, p.y);
+      lateral = Math.max(lateral, Math.abs(p.x));
+    }
+    const e = stats.ellipse;
+    if (e) {
+      distance = Math.max(distance, e.cy + e.halfY);
+      lateral = Math.max(lateral, Math.abs(e.cx) + e.halfX);
+    }
+  }
+  return { distance, lateral };
 }
 
 /** Opacity for a club's marks given the highlighted club (null = nothing highlighted). */

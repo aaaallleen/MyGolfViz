@@ -28,7 +28,7 @@ export function spreadBounds(stats: readonly DispersionStats[], aspect = 0.75): 
   }
   if (dist.length === 0) return null;
   const fit = (v: number[]) => {
-    const lo = Math.min(...v), hi = Math.max(...v);
+    const lo = v.reduce((m, x) => Math.min(m, x), Infinity), hi = v.reduce((m, x) => Math.max(m, x), -Infinity);
     const pad = (hi - lo) * PAD, mid = (lo + hi) / 2;
     const half = Math.max(hi - lo + 2 * pad, MIN_SPAN) / 2;
     return { mid, half };

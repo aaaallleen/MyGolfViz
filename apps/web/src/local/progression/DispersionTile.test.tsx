@@ -57,6 +57,16 @@ describe('DispersionTile', () => {
     }
   });
 
+  test('side by side: each plot is drawn at the width of its smallest cell, so its text and dots keep their size', () => {
+    setup({ sessions: three, shots: threeShots });
+    const grid = screen.getByRole('list');
+    const minCell = Number(/minmax\((\d+)px, 1fr\)/.exec(grid.style.gridTemplateColumns)?.[1]);
+    expect(minCell).toBeGreaterThanOrEqual(160);
+    for (const plot of screen.getAllByRole('img')) {
+      expect(Number(plot.getAttribute('viewBox')!.split(' ')[2])).toBe(minCell);
+    }
+  });
+
   test('Every shot sets the store and hides the inside text', async () => {
     setup({ sessions: three, shots: threeShots });
     expect(screen.getByTestId('kind')).toHaveTextContent('sd1');

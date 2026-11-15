@@ -57,7 +57,7 @@ export function shotsTitle(n: number, dates: readonly string[]): string {
 
 /**
  * `sessionIds` for `GET /shots`: the union of every club's sessions. None for All time, whose sessions are
- * every session: listing hundreds of ids could pass the server's request size limit.
+ * every session: leaving the ids out asks once instead of in many chunked requests, as Progression's `shotsQueryIds` does.
  */
 export function gappingQueryIds(basis: GappingBasis, perClub: ReadonlyMap<string, readonly string[]>): string[] | undefined {
   if (basis === 'all') return undefined;

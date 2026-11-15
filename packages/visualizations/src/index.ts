@@ -1,6 +1,6 @@
 export { niceTicks } from './scale';
 export { BALL, CLUB, SOFT, COMPARE_A, COMPARE_B, COMPARE_C, COMPARE_D } from './theme';
-export { CLUB_SERIES, clubColors, patternXMax, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
+export { CLUB_SERIES, clubColors, patternReach, patternXMax, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
 export { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 export { SpreadPlot, spreadBounds, type SpreadBounds, type SpreadPlotProps } from './SpreadPlot';
 export { TrajectoryPlot, type TrajectoryPlotProps } from './TrajectoryPlot';

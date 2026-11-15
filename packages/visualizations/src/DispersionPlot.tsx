@@ -1,5 +1,5 @@
 import type { DispersionStats, LandingMode } from '@fsa/analytics';
-import { emphasis, PATTERN_LEFT, PATTERN_RIGHT_PAD, PATTERN_WIDTH, type ClubSeries } from './clubSeries';
+import { emphasis, PATTERN_LEFT, PATTERN_RIGHT_PAD, PATTERN_WIDTH, patternReach, type ClubSeries } from './clubSeries';
 import { niceTicks } from './scale';
 import { INK, MUTED, GRID, SURFACE, FONT } from './theme';
 
@@ -7,7 +7,7 @@ export interface DispersionPlotProps {
   mode: LandingMode;
   /** One entry per club, in bag order; each club's points, centroid and ellipse. */
   groups: (ClubSeries & { stats: DispersionStats })[];
-  /** Far end of the distance axis (yd), shared with the side view. */
+  /** Far end of the distance axis (yd), shared with the side view; `patternXMax(patternReach(groups).distance)` fits every ellipse. */
   xMax: number;
   selectedId: string | null;
   /** The club whose marks are drawn solid while the rest fade; null for none. */
@@ -63,7 +63,8 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
   const L = PATTERN_LEFT, R = width - PATTERN_RIGHT_PAD;
   const k = (R - L) / xMax;
   const minPlotH = width * 0.3;
-  const latData = Math.max(...points.map((p) => Math.abs(p.x))) * 1.1;
+  // Wide enough for every dot and every ellipse box.
+  const latData = patternReach(groups).lateral * 1.1;
   const latMax = Math.max(latData, minPlotH / (2 * k), 5);
   const plotH = 2 * latMax * k;
   const B = T + plotH, H = B + BOTTOM;
@@ -122,14 +123,17 @@ export function DispersionPlot({ mode, groups, xMax, selectedId, highlightClub, 
           <text x={R} y={r1(H - 6)} textAnchor="end" fontSize={11}>{`${word} distance (yd)`}</text>
           <text x={8} y={18} fontSize={11}>Lateral landing (yd) · left above the target line</text>
         </g>
-        {ordered.map((g) => {
-          const e = g.stats.ellipse, level = allOn ? 'on' : emphasis(g.club, highlightClub);
-          return e && (
-            <circle key={`el-${g.club}`} data-testid="ellipse" data-club={g.club} cx={0} cy={0} r={1} transform={ellipseMatrix(e)}
-              fill={g.color} fillOpacity={FILL[level]} stroke={g.color} strokeOpacity={RING[level]}
-              strokeWidth={level === 'on' ? 2 : 1.5} vectorEffect="non-scaling-stroke" />
-          );
-        })}
+        {/* Clipped: an ellipse can run behind the tee, where the lateral labels sit. */}
+        <g clipPath="url(#fsa-dispersion-plot)">
+          {ordered.map((g) => {
+            const e = g.stats.ellipse, level = allOn ? 'on' : emphasis(g.club, highlightClub);
+            return e && (
+              <circle key={`el-${g.club}`} data-testid="ellipse" data-club={g.club} cx={0} cy={0} r={1} transform={ellipseMatrix(e)}
+                fill={g.color} fillOpacity={FILL[level]} stroke={g.color} strokeOpacity={RING[level]}
+                strokeWidth={level === 'on' ? 2 : 1.5} vectorEffect="non-scaling-stroke" />
+            );
+          })}
+        </g>
         {ordered.map((g) => {
           const c = g.stats.centroid, level = allOn ? 'on' : emphasis(g.club, highlightClub);
           return c && (

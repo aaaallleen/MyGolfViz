@@ -1,8 +1,9 @@
 import { useId } from 'react';
 import type { GappingRow } from '@fsa/analytics';
+import { NUMBER_LOCALE } from '@fsa/domain';
 import { shotsTitle } from './gappingScope';
 
-const yards = (v: number) => Math.round(v).toLocaleString('en-US');
+const yards = (v: number) => Math.round(v).toLocaleString(NUMBER_LOCALE);
 const yd = (v: number) => `${yards(v)} yd`;
 /** Lateral as on the plot: `8 L`, `6 R`, `0` on the line. */
 const lateral = (v: number) => {

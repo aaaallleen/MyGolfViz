@@ -62,7 +62,7 @@ export function dispersionStats(
     return (syy * dx * dx - 2 * sxy * dx * dy + sxx * dy * dy) / det;
   });
   // The sliver keeps the farthest point inside despite rounding.
-  const k2 = kind === 'all' ? Math.max(...d2s) * (1 + 1e-9) : 1;
+  const k2 = kind === 'all' ? d2s.reduce((m, d2) => Math.max(m, d2), 0) * (1 + 1e-9) : 1;
   const observedInside = d2s.filter((d2) => d2 <= k2).length;
   return {
     ...stats,

@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
-import type { DispersionStats } from '@fsa/analytics';
+import { dispersionStats, type DispersionStats } from '@fsa/analytics';
+import type { Measurements } from '@fsa/domain';
+import { patternReach, patternXMax } from './clubSeries';
 import { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 
 // x = lateral (right +), y = distance from the tee.
@@ -239,5 +241,51 @@ describe('flight paths', () => {
   test('the aria-label says the flights are drawn', () => {
     const { container } = renderPlot({ flightPaths: { a: 2 } });
     expect(container.querySelector('svg')!.getAttribute('aria-label')).toContain('ball flight is drawn from the tee');
+  });
+});
+
+describe('every-shot ellipses stay inside the plot', () => {
+  const shots = (club: string, landings: [number, number][]) =>
+    landings.map(([lateral, carry], i) => ({ id: `${club}${i}`, m: { lateral, carry } as unknown as Measurements }));
+  // The plot area is the clip rectangle; an ellipse's screen box comes from its unit-circle matrix.
+  const plotArea = (c: HTMLElement) => {
+    const r = c.querySelector('clipPath rect')!;
+    return { left: num(r, 'x'), top: num(r, 'y'), right: num(r, 'x') + num(r, 'width'), bottom: num(r, 'y') + num(r, 'height') };
+  };
+  const ellipseBox = (el: Element) => {
+    const [a, b, c, d, e, f] = el.getAttribute('transform')!.match(/-?[\d.]+/g)!.map(Number) as [number, number, number, number, number, number];
+    const hx = Math.hypot(a, c), hy = Math.hypot(b, d);
+    return { left: e - hx, right: e + hx, top: f - hy, bottom: f + hy };
+  };
+  const renderGroups = (gs: DispersionPlotProps['groups']) =>
+    renderPlot({ groups: gs, xMax: patternXMax(patternReach(gs).distance) });
+
+  test('a far mishit: the ellipse box fits the distance range', () => {
+    // Nine drives near 250 yd and one topped at 120 yd: the ellipse runs past every dot, beyond 300 yd.
+    const drives: [number, number][] = [[-6, 245], [-4, 248], [-2, 250], [0, 252], [2, 255], [4, 247], [6, 251], [-1, 253], [1, 249], [10, 120]];
+    const stats = dispersionStats(shots('d', drives), 'carry', 'all');
+    expect(stats.ellipse!.cy + stats.ellipse!.halfY).toBeGreaterThan(patternXMax(255));
+    const { container } = renderGroups([{ club: 'Driver', color: '#3987E5', stats }]);
+    const area = plotArea(container), box = ellipseBox(container.querySelector('[data-testid="ellipse"]')!);
+    expect(box.right).toBeLessThanOrEqual(area.right + 0.5);
+  });
+
+  test('a tilted cloud with one shot off its line: the ellipse box fits the lateral range', () => {
+    // Lateral rises with distance; the 25 R shot stretches the tilted ellipse well past the widest dot.
+    const irons: [number, number][] = [[-20, 80], [-10, 90], [0, 100], [10, 110], [20, 120], [-15, 87], [15, 113], [25, 95]];
+    const stats = dispersionStats(shots('i', irons), 'carry', 'all');
+    expect(Math.abs(stats.ellipse!.cx) + stats.ellipse!.halfX).toBeGreaterThan(25 * 1.1);
+    const { container } = renderGroups([{ club: '7 Iron', color: '#C98500', stats }]);
+    const area = plotArea(container), box = ellipseBox(container.querySelector('[data-testid="ellipse"]')!);
+    expect(box.top).toBeGreaterThanOrEqual(area.top - 0.5);
+    expect(box.bottom).toBeLessThanOrEqual(area.bottom + 0.5);
+  });
+
+  test('an ellipse that runs behind the tee is clipped to the plot area, off the lateral labels', () => {
+    // Pitches near 30 yd and one thinned to 90 yd: the ellipse's short end falls behind the tee.
+    const wedge = dispersionStats(shots('w', [[0, 30], [2, 32], [-2, 28], [1, 31], [-1, 29], [0, 90]]), 'carry', 'all');
+    expect(wedge.ellipse!.cy - wedge.ellipse!.halfY).toBeLessThan(0);
+    const { container } = renderGroups([{ club: 'Lob Wedge', color: '#E66767', stats: wedge }]);
+    expect(container.querySelector('[data-testid="ellipse"]')!.closest('[clip-path]')).toHaveAttribute('clip-path', 'url(#fsa-dispersion-plot)');
   });
 });

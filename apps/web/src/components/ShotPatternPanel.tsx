@@ -1,7 +1,7 @@
 import { trajectoryCurve, type DispersionStats, type EllipseKind, type LandingMode, type TrajectoryCurve } from '@fsa/analytics';
 import type { Shot } from '@fsa/domain';
 import { SegmentedControl } from '@fsa/ui';
-import { DispersionPlot, patternXMax, PATTERN_WIDTH, TrajectoryPlot, type ClubSeries } from '@fsa/visualizations';
+import { DispersionPlot, patternReach, patternXMax, PATTERN_WIDTH, TrajectoryPlot, type ClubSeries } from '@fsa/visualizations';
 import { shotLabel } from './shotLabel';
 import { usePhone } from './usePhone';
 
@@ -48,7 +48,9 @@ export function ShotPatternPanel({ shots, groups, mode, onMode, ellipseKind, onE
   }));
   const nPoints = groups.reduce((n, g) => n + g.stats.points.length, 0);
   const nCurves = curves.reduce((n, g) => n + g.curves.length, 0);
-  const longest = Math.max(0, ...groups.flatMap((g) => g.stats.points.map((p) => p.y)), ...curves.flatMap((g) => g.curves.map((c) => c.p3[0])));
+  // Past every dot, every ellipse and every flight's landing.
+  let longest = patternReach(groups).distance;
+  for (const g of curves) for (const c of g.curves) longest = Math.max(longest, c.p3[0]);
   const xMax = patternXMax(longest);
   const selected = selectedId ? byId.get(selectedId) : undefined;
 

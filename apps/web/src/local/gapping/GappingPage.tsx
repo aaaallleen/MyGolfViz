@@ -6,7 +6,7 @@ import {
 } from '@fsa/analytics';
 import { formatSessionDate } from '@fsa/domain';
 import { Button, EmptyState, SegmentedControl, SelectField } from '@fsa/ui';
-import { clubColors, DispersionPlot, patternXMax, PATTERN_WIDTH } from '@fsa/visualizations';
+import { clubColors, DispersionPlot, patternReach, patternXMax, PATTERN_WIDTH } from '@fsa/visualizations';
 import { usePhone } from '../../components/usePhone';
 import { useWorkingSet } from '../../state/store';
 import * as api from '../api';
@@ -134,7 +134,7 @@ export default function GappingPage() {
   const line = loaded && !shotsFailed
     ? gappingLine(loaded.label, used.length, scope.shots === 'stock' ? inBasis.length - used.length : 0, scope.shots)
     : null;
-  const longest = Math.max(0, ...table.flatMap((r) => r.dispersion.points.map((p) => p.y)));
+  const groups = table.map((r) => ({ club: r.club, color: colors.get(r.club)!, stats: r.dispersion }));
   const clubOf = new Map(used.map((s) => [s.id, s.club ?? '']));
 
   return (
@@ -187,8 +187,9 @@ export default function GappingPage() {
               <div className="panel gapping-plot">
                 <DispersionPlot
                   mode="carry"
-                  groups={table.map((r) => ({ club: r.club, color: colors.get(r.club)!, stats: r.dispersion }))}
-                  xMax={patternXMax(longest)}
+                  groups={groups}
+                  // Past every dot and every ellipse.
+                  xMax={patternXMax(patternReach(groups).distance)}
                   width={width}
                   selectedId={null}
                   // A row that left the table while hovered never sends its leave.

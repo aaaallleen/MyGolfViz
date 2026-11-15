@@ -36,3 +36,19 @@ describe('ShotPatternPanel ellipse choice', () => {
     )).toBeInTheDocument();
   });
 });
+
+test('the distance axis reaches past an every-shot ellipse, not just the dots', () => {
+  // Nine drives near 250 yd and one topped at 120 yd: the Every-shot ellipse runs past 300 yd.
+  const carries = [245, 248, 250, 252, 255, 247, 251, 253, 249, 120];
+  const drives = carries.map((c, i) => shot(i, (i % 5) - 2, c));
+  const groups = dispersionByClub(drives, 'carry', 'all').map((g) => ({ ...g, color: '#123456' }));
+  const e = groups[0]!.stats.ellipse!;
+  expect(e.cy + e.halfY).toBeGreaterThan(300);
+  const { container } = render(
+    <ShotPatternPanel shots={drives} groups={groups} mode="carry" onMode={() => {}} ellipseKind="all" onEllipseKind={() => {}}
+      selectedId={null} onSelect={() => {}} highlightClub={null} />,
+  );
+  const topView = container.querySelector('.fsa-dispersion')!;
+  const ticks = Array.from(topView.querySelectorAll('text[text-anchor="middle"]')).map((t) => Number(t.textContent));
+  expect(Math.max(...ticks)).toBeGreaterThanOrEqual(e.cy + e.halfY);
+});
