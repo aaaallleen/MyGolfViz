@@ -12,6 +12,7 @@ import { formatPlain, tickFormatter } from './format';
 import { TileFrame } from './MetricTile';
 import { pickedApplies, scopeLine, sessionsForGapping, shotsQueryIds, toProgressionShot, type Scope } from './scope';
 import type { TileDef } from './tiles';
+import { DispersionTile } from './DispersionTile';
 import { isFew } from './TileDetails';
 
 export interface SpecialTileProps {
@@ -24,6 +25,8 @@ export interface SpecialTileProps {
   shots: readonly ProgressionShot[];
   scope: Scope;
   controls: ReactNode;
+  /** Change the Progression scope (Dispersion by session keeps its View there). */
+  onScope(next: Scope): void;
 }
 
 /** Mishit frequency, Speed & smash, Impact location and Club gapping. */
@@ -33,6 +36,7 @@ export function SpecialTile(props: SpecialTileProps) {
     case 'speedSmash': return <SpeedSmashTile {...props} />;
     case 'impact': return <ImpactTile {...props} />;
     case 'gapping': return <GappingTile {...props} />;
+    case 'dispersion': return <DispersionTile {...props} />;
     default: return <TileFrame def={props.def} controls={props.controls} />;
   }
 }

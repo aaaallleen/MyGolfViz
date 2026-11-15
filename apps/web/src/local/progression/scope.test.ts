@@ -26,7 +26,7 @@ describe('parseScope', () => {
   });
   it('parses valid fields and picked', () => {
     expect(parseScope({ club: 'Driver', last: 'all', picked: ['a'], band: 'p10p90' })).toEqual({
-      club: 'Driver', last: 'all', picked: ['a'], shots: 'all', band: 'p10p90',
+      club: 'Driver', last: 'all', picked: ['a'], shots: 'all', band: 'p10p90', view: 'side',
     });
     expect(parseScope({ picked: [1] }).picked).toBeNull();
     expect(parseScope({ picked: 'a' }).picked).toBeNull();
@@ -75,5 +75,13 @@ describe('scopeLine', () => {
     expect(scopeLine([{ excluded: false }, { excluded: true }], 'all')).toBe('All 2 shots');
     const shots = Array.from({ length: 214 }, (_, i) => ({ excluded: i < 23 }));
     expect(scopeLine(shots, 'stock')).toBe('Stock shots only · 23 excluded left out');
+  });
+});
+
+describe('parseScope view', () => {
+  it('defaults to side and keeps only known values', () => {
+    expect(parseScope({}).view).toBe('side');
+    expect(parseScope({ view: 'x' }).view).toBe('side');
+    expect(parseScope({ view: 'overlaid' }).view).toBe('overlaid');
   });
 });

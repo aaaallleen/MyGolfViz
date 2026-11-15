@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { WorkingSetProvider } from '../../state/store';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { LibraryShot, SessionRow } from '../api';
 
@@ -64,7 +65,7 @@ beforeEach(() => {
 
 const renderPage = (tiles: string[]) => {
   settings['progression.layout'] = { tiles };
-  render(<MemoryRouter><ProgressionPage /></MemoryRouter>);
+  render(<WorkingSetProvider><MemoryRouter><ProgressionPage /></MemoryRouter></WorkingSetProvider>);
 };
 const tile = (name: string) => screen.getByRole('article', { name });
 const headline = (t: HTMLElement) => t.querySelector('.prog-tile__value')!.textContent;
