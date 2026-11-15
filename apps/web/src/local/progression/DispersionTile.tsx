@@ -12,6 +12,8 @@ const PLOT_WIDTH = 300;
 
 const dateOf = (date: string) => formatSessionDate(date, { setByYou: false });
 const yards = (v: number) => Math.round(v).toLocaleString('en-US');
+/** Under 3 landed shots there is no ellipse to draw. */
+const needsShots = (st: DispersionStats) => st.points.length < 3;
 const size = (st: DispersionStats) =>
   st.ellipse ? { w: yards(2 * st.ellipse.halfX), d: yards(2 * st.ellipse.halfY) } : null;
 
@@ -75,8 +77,14 @@ export function DispersionTile({ def, sessions, shots, scope, controls, onScope 
                     <span className="prog-legend__dot" style={{ background: colorOf(i) }} aria-hidden="true" />
                     {dateOf(s.date)}{few(stats[i]!) && ' · few shots'}
                   </td>
-                  <td>{z ? `${z.w} yd` : '—'}</td>
-                  <td>{z ? `${z.d} yd` : '—'}</td>
+                  {needsShots(stats[i]!) ? (
+                    <td colSpan={2}>Needs 3 shots for an ellipse</td>
+                  ) : (
+                    <>
+                      <td>{z ? `${z.w} yd` : '—'}</td>
+                      <td>{z ? `${z.d} yd` : '—'}</td>
+                    </>
+                  )}
                 </tr>
               );
             })}
@@ -105,7 +113,7 @@ export function DispersionTile({ def, sessions, shots, scope, controls, onScope 
                   {ellipseKind === 'sd1' && <span>{` · ${st.observedInside} of ${st.points.length} inside`}</span>}
                 </p>
               ) : (
-                <p className="prog-dispersion__size">Needs 3 shots for an ellipse</p>
+                <p className="prog-dispersion__size">{needsShots(st) ? 'Needs 3 shots for an ellipse' : '—'}</p>
               )}
             </li>
           );

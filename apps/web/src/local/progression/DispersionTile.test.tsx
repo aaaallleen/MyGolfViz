@@ -103,4 +103,12 @@ describe('DispersionTile', () => {
     expect(b!.querySelector('.prog-dispersion__date')!.textContent).not.toContain('few shots');
     expect(within(b!).queryByText('Needs 3 shots for an ellipse')).toBeNull();
   });
+
+  test('overlaid: a session under 3 shots says so in its legend row', () => {
+    const sessions = [session(1), session(2)];
+    setup({ sessions, shots: [...shotsFor('s1', 2), ...shotsFor('s2', 6)], scope: { view: 'overlaid' } });
+    const rows = within(screen.getByRole('table')).getAllByRole('row');
+    expect(within(rows[1]!).getByText('Needs 3 shots for an ellipse')).toBeInTheDocument();
+    expect(within(rows[2]!).queryByText('Needs 3 shots for an ellipse')).toBeNull();
+  });
 });
