@@ -145,6 +145,7 @@ textarea.field__input { padding: 10px 12px; }
 .overview__panels { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
 .overview__panels > * { min-width: 0; }
 .overview__pattern { flex: 3 1 600px; }
+.overview__pattern-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .overview__side { flex: 1 1 340px; display: flex; flex-direction: column; gap: 16px; }
 /* The last panel on the right (the shot card) grows so both columns end at the same height. */
 .overview__side > :last-child { flex: 1 1 auto; }

@@ -9,6 +9,7 @@ import { ImportResultPage } from './ImportResultPage';
 import { OpenSessionProvider } from './OpenSession';
 import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
+import { useEllipsePreference } from './useEllipsePreference';
 import { useSessionSync } from './useSessionSync';
 
 const ProgressionPage = lazy(() => import('./progression/ProgressionPage'));
@@ -17,6 +18,7 @@ const ComparePage = lazy(() => import('./compare/ComparePage'));
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
   useSessionSync();
+  useEllipsePreference();
   // Check the token on start (any route, including Help, which makes no call of its own): a 401 here shows the sign-in hint instead of a half-working app.
   useEffect(() => {
     listSessions().catch(() => {});

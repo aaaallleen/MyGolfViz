@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import type { SessionDetails, Shot } from '@fsa/domain';
 import { decodeCsvBytes, parseFlightScopeCsv, sha256Hex } from '@fsa/csv-parser';
-import type { LandingMode } from '@fsa/analytics';
+import type { EllipseKind, LandingMode } from '@fsa/analytics';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import { excludedShotIds } from '@fsa/analytics';
-import { initialState, reducer, type Action, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
+import { initialState, isClearedState, reducer, type Action, tableOf, visibleOf, type InspectorTab, type StoreState } from './reducer';
 import { readFileBytes } from './readBytes';
 import type { IncomingFile } from './staging';
 
@@ -48,6 +48,7 @@ export interface WorkingSetApi extends StoreState {
   /** Excludes every included shot in the club/file filter (Edit shots). Null when none is left to exclude. */
   excludeAll(): { count: number; undo: () => void } | null;
   setLandingMode(m: LandingMode): void;
+  setEllipseKind(k: EllipseKind): void;
   setInspectorTab(t: InspectorTab): void;
   setClubView3D(v: View3D): void;
   setClubView2D(v: View2D): void;
@@ -121,10 +122,10 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
     generation.current += 1;
     setPending(0);
     dispatch({ type: 'clear' });
-    if (before === initialState) return null;
-    // 'clear' yields the initialState object itself, and every later action yields a new object.
+    if (isClearedState(before)) return null;
+    // 'clear' yields a shared cleared object, and every later action yields a new one.
     return () => {
-      if (latest.current === initialState) {
+      if (isClearedState(latest.current)) {
         filesBefore.forEach((f, k) => filesByKey.current.set(k, f));
         dispatch({ type: 'restore', state: before });
       }
@@ -184,6 +185,7 @@ export function WorkingSetProvider({ children, initial }: { children: ReactNode;
       includeAll,
       excludeAll,
       setLandingMode: (mode) => dispatch({ type: 'setLandingMode', mode }),
+      setEllipseKind: (kind) => dispatch({ type: 'setEllipseKind', kind }),
       setInspectorTab: (tab) => dispatch({ type: 'setInspectorTab', tab }),
       setClubView3D: (view) => dispatch({ type: 'setClubView3D', view }),
       setClubView2D: (view) => dispatch({ type: 'setClubView2D', view }),

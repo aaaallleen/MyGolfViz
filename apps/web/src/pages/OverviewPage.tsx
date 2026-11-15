@@ -73,7 +73,7 @@ export function OverviewPage() {
       <p className="panel__note">{`${shots.length} used · ${excludedCount} excluded · “–” means the CSV held no value; it is never treated as zero`}</p>
     </section>
   );
-  const groups = dispersionByClub(shots, ws.landingMode).map((g) => ({ ...g, color: colors.get(g.club) ?? '#9BA9A1' }));
+  const groups = dispersionByClub(shots, ws.landingMode, ws.ellipseKind).map((g) => ({ ...g, color: colors.get(g.club) ?? '#9BA9A1' }));
 
   const modes = [...new Set(workingSet.shots.map((s) => s.mode).filter((m): m is string => m !== null))];
   const filterOrdinal = workingSet.files.find((f) => f.id === filters.fileId)?.ordinal;
@@ -131,6 +131,7 @@ export function OverviewPage() {
           <section className="overview__panels">
             {shots.length > 0 && (
               <ShotPatternPanel shots={shots} groups={groups} mode={ws.landingMode} onMode={ws.setLandingMode}
+                ellipseKind={ws.ellipseKind} onEllipseKind={ws.setEllipseKind}
                 selectedId={selectedId} onSelect={ws.select} highlightClub={highlightClub} />
             )}
             <div className="overview__side">
