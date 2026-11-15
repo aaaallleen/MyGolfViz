@@ -105,8 +105,8 @@ describe('GappingPage', () => {
     await screen.findByText(LINE_LAST3);
     expect(within(table()).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(COLUMNS);
     expect(bodyRows().map((r) => within(r).getByRole('rowheader').textContent)).toEqual(['Driver', '3 Wood', '7 Iron', 'Pitching Wedge']);
-    expect(cell('Driver', 'Stock carry').querySelector('strong')!.textContent).toBe('248');
-    expect(cell('Driver', 'Total').textContent).toBe('269');
+    expect(cell('Driver', 'Stock carry').querySelector('strong')!.textContent).toBe('248 yd');
+    expect(cell('Driver', 'Total').textContent).toBe('269 yd');
     expect(cell('3 Wood', 'Total').textContent).toBe('—');
     expect(cell('Driver', 'Left – right').textContent).toMatch(/^\d+ L – \d+ R$/);
     expect(cell('Pitching Wedge', 'Gap to next').textContent).toBe('—');
@@ -117,9 +117,9 @@ describe('GappingPage', () => {
   test('overlap and hole flags in Gap to next', async () => {
     renderPage();
     await screen.findByText(LINE_LAST3);
-    expect(cell('Driver', 'Gap to next')).toHaveTextContent(/^13\s*overlaps 3 Wood$/);
-    expect(cell('3 Wood', 'Gap to next')).toHaveTextContent(/^80\s*hole$/);
-    expect(cell('7 Iron', 'Gap to next')).toHaveTextContent(/^35$/);
+    expect(cell('Driver', 'Gap to next')).toHaveTextContent(/^13 yd\s*overlaps 3 Wood$/);
+    expect(cell('3 Wood', 'Gap to next')).toHaveTextContent(/^80 yd\s*hole$/);
+    expect(cell('7 Iron', 'Gap to next')).toHaveTextContent(/^35 yd$/);
   });
 
   test('consistency: a score ± for 6+ shots, — and few shots below; few shots in Shots for 0 < n < 5', async () => {
@@ -131,10 +131,20 @@ describe('GappingPage', () => {
     expect(cell('Pitching Wedge', 'Consistency').textContent).toMatch(/^\d+ ± \d+$/);
     expect(cell('3 Wood', 'Consistency')).toHaveTextContent(/^—\s*few shots$/);
     expect(cell('7 Iron', 'Consistency')).toHaveTextContent(/^—\s*few shots$/);
-    expect(cell('7 Iron', 'Shots')).toHaveTextContent(/^3\s*few shots$/);
-    expect(cell('3 Wood', 'Shots').textContent).toBe('5');
+    expect(cell('7 Iron', 'Shots')).toHaveTextContent(/^3\s*few shots\s*3 shots from 3 Jan 2026$/);
+    expect(cell('3 Wood', 'Shots').firstChild!.textContent).toBe('5');
+    expect(cell('3 Wood', 'Shots').querySelector('.gapping-table__few')).toBeNull();
     expect(cell('Driver', 'Shots')).toHaveAttribute('title', '6 shots from 2 sessions, 1 Jan 2026 – 3 Jan 2026');
     expect(cell('7 Iron', 'Shots')).toHaveAttribute('title', '3 shots from 3 Jan 2026');
+  });
+
+  test('a focused row exposes where its shots came from, not only on hover', async () => {
+    renderPage();
+    await screen.findByText(LINE_LAST3);
+    rowOf('Driver').focus();
+    expect(rowOf('Driver')).toHaveFocus();
+    expect(rowOf('Driver')).toHaveAccessibleDescription('6 shots from 2 sessions, 1 Jan 2026 – 3 Jan 2026');
+    expect(rowOf('7 Iron')).toHaveAccessibleDescription('3 shots from 3 Jan 2026');
   });
 
   test('Selected session… shows the Session picker, newest first with the latest chosen', async () => {
@@ -214,7 +224,7 @@ describe('GappingPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'All shots' }));
     expect(screen.getByText("Each club's last 3 sessions · 21 shots")).toBeInTheDocument();
     expect(api.putSetting).toHaveBeenCalledWith('gapping.scope', { basis: 'last3', sessionId: null, shots: 'all' });
-    expect(cell('Driver', 'Shots').textContent).toBe('7');
+    expect(cell('Driver', 'Shots').firstChild!.textContent).toBe('7');
   });
 
   test('a failed save keeps the choice for this visit and tells the user', async () => {

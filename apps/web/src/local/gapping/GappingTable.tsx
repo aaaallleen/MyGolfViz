@@ -1,7 +1,9 @@
+import { useId } from 'react';
 import type { GappingRow } from '@fsa/analytics';
 import { shotsTitle } from './gappingScope';
 
 const yards = (v: number) => Math.round(v).toLocaleString('en-US');
+const yd = (v: number) => `${yards(v)} yd`;
 /** Lateral as on the plot: `8 L`, `6 R`, `0` on the line. */
 const lateral = (v: number) => {
   const r = Math.round(v);
@@ -21,6 +23,7 @@ export interface GappingTableProps {
 
 /** Stock yardages, one row per club; hovering or focusing a row highlights the club in the plot. */
 export function GappingTable({ rows, colors, sessions, onHighlight }: GappingTableProps) {
+  const id = useId();
   return (
     <div className="gapping-table__scroll">
       <table className="gapping-table">
@@ -42,13 +45,17 @@ export function GappingTable({ rows, colors, sessions, onHighlight }: GappingTab
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => {
+          {rows.map((r, i) => {
             const dates = sessions.filter((s) => r.sessionIds.includes(s.id)).map((s) => s.date);
+            const title = shotsTitle(r.n, dates);
+            const sourceId = `${id}-shots-${i}`;
             const leave = () => onHighlight(null);
             return (
               <tr
                 key={r.club}
                 tabIndex={0}
+                // Where the club's shots came from, for keyboard and screen reader users (the title is hover only).
+                aria-describedby={sourceId}
                 onMouseEnter={() => onHighlight(r.club)}
                 onMouseLeave={leave}
                 onFocus={() => onHighlight(r.club)}
@@ -58,12 +65,12 @@ export function GappingTable({ rows, colors, sessions, onHighlight }: GappingTab
                   <span className="gapping-table__dot" style={{ background: colors.get(r.club) }} aria-hidden="true" />
                   {r.club}
                 </th>
-                <td><strong>{yards(r.stockCarry)}</strong></td>
-                <td>{r.total === null ? '—' : yards(r.total)}</td>
+                <td><strong>{yd(r.stockCarry)}</strong></td>
+                <td>{r.total === null ? '—' : yd(r.total)}</td>
                 <td>{range(r.shortLong, yards)}</td>
                 <td>{range(r.leftRight, lateral)}</td>
                 <td>
-                  {r.gapToNext === null ? '—' : yards(r.gapToNext)}
+                  {r.gapToNext === null ? '—' : yd(r.gapToNext)}
                   {r.overlapsNext !== null && <span className="gapping-table__flag">{`overlaps ${r.overlapsNext}`}</span>}
                   {r.hole && <span className="gapping-table__flag gapping-table__flag--hole">hole</span>}
                 </td>
@@ -72,9 +79,10 @@ export function GappingTable({ rows, colors, sessions, onHighlight }: GappingTab
                     ? `${Math.round(r.consistency.score)} ± ${Math.round(r.consistency.plusMinus)}`
                     : <>—<span className="gapping-table__few">few shots</span></>}
                 </td>
-                <td title={shotsTitle(r.n, dates)}>
+                <td title={title}>
                   {r.n}
                   {r.few && <span className="gapping-table__few">few shots</span>}
+                  <span id={sourceId} className="visually-hidden">{title}</span>
                 </td>
               </tr>
             );
