@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { MEASUREMENT_KEYS, type Measurements } from '@fsa/domain';
 import {
-  HEATMAP, change, clubGapping, impactHeatmap, impactStats, metricStats, mishitFrequency, orderSessions, quantile,
+  HEATMAP, change, clubGapping, dispersionBySession, impactHeatmap, impactStats, metricStats, mishitFrequency, orderSessions, quantile,
   seriesForMetric, type ImpactSessionStats, type ProgressionShot,
 } from './progression';
 
@@ -208,5 +208,24 @@ describe('clubGapping', () => {
     const shots = [...carry('Driver', [250, 250]), shot('s1', { carry: 100 }, { excluded: true })];
     expect(clubGapping(shots, 'stock')[0]!.n).toBe(2);
     expect(clubGapping(shots, 'all')[0]!.n).toBe(3);
+  });
+});
+
+describe('dispersionBySession', () => {
+  test('one entry per id in order; stock leaves excluded shots out; empty session has no ellipse', () => {
+    const at = (lateral: number, carry: number, sessionId = 'a', excluded = false) =>
+      shot(sessionId, { lateral, carry }, { excluded, club: '7 Iron' });
+    const shots = [
+      at(0, 150), at(2, 152), at(-2, 148), at(1, 151, 'a', true),
+      at(5, 100, 'b'), at(6, 101, 'b'),
+    ];
+    const out = dispersionBySession(['b', 'a', 'c'], shots, 'stock', 'sd1');
+    expect(out.map((o) => o.sessionId)).toEqual(['b', 'a', 'c']);
+    expect(out[0]!.stats.points).toHaveLength(2);
+    expect(out[1]!.stats.points).toHaveLength(3);
+    expect(out[1]!.stats.mode).toBe('carry');
+    expect(out[2]!.stats.points).toEqual([]);
+    expect(out[2]!.stats.ellipse).toBeNull();
+    expect(dispersionBySession(['a'], shots, 'all', 'all')[0]!.stats.points).toHaveLength(4);
   });
 });

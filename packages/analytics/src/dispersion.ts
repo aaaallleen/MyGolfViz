@@ -1,10 +1,14 @@
-import { compareClubs, type Shot } from '@fsa/domain';
+import { compareClubs, type Measurements, type Shot } from '@fsa/domain';
 
 export type LandingMode = 'carry' | 'total';
 export interface DispersionPoint { shotId: string; x: number; y: number }
-export interface Ellipse { cx: number; cy: number; rx: number; ry: number; angleDeg: number }
+/** `sd1` is the 1 SD ellipse; `all` is the smallest same-shape ellipse that holds every shot. */
+export type EllipseKind = 'sd1' | 'all';
+/** halfX/halfY are half the ellipse's lateral width and distance depth (k·SDx, k·SDy); k is the Mahalanobis radius. */
+export interface Ellipse { cx: number; cy: number; rx: number; ry: number; angleDeg: number; halfX: number; halfY: number }
 export interface DispersionStats {
   mode: LandingMode;
+  kind: EllipseKind;
   points: DispersionPoint[];
   excluded: number;
   centroid: { x: number; y: number } | null;
@@ -18,14 +22,16 @@ export interface DispersionStats {
 
 export const EXPECTED_1SIGMA_COVERAGE: number = 1 - Math.exp(-0.5);
 
-export function dispersionStats(shots: readonly Shot[], mode: LandingMode): DispersionStats {
+export function dispersionStats(
+  shots: readonly { id: string; m: Measurements }[], mode: LandingMode, kind: EllipseKind = 'sd1',
+): DispersionStats {
   const points: DispersionPoint[] = [];
   for (const s of shots) {
     const x = s.m.lateral;
     const y = s.m[mode];
     if (x !== null && y !== null) points.push({ shotId: s.id, x, y });
   }
-  const base = { mode, points, excluded: shots.length - points.length, expectedCoverage: EXPECTED_1SIGMA_COVERAGE };
+  const base = { mode, kind, points, excluded: shots.length - points.length, expectedCoverage: EXPECTED_1SIGMA_COVERAGE };
   const n = points.length;
   if (n === 0) {
     return { ...base, centroid: null, meanAbsLateral: null, sdX: null, sdY: null, ellipse: null, observedInside: 0 };
@@ -51,23 +57,31 @@ export function dispersionStats(shots: readonly Shot[], mode: LandingMode): Disp
   if (angleDeg <= -90) angleDeg += 180;
   else if (angleDeg > 90) angleDeg -= 180;
 
-  let observedInside = 0;
-  for (const p of points) {
+  const d2s = points.map((p) => {
     const dx = p.x - cx, dy = p.y - cy;
-    const d2 = (syy * dx * dx - 2 * sxy * dx * dy + sxx * dy * dy) / det;
-    if (d2 <= 1) observedInside++;
-  }
-  return { ...stats, ellipse: { cx, cy, rx: Math.sqrt(l1), ry: Math.sqrt(l2), angleDeg }, observedInside };
+    return (syy * dx * dx - 2 * sxy * dx * dy + sxx * dy * dy) / det;
+  });
+  // The sliver keeps the farthest point inside despite rounding.
+  const k2 = kind === 'all' ? Math.max(...d2s) * (1 + 1e-9) : 1;
+  const observedInside = d2s.filter((d2) => d2 <= k2).length;
+  return {
+    ...stats,
+    ellipse: {
+      cx, cy, rx: Math.sqrt(k2 * l1), ry: Math.sqrt(k2 * l2), angleDeg,
+      halfX: Math.sqrt(k2 * sxx), halfY: Math.sqrt(k2 * syy),
+    },
+    observedInside,
+  };
 }
 
 export interface ClubDispersion { club: string; stats: DispersionStats }
 
 /** Dispersion per club, clubs in bag order (Driver first). Each club gets its own centroid, SDs and ellipse. */
-export function dispersionByClub(shots: readonly Shot[], mode: LandingMode): ClubDispersion[] {
+export function dispersionByClub(shots: readonly Shot[], mode: LandingMode, kind: EllipseKind = 'sd1'): ClubDispersion[] {
   const byClub = new Map<string, Shot[]>();
   for (const s of shots) {
     const g = byClub.get(s.club);
     if (g) g.push(s); else byClub.set(s.club, [s]);
   }
-  return [...byClub.keys()].sort(compareClubs).map((club) => ({ club, stats: dispersionStats(byClub.get(club)!, mode) }));
+  return [...byClub.keys()].sort(compareClubs).map((club) => ({ club, stats: dispersionStats(byClub.get(club)!, mode, kind) }));
 }

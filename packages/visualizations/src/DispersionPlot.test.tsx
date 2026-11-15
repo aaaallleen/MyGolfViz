@@ -6,6 +6,7 @@ import { DispersionPlot, type DispersionPlotProps } from './DispersionPlot';
 // x = lateral (right +), y = distance from the tee.
 const iron: DispersionStats = {
   mode: 'carry',
+  kind: 'sd1',
   points: [
     { shotId: 'a', x: -20, y: 150 },
     { shotId: 'b', x: 0, y: 160 },
@@ -16,7 +17,7 @@ const iron: DispersionStats = {
   meanAbsLateral: 10,
   sdX: 12,
   sdY: 8,
-  ellipse: { cx: -3, cy: 160, rx: 20, ry: 5, angleDeg: 45 },
+  ellipse: { cx: -3, cy: 160, rx: 20, ry: 5, angleDeg: 45, halfX: 10, halfY: 10 },
   observedInside: 2,
   expectedCoverage: 0.39,
 };
