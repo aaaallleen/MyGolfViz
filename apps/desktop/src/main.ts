@@ -10,10 +10,13 @@ import { buildMenuTemplate } from './menu';
 import { allowedChannels, classifyNavigation } from './navigation';
 import { SPLASH_UPDATING, startupErrorCopy, type StartupErrorKind } from './startupError';
 import { clampToDisplays, loadWindowState, saveWindowState } from './windowState';
+import { loadsBehindSplash, type PageKind } from './windowSwap';
 
 declare global {
   // Test hook, set only when MYGOLFVIZ_E2E=1.
-  var __mygolfviz: { backendPid(): number | null; appOrigin(): string | null } | undefined;
+  var __mygolfviz:
+    | { backendPid(): number | null; appOrigin(): string | null; swaps(): string[] }
+    | undefined;
 }
 
 const APP_NAME = 'MyGolfViz';
@@ -22,6 +25,8 @@ const STOP_TIMEOUT_MS = 5000;
 const DETAIL_LINES = 20;
 const CRASH_RELOAD_INTERVAL_MS = 10_000;
 const BACKGROUND = '#0d1210';
+/** If the app's window never reports that it has painted, show it anyway after this long. */
+const REVEAL_FALLBACK_MS = 10_000;
 
 const staticDir = path.join(__dirname, '..', 'static');
 const splashFile = path.join(staticDir, 'splash.html');
@@ -36,6 +41,12 @@ type Page =
 
 let win: BrowserWindow | null = null;
 let page: Page = { kind: 'splash' };
+/** What `win` itself has loaded; null for a new window. */
+let winShows: PageKind | null = null;
+/** A hidden window loading the app behind the splash; it replaces `win` once it has painted. */
+let pending: { window: BrowserWindow; timer: NodeJS.Timeout } | null = null;
+/** For the e2e tests: each replacement of the splash window, as "<what it showed> on <why>". */
+const swaps: string[] = [];
 let backend: BackendProcess | null = null;
 let backendPid: number | null = null;
 let appOrigin: string | null = null;
@@ -89,7 +100,7 @@ function run(log: DesktopLog): void {
   log.write(`app starting (version ${app.getVersion()}, ${app.isPackaged ? 'packaged' : 'development'})`);
 
   if (process.env.MYGOLFVIZ_E2E === '1') {
-    globalThis.__mygolfviz = { backendPid: () => backendPid, appOrigin: () => appOrigin };
+    globalThis.__mygolfviz = { backendPid: () => backendPid, appOrigin: () => appOrigin, swaps: () => [...swaps] };
   }
 
   /** Origin or file name only: never a query string, so never the token. */
@@ -103,20 +114,66 @@ function run(log: DesktopLog): void {
     }
   }
 
-  function show(next: Page): void {
-    page = next;
-    const w = win;
-    if (!w || w.isDestroyed()) return;
-    const load =
+  function load(w: BrowserWindow, next: Page): void {
+    const loading =
       next.kind === 'splash'
         ? w.loadFile(splashFile, next.message ? { query: { message: next.message } } : undefined)
         : next.kind === 'error'
           ? w.loadFile(errorFile, { query: next.query })
           : w.loadURL(next.url);
-    load.catch((err: unknown) => {
+    loading.catch((err: unknown) => {
       // A load superseded by the next one rejects with ERR_ABORTED; the log redacts any token.
       log.write(`window load failed: ${errorMessage(err)}`);
     });
+  }
+
+  function discardPending(): void {
+    if (!pending) return;
+    const { window: w, timer } = pending;
+    pending = null;
+    clearTimeout(timer);
+    if (!w.isDestroyed()) w.destroy();
+  }
+
+  /**
+   * Loads the app in a hidden window with the splash window's bounds, and swaps it in once it has painted. Loading
+   * the app in the splash window itself would freeze the splash's animation while the app loads.
+   */
+  function loadBehind(front: BrowserWindow, next: Page & { kind: 'app' }): void {
+    const back = newWindow(front.getNormalBounds());
+    const reveal = (why: string) => {
+      if (pending?.window !== back) return;
+      clearTimeout(pending.timer);
+      pending = null;
+      if (front.isDestroyed()) {
+        back.destroy();
+        return;
+      }
+      if (process.env.MYGOLFVIZ_E2E === '1') swaps.push(`${describeUrl(front.webContents.getURL())} on ${why}`);
+      const focused = front.isFocused();
+      if (front.isMaximized()) back.maximize();
+      if (focused) back.show();
+      else back.showInactive();
+      win = back;
+      winShows = 'app';
+      front.close();
+    };
+    pending = { window: back, timer: setTimeout(() => reveal('timeout'), REVEAL_FALLBACK_MS) };
+    back.once('ready-to-show', () => reveal('ready-to-show'));
+    load(back, next);
+  }
+
+  function show(next: Page): void {
+    page = next;
+    discardPending();
+    const w = win;
+    if (!w || w.isDestroyed()) return;
+    if (next.kind === 'app' && loadsBehindSplash(winShows, next.kind, w.isFullScreen())) {
+      loadBehind(w, next);
+      return;
+    }
+    winShows = next.kind;
+    load(w, next);
   }
 
   function showError(kind: StartupErrorKind, detail?: string): void {
@@ -222,10 +279,8 @@ function run(log: DesktopLog): void {
     }
   }
 
-  function createWindow(): BrowserWindow {
-    const primary = screen.getPrimaryDisplay();
-    const workAreas = [primary, ...screen.getAllDisplays().filter((d) => d.id !== primary.id)].map((d) => d.workArea);
-    const bounds = clampToDisplays(loadWindowState(windowStateFile), workAreas, DEFAULT_SIZE);
+  /** A hidden window with the app's navigation guards, crash reload and window-state saving. */
+  function newWindow(bounds: Electron.Rectangle): BrowserWindow {
     const w = new BrowserWindow({
       ...bounds,
       show: false,
@@ -240,7 +295,6 @@ function run(log: DesktopLog): void {
         additionalArguments: [`--mygolfviz-app-version=${app.getVersion()}`],
       },
     });
-    w.once('ready-to-show', () => w.show());
     w.webContents.on('will-navigate', (event) => guardNavigation(event, event.url));
     w.webContents.on('will-redirect', (event) => guardNavigation(event, event.url));
     w.webContents.setWindowOpenHandler(({ url }) => {
@@ -251,6 +305,7 @@ function run(log: DesktopLog): void {
     w.webContents.on('render-process-gone', (_event, details) => {
       log.write(`renderer gone: ${details.reason}`);
       if (details.reason === 'clean-exit' || quitState !== 'running') return;
+      if (w !== win && w !== pending?.window) return;
       const now = Date.now();
       if (now - lastCrashReload < CRASH_RELOAD_INTERVAL_MS) {
         // Crashing again right after a reload: do not loop, show the error page instead.
@@ -262,6 +317,7 @@ function run(log: DesktopLog): void {
       show(page);
     });
     w.on('close', () => {
+      if (w !== win) return; // the splash window being replaced, or a discarded hidden window
       try {
         saveWindowState(windowStateFile, w.getNormalBounds());
       } catch (err) {
@@ -269,9 +325,21 @@ function run(log: DesktopLog): void {
       }
     });
     w.on('closed', () => {
-      if (win === w) win = null;
+      if (win !== w) return;
+      win = null;
+      // Closed while the app loaded behind it: the app opens in place when the window is reopened.
+      discardPending();
     });
+    return w;
+  }
+
+  function createWindow(): BrowserWindow {
+    const primary = screen.getPrimaryDisplay();
+    const workAreas = [primary, ...screen.getAllDisplays().filter((d) => d.id !== primary.id)].map((d) => d.workArea);
+    const w = newWindow(clampToDisplays(loadWindowState(windowStateFile), workAreas, DEFAULT_SIZE));
+    w.once('ready-to-show', () => w.show());
     win = w;
+    winShows = null;
     show(page);
     return w;
   }

@@ -3,26 +3,31 @@ import { once } from 'node:events';
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { _electron as electron, expect, type ElectronApplication, type Page } from '@playwright/test';
-import { trackCspViolations } from '../e2e-local/helpers';
 
 declare global {
   // Test hook that the app's main process sets when MYGOLFVIZ_E2E=1 (apps/desktop/src/main.ts).
-  var __mygolfviz: { backendPid(): number | null; appOrigin(): string | null } | undefined;
+  var __mygolfviz:
+    | { backendPid(): number | null; appOrigin(): string | null; swaps(): string[] }
+    | undefined;
 }
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const splashPage = /\/static\/splash\.html(\?.*)?$/;
 
+export interface Launched {
+  app: ElectronApplication;
+  /** The first window: the splash, and the error page if the backend fails. The app opens in a window of its own. */
+  page: Page;
+  /** Content-Security-Policy violations in any of the app's windows, from the first page after the splash on. */
+  cspViolations: string[];
+}
+
 /**
  * Launches the app on `dataDir`: the development app (`electron apps/desktop`), or the executable named by
- * MYGOLFVIZ_DESKTOP_EXECUTABLE (the packaged app). Returns once its window exists, which may still be on the splash.
- * Content-Security-Policy violations of the window are recorded from the first page after the splash; the splash
- * itself is not tracked.
+ * MYGOLFVIZ_DESKTOP_EXECUTABLE (the packaged app). Returns once its first window exists, which may still be on the
+ * splash.
  */
-export async function launchApp(
-  dataDir: string,
-  extraEnv: Record<string, string> = {},
-): Promise<{ app: ElectronApplication; page: Page }> {
+export async function launchApp(dataDir: string, extraEnv: Record<string, string> = {}): Promise<Launched> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (value !== undefined && key !== 'MYGOLFVIZ_TOKEN') env[key] = value;
@@ -39,12 +44,30 @@ export async function launchApp(
   );
   try {
     const page = await app.firstWindow();
-    await trackCspViolations(page);
+    // Tracked on the context, so the window the app opens in is covered from its first page.
+    const cspViolations: string[] = [];
+    const context = app.context();
+    await context.exposeBinding('__cspReport', (_source, report: string) => void cspViolations.push(report));
+    await context.addInitScript(() => {
+      document.addEventListener('securitypolicyviolation', (e) =>
+        (window as unknown as { __cspReport: (r: string) => void }).__cspReport(`${e.violatedDirective} ${e.blockedURI}`),
+      );
+    });
+    const watchConsole = (p: Page) =>
+      p.on('console', (m) => {
+        if (/content security policy/i.test(m.text())) cspViolations.push(`console: ${m.text()}`);
+      });
+    app.windows().forEach(watchConsole);
+    app.on('window', watchConsole);
     // The window starts on about:blank, and reloading that could race main's load of the splash. Wait for a real page.
     await page.waitForURL((url) => url.href !== 'about:blank', { waitUntil: 'commit' });
-    // The tracker applies from the next page on. If the window has already left the splash, load that page again.
-    if (!splashPage.test(page.url())) await page.reload();
-    return { app, page };
+    // The tracker applies from the next page on. Load again any page that was already past the splash.
+    for (const open of app.windows()) {
+      if (!open.isClosed() && open.url() !== 'about:blank' && !splashPage.test(open.url())) {
+        await open.reload().catch(() => {}); // a window replaced meanwhile has closed
+      }
+    }
+    return { app, page, cspViolations };
   } catch (err) {
     await app.close();
     throw err;
@@ -69,9 +92,24 @@ export function isAlive(pid: number): boolean {
   }
 }
 
-/** Waits for the library: its Sessions heading, or the empty state that an empty library shows in its place. */
-export async function expectLibrary(page: Page): Promise<void> {
-  await expect(page.getByRole('heading', { name: /^(Sessions|No sessions yet)$/ })).toBeVisible();
+/**
+ * Waits until the app's only window shows the library (its Sessions heading, or the empty state an empty library
+ * shows in its place) and returns that window. The app opens in a new window that replaces the splash's, so this is
+ * not the window `launchApp` returned when the app started on the splash.
+ */
+export async function libraryPage(app: ElectronApplication): Promise<Page> {
+  let found: Page | null = null;
+  await expect
+    .poll(async () => {
+      const open = app.windows().filter((p) => !p.isClosed());
+      if (open.length !== 1) return false;
+      const heading = open[0]!.getByRole('heading', { name: /^(Sessions|No sessions yet)$/ });
+      if (!(await heading.isVisible().catch(() => false))) return false;
+      found = open[0]!;
+      return true;
+    })
+    .toBe(true);
+  return found!;
 }
 
 /**
