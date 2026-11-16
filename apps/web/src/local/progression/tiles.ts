@@ -11,7 +11,7 @@ export const CATEGORIES: readonly { id: Category; title: string; question: strin
   { id: 'strike', title: 'Strike quality', question: 'Is energy transfer better and contact more consistent?' },
 ];
 
-export type TileKind = 'metric' | 'accuracy' | 'variation' | 'mishit' | 'speedSmash' | 'impact' | 'gapping';
+export type TileKind = 'metric' | 'accuracy' | 'variation' | 'mishit' | 'speedSmash' | 'impact' | 'gapping' | 'dispersion';
 
 export type TileId =
   | 'carry' | 'total' | 'roll' | 'gapping'
@@ -19,7 +19,7 @@ export type TileId =
   | 'carry-sd' | 'lateral-sd' | 'mishit'
   | 'clubPath' | 'ftp' | 'ftt' | 'aoa' | 'lowPoint'
   | 'spin' | 'spinAxis' | 'launchV' | 'height' | 'descentV'
-  | 'speed-smash' | 'smash' | 'ballSpeed' | 'spinLoft' | 'impact';
+  | 'speed-smash' | 'smash' | 'ballSpeed' | 'spinLoft' | 'impact' | 'dispersion';
 
 export interface TileDef {
   id: TileId;
@@ -41,6 +41,7 @@ export const TILES: readonly TileDef[] = [
   t('lateral', 'Lateral (landing)', 'accuracy', 'accuracy', 'lateral'),
   t('launchH', 'Launch direction (H)', 'accuracy', 'accuracy', 'launchH'),
   t('curve', 'Curve distance', 'accuracy', 'accuracy', 'curve'),
+  t('dispersion', 'Dispersion by session', 'accuracy', 'dispersion'),
   t('carry-sd', 'Carry variation (SD)', 'consistency', 'variation', 'carry'),
   t('lateral-sd', 'Direction variation (lateral SD)', 'consistency', 'variation', 'lateral'),
   t('mishit', 'Mishit frequency', 'consistency', 'mishit'),
@@ -62,7 +63,7 @@ export const TILES: readonly TileDef[] = [
 ];
 
 export const DEFAULT_LAYOUT: readonly TileId[] = [
-  'carry', 'carry-sd', 'lateral', 'ftp', 'spin', 'speed-smash', 'impact', 'mishit',
+  'carry', 'carry-sd', 'lateral', 'ftp', 'spin', 'speed-smash', 'impact', 'mishit', 'dispersion',
 ];
 
 export const LAYOUT_KEY = 'progression.layout';

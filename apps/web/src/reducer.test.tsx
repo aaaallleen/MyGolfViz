@@ -234,6 +234,19 @@ describe('store', () => {
     expect(result.current.staged.map((f) => f.name)).toEqual(['x.csv']);
   });
 
+  test('clear() keeps the Every shot choice and its undo still works', async () => {
+    const { result } = renderHook(() => useWorkingSet(), { wrapper });
+    act(() => { result.current.setEllipseKind('all'); });
+    await act(async () => { await result.current.addFiles([mkFile()]); });
+    let undo: (() => void) | null = null;
+    act(() => { undo = result.current.clear(); });
+    expect(result.current.staged).toEqual([]);
+    expect(result.current.ellipseKind).toBe('all');
+    act(() => { undo!(); });
+    expect(result.current.staged).toHaveLength(1);
+    expect(result.current.ellipseKind).toBe('all');
+  });
+
   test('the undo from clear() restores everything, but only while nothing has changed since', async () => {
     const { result } = renderHook(() => useWorkingSet(), { wrapper });
     await act(async () => { await result.current.addFiles([mkFile()]); });
@@ -370,5 +383,17 @@ describe('loadSession', () => {
     const cleared = reducer(s, { type: 'clearStaged' });
     expect(cleared).toEqual({ ...s, staged: [] });
     expect(cleared.sessionId).toBe('sess');
+  });
+});
+
+describe('reducer: ellipse choice', () => {
+  test('setEllipseKind sets it; clear, restore and loadSession keep it', async () => {
+    let s = reducer(initialState, { type: 'setEllipseKind', kind: 'all' });
+    expect(s.ellipseKind).toBe('all');
+    expect(reducer(s, { type: 'clear' }).ellipseKind).toBe('all');
+    expect(reducer(s, { type: 'restore', state: initialState }).ellipseKind).toBe('all');
+    const ws = (await analyzed()).workingSet!;
+    s = reducer(s, { type: 'loadSession', sessionId: 'x', workingSet: ws, details: DEFAULT_SESSION_DETAILS, excluded: new Set(), keepView: false });
+    expect(s.ellipseKind).toBe('all');
   });
 });

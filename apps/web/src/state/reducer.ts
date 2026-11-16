@@ -1,7 +1,7 @@
 import { DEFAULT_SESSION_DETAILS, type SessionDetails, type WorkingSet } from '@fsa/domain';
 import type { Mode3D, View2D, View3D } from '@fsa/visualizations/club3d';
 import type { Shot } from '@fsa/domain';
-import { displayOrder, exclusionKey, excludedShotIds, filterShots, nextAfterExclude, stepSelection, type Filters, type LandingMode } from '@fsa/analytics';
+import { displayOrder, exclusionKey, excludedShotIds, filterShots, nextAfterExclude, stepSelection, type EllipseKind, type Filters, type LandingMode } from '@fsa/analytics';
 import { buildWorkingSet, stageFiles, type IncomingFile, type PreviewFile } from './staging';
 
 export type InspectorTab = 'impact' | '3d' | '2d';
@@ -15,6 +15,8 @@ export interface StoreState {
   /** Exclusion keys (`sha256:sourceRow`): tied to file content, so they survive removing and re-adding a file. */
   excluded: ReadonlySet<string>;
   landingMode: LandingMode;
+  /** 1 SD or Every shot; a view choice like landingMode, so a new session or Clear keeps it. */
+  ellipseKind: EllipseKind;
   inspectorTab: InspectorTab;
   /** The large view in each club tab; kept while moving between shots, reset by a reload. */
   clubView3D: View3D;
@@ -45,6 +47,7 @@ export type Action =
   | { type: 'setExcludedKeys'; excluded: ReadonlySet<string> }
   | { type: 'reveal'; id: string }
   | { type: 'setLandingMode'; mode: LandingMode }
+  | { type: 'setEllipseKind'; kind: EllipseKind }
   | { type: 'setInspectorTab'; tab: InspectorTab }
   | { type: 'setClubView3D'; view: View3D }
   | { type: 'setClubView2D'; view: View2D }
@@ -63,6 +66,7 @@ export const initialState: StoreState = {
   selectedId: null,
   excluded: new Set(),
   landingMode: 'carry',
+  ellipseKind: 'sd1',
   inspectorTab: '2d',
   clubView3D: 'faceOn',
   clubView2D: 'ftt',
@@ -70,6 +74,10 @@ export const initialState: StoreState = {
   busy: false,
   sessionId: null,
 };
+
+// The state after a clear: one stable object per ellipse choice, so the store can tell "still cleared" by identity.
+const CLEARED: Record<EllipseKind, StoreState> = { sd1: initialState, all: { ...initialState, ellipseKind: 'all' } };
+export const isClearedState = (s: StoreState): boolean => CLEARED[s.ellipseKind] === s;
 
 /** Every shot in the filter, in display order, excluded ones included. */
 export function tableOf(state: Pick<StoreState, 'workingSet' | 'filters'>): Shot[] {
@@ -123,9 +131,9 @@ export function reducer(state: StoreState, action: Action): StoreState {
       return { ...state, workingSet: buildWorkingSet(state.staged), filters: ALL, selectedId: null };
     }
     case 'clear':
-      return initialState;
+      return CLEARED[state.ellipseKind];
     case 'restore':
-      return action.state;
+      return { ...action.state, ellipseKind: state.ellipseKind };
     case 'setDetails':
       return { ...state, details: { ...state.details, ...action.patch } };
     case 'setClub': {
@@ -179,6 +187,8 @@ export function reducer(state: StoreState, action: Action): StoreState {
     }
     case 'setLandingMode':
       return { ...state, landingMode: action.mode };
+    case 'setEllipseKind':
+      return { ...state, ellipseKind: action.kind };
     case 'setInspectorTab':
       return { ...state, inspectorTab: action.tab };
     case 'setClubView3D':

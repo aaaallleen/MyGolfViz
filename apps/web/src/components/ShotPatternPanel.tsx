@@ -1,7 +1,7 @@
-import { trajectoryCurve, type DispersionStats, type LandingMode, type TrajectoryCurve } from '@fsa/analytics';
+import { trajectoryCurve, type DispersionStats, type EllipseKind, type LandingMode, type TrajectoryCurve } from '@fsa/analytics';
 import type { Shot } from '@fsa/domain';
 import { SegmentedControl } from '@fsa/ui';
-import { DispersionPlot, patternXMax, PATTERN_WIDTH, TrajectoryPlot, type ClubSeries } from '@fsa/visualizations';
+import { DispersionPlot, patternReach, patternXMax, PATTERN_WIDTH, TrajectoryPlot, type ClubSeries } from '@fsa/visualizations';
 import { shotLabel } from './shotLabel';
 import { usePhone } from './usePhone';
 
@@ -20,16 +20,21 @@ function ellipseCaption(groups: readonly ClubGroup[], mode: LandingMode): string
   const inside = withEllipse.reduce((n, g) => n + g.stats.observedInside, 0);
   const n = withEllipse.reduce((k, g) => k + g.stats.points.length, 0);
   const missing = groups.some((g) => !g.stats.ellipse && g.stats.points.length > 0) ? ' Clubs with fewer than 3 shots have no ellipse.' : '';
+  if (withEllipse[0]!.stats.kind === 'all') {
+    return `Every-shot ellipse per club · the 1σ ellipse's shape, enlarged until every shot is inside · observed: ${inside} of ${n} shots inside. Cross: each club's mean landing.${missing}`;
+  }
   return `1σ covariance ellipse per club · about ${Math.round(withEllipse[0]!.stats.expectedCoverage * 100)}% expected coverage if shots were bivariate normal · observed: ${inside} of ${n} shots inside. Cross: each club's mean landing.${missing}`;
 }
 
 /** Top view and side view stacked on one distance scale, one colour per club. */
-export function ShotPatternPanel({ shots, groups, mode, onMode, selectedId, onSelect, highlightClub }: {
+export function ShotPatternPanel({ shots, groups, mode, onMode, ellipseKind, onEllipseKind, selectedId, onSelect, highlightClub }: {
   shots: readonly Shot[];
   /** Per-club dispersion with colours, in bag order. */
   groups: readonly ClubGroup[];
   mode: LandingMode;
   onMode(m: LandingMode): void;
+  ellipseKind: EllipseKind;
+  onEllipseKind(k: EllipseKind): void;
   selectedId: string | null;
   onSelect(id: string): void;
   highlightClub: string | null;
@@ -43,7 +48,9 @@ export function ShotPatternPanel({ shots, groups, mode, onMode, selectedId, onSe
   }));
   const nPoints = groups.reduce((n, g) => n + g.stats.points.length, 0);
   const nCurves = curves.reduce((n, g) => n + g.curves.length, 0);
-  const longest = Math.max(0, ...groups.flatMap((g) => g.stats.points.map((p) => p.y)), ...curves.flatMap((g) => g.curves.map((c) => c.p3[0])));
+  // Past every dot, every ellipse and every flight's landing.
+  let longest = patternReach(groups).distance;
+  for (const g of curves) for (const c of g.curves) longest = Math.max(longest, c.p3[0]);
   const xMax = patternXMax(longest);
   const selected = selectedId ? byId.get(selectedId) : undefined;
 
@@ -51,12 +58,20 @@ export function ShotPatternPanel({ shots, groups, mode, onMode, selectedId, onSe
     <div className="panel overview__pattern">
       <div className="panel__head">
         <h2>{TITLE[mode]}</h2>
+        <div className="overview__pattern-controls">
         <SegmentedControl
           label="Landing position"
           value={mode}
           onChange={onMode}
           options={[{ value: 'carry', label: 'Carry' }, { value: 'total', label: 'Total' }]}
         />
+        <SegmentedControl
+          label="Ellipse"
+          value={ellipseKind}
+          onChange={onEllipseKind}
+          options={[{ value: 'sd1', label: '1 SD' }, { value: 'all', label: 'Every shot' }]}
+        />
+        </div>
       </div>
       <DispersionPlot
         mode={mode}

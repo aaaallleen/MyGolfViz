@@ -1,4 +1,5 @@
 import type { MeasurementKey, Measurements } from '@fsa/domain';
+import { dispersionStats, type DispersionStats, type EllipseKind } from './dispersion';
 import { summarize } from './summary';
 
 export const FEW_SHOTS = 5;
@@ -196,4 +197,14 @@ export function clubGapping(shots: readonly ProgressionShot[], choice: ShotsChoi
     const next = rows[i + 1];
     return { ...r, gapToNext: next ? r.median - next.median : null, overlapsNext: next ? r.p25 < next.p75 : false };
   });
+}
+
+/** Carry dispersion per session, one entry per id in the given order (empty sessions give no points and no ellipse). */
+export function dispersionBySession(
+  sessionIds: readonly string[], shots: readonly ProgressionShot[], choice: ShotsChoice, kind: EllipseKind,
+): { sessionId: string; stats: DispersionStats }[] {
+  return bySession(sessionIds, shots).map((group, i) => ({
+    sessionId: sessionIds[i] as string,
+    stats: dispersionStats(pick(group, choice), 'carry', kind),
+  }));
 }

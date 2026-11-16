@@ -15,9 +15,11 @@ export interface Scope {
   picked: string[] | null;
   shots: ShotsChoice;
   band: 'iqr' | 'p10p90';
+  /** Dispersion by session: one plot per session, or all on one plot. */
+  view: 'side' | 'overlaid';
 }
 
-export const DEFAULT_SCOPE: Scope = { club: null, last: 6, picked: null, shots: 'all', band: 'iqr' };
+export const DEFAULT_SCOPE: Scope = { club: null, last: 6, picked: null, shots: 'all', band: 'iqr', view: 'side' };
 
 export const SCOPE_KEY = 'progression.scope';
 
@@ -35,6 +37,7 @@ export function parseScope(value: unknown): Scope {
     picked,
     shots: v.shots === 'all' || v.shots === 'stock' ? v.shots : DEFAULT_SCOPE.shots,
     band: v.band === 'iqr' || v.band === 'p10p90' ? v.band : DEFAULT_SCOPE.band,
+    view: v.view === 'side' || v.view === 'overlaid' ? v.view : DEFAULT_SCOPE.view,
   };
 }
 

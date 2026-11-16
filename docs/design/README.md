@@ -56,6 +56,9 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
 1. **Ellipse caption.** The frames say "holding about 39% of shots"; spec §6 forbids that claim. Use:
    "1σ covariance ellipse · about 39% expected coverage if shots were bivariate normal ·
    observed: {k} of {n} shots inside".
+   The session page also has a **1 SD / Every shot** toggle (a shared preference, saved under `ellipse.kind`,
+   default 1 SD). Every shot uses: "Every-shot ellipse per club · the 1σ ellipse's shape, enlarged until every
+   shot is inside · observed: {n} of {n} shots inside. Cross: each club's mean landing."
 2. **Impact units and signs.** The frames show "6 toe · 4 high mm", but the CSV reports inches. Show inches with 2 decimals
    ("0.62 in toe · 0.44 in high"). Lateral impact: + toe, − heel, 0 centered (confirmed by the
    product owner). Vertical impact: + high. Face drawn face-on as in frames 05/08: for a right-hander the toe is
@@ -88,6 +91,7 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    - The scope bar, with its Shots choice line, is sticky, so the choice of all or stock shots is always on screen.
    - While an answer for a new club or sessions loads, the previous tiles stay on screen, dimmed.
    - Speed & smash draws two charts that share one x alignment, so the same session sits at the same x in both.
+   - **Dispersion by session** (accuracy tile): each session's carry landing ellipse for the chosen club, **Side by side** (one small plot per session, all on one shared window so sizes compare, with `W × D yd` under each) or **Overlaid** (latest 8 sessions on one plot, with a Session / Width / Depth legend table). Its Ellipse choice is the shared 1 SD / Every shot preference; under 3 landed shots reads `Needs 3 shots for an ellipse`.
 9. **Compare (Local App).**
    - Two to four shots. A and B are always there; **+ Add shot** adds C, then D, from the first visit on (it goes away at four). C and D each have a × to remove them; removing C moves D up to C. The diagrams and table show once A and at least one other shot are chosen.
    - **Clear comparison** (beside the title, once any shot is chosen) empties the page and makes the Compare tab forget it; Back still returns to it.
@@ -100,3 +104,11 @@ Fonts: Inter (body, 14 px, `font-variant-numeric: tabular-nums`), Space Grotesk 
    - The comparison lives in the URL (`/compare?a=…&b=…&c=…&d=…`; any may be absent, a lone d reads as C), so every state reloads and works with Back.
    - The Compare tab remembers the last comparison per window, in memory only: a click on the tab restores it, Back and reload do not, so Back is never trapped.
    - The picker goes session → club → shot, sessions newest first, with an `F2`-style badge on shots when the session has 2 or more files. An empty slot's picker starts from the baseline's session and club (another chosen shot's, for an empty A); a filled slot's starts from its own shot.
+10. **Gapping (Local App).**
+    - A local-only **Gapping** tab after Compare (`/gapping`; the public build has no route, link or code for it).
+    - **Based on**: Selected session… (with a Session picker), Latest session, Last 3 sessions (default), Last 10 sessions, All time. Last 3 / Last 10 count per club: each club uses its own last N sessions in which it was hit, so every club in the bag has a stock yardage. **Latest session** is the newest session overall, not per club. **Selected session…** shows a Session picker, newest first, defaulting to the latest session; a saved session that no longer exists falls back to the latest. **Ellipse** is the shared 1 SD / Every shot preference; **Shots** is All shots | Stock only (default). The choices are remembered.
+    - A line under the controls says what is in use (for example `Each club's last 3 sessions · 412 shots · 9 excluded left out`); a row's Shots cell says how many sessions it came from on hover or focus.
+    - One carry top view of every club (dots, ellipse, centre, club colours); hovering or focusing a table row highlights that club.
+    - Table, one row per club with a carry value, longest stock carry first: Club, **Stock carry** (median carry, bold), Total (median), Short – long, Left – right (the ellipse's extents), Gap to next, Consistency, Shots (`few shots` under 5).
+    - Gap to next flags **overlaps {next club}** when this club's short edge is inside the next club's long edge (follows the Ellipse choice), and **hole** when the gap is at least 1.75 x the median positive gap (needs 3 gaps). Clubs with no ellipse show `—` extents and never overlap.
+    - **Consistency** = 100 × (15 − spread%) / 12, clamped 0–100, where spread% = 100 × √(SDcarry² + SDlateral²) / stock carry (100 at 3%, 0 at 15%). Shown `73 ± 14`, the ± being one standard error from the shot count. Only with 6 or more shots, else `—` with `few shots`. Ignores the Ellipse choice.

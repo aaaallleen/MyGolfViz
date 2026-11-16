@@ -9,14 +9,17 @@ import { ImportResultPage } from './ImportResultPage';
 import { OpenSessionProvider } from './OpenSession';
 import { LibraryPage } from './LibraryPage';
 import { SessionRoute } from './SessionRoute';
+import { useEllipsePreference } from './useEllipsePreference';
 import { useSessionSync } from './useSessionSync';
 
 const ProgressionPage = lazy(() => import('./progression/ProgressionPage'));
 const ComparePage = lazy(() => import('./compare/ComparePage'));
+const GappingPage = lazy(() => import('./gapping/GappingPage'));
 
 export default function LocalRoutes() {
   const [unauthorised, setUnauthorised] = useState(false);
   useSessionSync();
+  useEllipsePreference();
   // Check the token on start (any route, including Help, which makes no call of its own): a 401 here shows the sign-in hint instead of a half-working app.
   useEffect(() => {
     listSessions().catch(() => {});
@@ -45,6 +48,7 @@ export default function LocalRoutes() {
         <Route path="/sessions/:id/inspect" element={<SessionRoute page="inspect" />} />
         <Route path="/progression" element={<Suspense fallback={null}><ProgressionPage /></Suspense>} />
         <Route path="/compare" element={<Suspense fallback={null}><ComparePage /></Suspense>} />
+        <Route path="/gapping" element={<Suspense fallback={null}><GappingPage /></Suspense>} />
         <Route path="/import" element={<LoadPage />} />
         <Route path="/import/result" element={<ImportResultPage />} />
         <Route path="/help" element={<HelpPage />} />

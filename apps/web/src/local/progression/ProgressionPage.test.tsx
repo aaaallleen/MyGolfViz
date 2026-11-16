@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { WorkingSetProvider } from '../../state/store';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { LibraryShot, SessionRow } from '../api';
 
@@ -63,12 +64,13 @@ beforeEach(() => {
   vi.mocked(toast.error).mockReset();
 });
 
-const renderPage = () => render(<MemoryRouter><ProgressionPage /></MemoryRouter>);
+const renderPage = () => render(<WorkingSetProvider><MemoryRouter><ProgressionPage /></MemoryRouter></WorkingSetProvider>);
 const tile = (name: string) => screen.getByRole('article', { name });
 const headline = (t: HTMLElement) => t.querySelector('.prog-tile__value')!.textContent;
 const chart = (t: HTMLElement) => within(t).getByRole('img', { name: /by session$/ });
 const DEFAULT_TITLES = [
   'Carry', 'Carry variation (SD)', 'Lateral (landing)', 'Face to path', 'Spin', 'Speed & smash', 'Impact location', 'Mishit frequency',
+  'Dispersion by session',
 ];
 
 function detailsRow(tileName: string, label: string): HTMLElement[] {

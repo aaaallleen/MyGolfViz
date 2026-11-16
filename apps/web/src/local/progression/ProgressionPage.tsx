@@ -242,7 +242,7 @@ export default function ProgressionPage() {
                 );
               }
               return (
-                <SpecialTile key={id} def={def} rows={rows} sessions={loaded.sessions} shots={loaded.shots} scope={scope} controls={controls} />
+                <SpecialTile key={id} def={def} rows={rows} sessions={loaded.sessions} shots={loaded.shots} scope={scope} controls={controls} onScope={changeScope} />
               );
             })}
           </div>

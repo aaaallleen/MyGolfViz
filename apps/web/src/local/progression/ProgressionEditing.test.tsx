@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { WorkingSetProvider } from '../../state/store';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { LibraryShot, SessionRow, TargetRange } from '../api';
 
@@ -76,7 +77,7 @@ beforeEach(() => {
 });
 
 const renderPage = async () => {
-  render(<MemoryRouter><ProgressionPage /></MemoryRouter>);
+  render(<WorkingSetProvider><MemoryRouter><ProgressionPage /></MemoryRouter></WorkingSetProvider>);
   await screen.findByText('All 10 shots');
 };
 const tile = (name: string) => screen.getByRole('article', { name });
@@ -85,6 +86,7 @@ const titles = () => screen.getAllByRole('article').map((a) => within(a).getByRo
 const band = (name: string) => tile(name).querySelector('[data-testid="target-band"]');
 const DEFAULT_TITLES = [
   'Carry', 'Carry variation (SD)', 'Lateral (landing)', 'Face to path', 'Spin', 'Speed & smash', 'Impact location', 'Mishit frequency',
+  'Dispersion by session',
 ];
 const layoutSaves = () => vi.mocked(api.putSetting).mock.calls.filter(([key]) => key === 'progression.layout');
 
@@ -133,11 +135,11 @@ describe('editing the dashboard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove Impact location' }));
     first.reject(new Error('down'));
     await waitFor(() => expect(layoutSaves()).toHaveLength(2));
-    expect(layoutSaves()[1]![1]).toEqual({ tiles: ['carry', 'carry-sd', 'lateral', 'ftp', 'speed-smash'] });
+    expect(layoutSaves()[1]![1]).toEqual({ tiles: ['carry', 'carry-sd', 'lateral', 'ftp', 'speed-smash', 'dispersion'] });
     await new Promise((r) => setTimeout(r, 0));
     // The superseded failure is not reported: the newest layout saved.
     expect(toast.error).not.toHaveBeenCalled();
-    expect(titles()).toEqual(['Carry', 'Carry variation (SD)', 'Lateral (landing)', 'Face to path', 'Speed & smash']);
+    expect(titles()).toEqual(['Carry', 'Carry variation (SD)', 'Lateral (landing)', 'Face to path', 'Speed & smash', 'Dispersion by session']);
   });
 
   test('Move Carry later swaps the first two tiles', async () => {
@@ -146,7 +148,7 @@ describe('editing the dashboard', () => {
     expect(titles().slice(0, 2)).toEqual(['Carry variation (SD)', 'Carry']);
     expect(api.putSetting).toHaveBeenCalledWith('progression.layout', { tiles: ['carry-sd', 'carry', ...DEFAULT_LAYOUT.slice(2)] });
     expect(screen.getByRole('button', { name: 'Move Carry variation (SD) earlier' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move Mishit frequency later' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Move Dispersion by session later' })).toBeDisabled();
   });
 
   test('every tile has move and remove controls, placeholders included', async () => {

@@ -73,3 +73,26 @@ describe('dispersionByClub', () => {
     expect(by.map((g) => [g.club, g.stats.points.length])).toEqual([['7 Iron', 1], ['8 Iron', 0]]);
   });
 });
+
+describe('ellipse kinds', () => {
+  test('1 SD is unchanged and its half extents are the SDs', () => {
+    const d = dispersionStats(fixtureShots(SEPT_19_2022), 'carry');
+    expect(d.kind).toBe('sd1');
+    expect(d.ellipse!.rx).toBeCloseTo(39.672, 3);
+    expect(d.ellipse!.halfX).toBeCloseTo(d.sdX!, 9);
+    expect(d.ellipse!.halfY).toBeCloseTo(d.sdY!, 9);
+  });
+  test('every point is inside, the farthest on the edge', () => {
+    const shots = synth([[-1, 150], [1, 152], [0, 148], [2, 151], [-30, 120]]);
+    const d = dispersionStats(shots, 'carry', 'all');
+    expect(d.observedInside).toBe(5);
+    const one = dispersionStats(shots, 'carry', 'sd1');
+    const k = d.ellipse!.rx / one.ellipse!.rx;
+    expect(d.ellipse!.ry / one.ellipse!.ry).toBeCloseTo(k, 9);
+    expect(d.ellipse!.angleDeg).toBeCloseTo(one.ellipse!.angleDeg, 9);
+    expect(d.ellipse!.halfX).toBeCloseTo(k * one.sdX!, 9);
+  });
+  test('Every shot with fewer than 3 points has no ellipse', () => {
+    expect(dispersionStats(synth([[0, 150], [1, 151]]), 'carry', 'all').ellipse).toBeNull();
+  });
+});
