@@ -3,24 +3,25 @@ import type { ChildProcess } from 'node:child_process';
 import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { cspViolations, FIXTURES, importInto } from '../e2e-local/helpers';
+import { expect, test, type Page } from '@playwright/test';
+import { FIXTURES, importInto } from '../e2e-local/helpers';
 import {
   appOrigin,
   backendPid,
-  expectLibrary,
   isAlive,
   launchApp,
+  libraryPage,
   startLocalBackend,
   stopProcess,
+  type Launched,
 } from './helpers';
 
 let dataDir: string;
-let launched: { app: ElectronApplication; page: Page }[];
+let launched: Launched[];
 let localBackend: ChildProcess | null;
 
-/** Launches the app on this test's data folder; afterEach closes it and checks its window's CSP violations. */
-async function launch(extraEnv: Record<string, string> = {}): Promise<{ app: ElectronApplication; page: Page }> {
+/** Launches the app on this test's data folder; afterEach closes it and checks its windows' CSP violations. */
+async function launch(extraEnv: Record<string, string> = {}): Promise<Launched> {
   const opened = await launchApp(dataDir, extraEnv);
   launched.push(opened);
   return opened;
@@ -45,17 +46,18 @@ test.afterEach(async () => {
   }
   // The app's Content-Security-Policy, and the error page's own, must never block anything. Tracking starts after
   // the splash, so the splash page itself is not covered.
-  for (const { page } of launched) expect(cspViolations(page)).toEqual([]);
+  for (const { cspViolations } of launched) expect(cspViolations).toEqual([]);
 });
 
 test('opens the library and keeps a session across quit and reopen', async () => {
   const first = await launch();
-  await expect(first.page.getByRole('heading', { name: 'No sessions yet' })).toBeVisible();
-  await expect(first.page.getByRole('link', { name: 'Sessions', exact: true })).toBeVisible();
+  const page = await libraryPage(first.app);
+  await expect(page.getByRole('heading', { name: 'No sessions yet' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sessions', exact: true })).toBeVisible();
 
-  await first.page.getByRole('link', { name: 'Load Session CSV' }).first().click();
-  await expect(first.page).toHaveURL(/#\/import$/);
-  await importInto(first.page, [FIXTURES[0]], { newName: 'Desktop e2e' });
+  await page.getByRole('link', { name: 'Load Session CSV' }).first().click();
+  await expect(page).toHaveURL(/#\/import$/);
+  await importInto(page, [FIXTURES[0]], { newName: 'Desktop e2e' });
 
   // Quitting stops the backend.
   const pid = await backendPid(first.app);
@@ -64,13 +66,14 @@ test('opens the library and keeps a session across quit and reopen', async () =>
   await expect.poll(() => isAlive(pid!), { timeout: 5000 }).toBe(false);
 
   const second = await launch();
-  await expect(second.page.getByRole('heading', { name: 'Sessions', exact: true })).toBeVisible();
-  await expect(second.page.getByRole('link', { name: 'Desktop e2e' })).toBeVisible();
+  const reopened = await libraryPage(second.app);
+  await expect(reopened.getByRole('heading', { name: 'Sessions', exact: true })).toBeVisible();
+  await expect(reopened.getByRole('link', { name: 'Desktop e2e' })).toBeVisible();
 });
 
 test('backend crash shows the error screen and Restart backend recovers', async () => {
-  const { app, page } = await launch();
-  await expectLibrary(page);
+  const { app } = await launch();
+  const page = await libraryPage(app);
   const pid = await backendPid(app);
   expect(pid).not.toBeNull();
 
@@ -79,7 +82,7 @@ test('backend crash shows the error screen and Restart backend recovers', async 
   await expect(page.getByText('Your saved sessions are safe. Restart the backend to continue.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Restart backend' }).click();
-  await expectLibrary(page);
+  await libraryPage(app);
   const restarted = await backendPid(app);
   expect(restarted).not.toBeNull();
   expect(restarted).not.toBe(pid);
@@ -87,7 +90,7 @@ test('backend crash shows the error screen and Restart backend recovers', async 
 
 test('already running shows its own message', async () => {
   localBackend = await startLocalBackend(dataDir);
-  const { page } = await launch();
+  const { app, page } = await launch();
   await expect(errorTitle(page, 'MyGolfViz is already running')).toBeVisible();
   await expect(
     page.getByText(
@@ -97,12 +100,12 @@ test('already running shows its own message', async () => {
 
   await stopProcess(localBackend);
   await page.getByRole('button', { name: 'Restart backend' }).click();
-  await expectLibrary(page);
+  await libraryPage(app);
 });
 
 test('navigation stays inside the app', async () => {
-  const { app, page } = await launch();
-  await expectLibrary(page);
+  const { app } = await launch();
+  const page = await libraryPage(app);
   const origin = await appOrigin(app);
   expect(origin).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
 
@@ -149,8 +152,8 @@ test('navigation stays inside the app', async () => {
 });
 
 test('a crashed renderer is reloaded', async () => {
-  const { app, page } = await launch();
-  await expectLibrary(page);
+  const { app } = await launch();
+  await libraryPage(app);
   const origin = await appOrigin(app);
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.forcefullyCrashRenderer());
   // Playwright keeps a crashed page handle crashed for good, so ask the window itself whether the library is back.
@@ -173,9 +176,9 @@ test('a crashed renderer is reloaded', async () => {
 test('a database upgrade shows "Updating your data" on the splash, backs up, then opens the library', async () => {
   // An empty database file has no schema version, so the backend must upgrade it; the test hook stretches the upgrade.
   await writeFile(join(dataDir, 'mygolfviz.sqlite3'), '');
-  const { page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '4000' });
+  const { app, page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '4000' });
   await expect(page.getByRole('status')).toHaveText('Updating your data… This can take a few minutes.');
-  await expectLibrary(page);
+  await libraryPage(app);
   const backups = await readdir(join(dataDir, 'backups'));
   expect(backups.filter((n) => /^mygolfviz-.*-none\.sqlite3$/.test(n))).toHaveLength(1);
 });
@@ -183,7 +186,7 @@ test('a database upgrade shows "Updating your data" on the splash, backs up, the
 test('the splash spins the ball flight around a still eye and ball, and only pulses it with reduced motion', async () => {
   // Hold the splash on screen with a stretched database upgrade.
   await writeFile(join(dataDir, 'mygolfviz.sqlite3'), '');
-  const { page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '6000' });
+  const { app, page } = await launch({ MYGOLFVIZ_TEST_MIGRATION_DELAY_MS: '6000' });
   await expect(page.getByRole('status')).toHaveText('Updating your data… This can take a few minutes.');
 
   const animationOf = (selector: string) =>
@@ -200,5 +203,15 @@ test('the splash spins the ball flight around a still eye and ball, and only pul
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await animationOf('.logo img.flight')).toEqual([{ name: 'flight-pulse', state: 'running' }]);
 
-  await expectLibrary(page);
+  await libraryPage(app);
+});
+
+test('the app loads behind the splash and replaces it once painted, so the splash never freezes', async () => {
+  const { app, page: splash } = await launch();
+  const appWindow = await libraryPage(app);
+  expect(appWindow).not.toBe(splash);
+  expect(splash.isClosed()).toBe(true);
+  // The splash window still showed the splash when the app's window, having painted, replaced it.
+  expect(await app.evaluate(() => globalThis.__mygolfviz!.swaps())).toEqual(['file splash.html on ready-to-show']);
+  expect(await appWindow.evaluate(() => document.visibilityState)).toBe('visible');
 });

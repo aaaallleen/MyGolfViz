@@ -5,6 +5,9 @@ the lifecycle; these items need a real Mac, a real display or a real person.
 
 - [ ] **Clean-Mac launch.** On a Mac with no Python or Node installed, install the app and open it.
   Expected: the splash "Starting MyGolfViz…" appears, then the viewer loads with an empty library.
+- [ ] **Splash to app.** Open the app normally, then again with the window maximized, and once from the error
+  screen's Restart backend. Expected: the ball flight keeps circling until the library appears, with no frozen
+  frame; the library appears in the same place and size as the splash, without a flash or jump.
 - [ ] **First-launch Gatekeeper flow.** Test with a quarantined copy of the dmg
   (`xattr -w com.apple.quarantine "0081;00000000;Safari;" <copy of the dmg>`) or the CI artifact; a dmg built
   on this Mac is not quarantined. Open the unsigned app for the first time.
