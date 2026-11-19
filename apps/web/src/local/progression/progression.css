@@ -112,3 +112,10 @@
 @media (min-width: 700px) {
   .prog-dispersion__overlaid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 }
+
+/* Moving, adding and removing tiles runs in a view transition (viewTransition.ts); Progression is the only page that
+   starts one. Tiles move with ease-in-out and fade in or out with ease-out. With reduced motion none is started. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(*) { animation-duration: 200ms; animation-timing-function: var(--ease-in-out); }
+  ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 200ms; animation-timing-function: var(--ease-out); }
+}

@@ -61,7 +61,12 @@ export interface TileFrameProps {
 export function TileFrame({ def, controls, subtitle, className, headline, body, notes, footer }: TileFrameProps) {
   const id = useId();
   return (
-    <article className={className ? `prog-tile ${className}` : 'prog-tile'} aria-labelledby={id}>
+    <article
+      className={className ? `prog-tile ${className}` : 'prog-tile'}
+      aria-labelledby={id}
+      // Names the tile for view transitions, so moving or removing tiles animates each one to its new place.
+      style={{ viewTransitionName: `prog-tile-${def.id}` }}
+    >
       <header className="prog-tile__head" data-slot="head">
         <div>
           <div className="prog-tile__eyebrow">{categoryTitle(def)}</div>
