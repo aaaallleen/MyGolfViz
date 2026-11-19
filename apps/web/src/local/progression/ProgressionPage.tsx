@@ -13,6 +13,7 @@ import {
 } from './scope';
 import { SpecialTile } from './SpecialTiles';
 import { DEFAULT_LAYOUT, LAYOUT_KEY, moveTile, parseLayout, TILES, type TileDef, type TileId } from './tiles';
+import { withViewTransition } from './viewTransition';
 import './progression.css';
 
 const isUnauthorised = (e: unknown) => e instanceof api.ApiError && e.status === 401;
@@ -111,9 +112,12 @@ export default function ProgressionPage() {
         else save.inFlight = false;
       });
   };
-  /** Shows the change at once and saves it; one save at a time, so the server keeps the newest layout. */
+  /**
+   * Shows the change at once (tiles glide to their new places) and saves it; one save at a time, so the server keeps
+   * the newest layout.
+   */
   const changeLayout = (next: TileId[]) => {
-    setLayout(next);
+    withViewTransition(() => setLayout(next));
     if (layoutSave.current.inFlight) layoutSave.current.queued = next;
     else sendLayout(next);
   };

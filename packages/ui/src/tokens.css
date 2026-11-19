@@ -19,6 +19,9 @@
   --radius-card: 12px;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  /* Motion: a strong ease-out for things entering and leaving, ease-in-out for things moving on screen. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 body {
@@ -72,6 +75,11 @@ a.fsa-btn {
 .fsa-seg__opt:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* Press feedback: buttons are pressed tens of times a session, so the scale stays barely noticeable. */
+@media (prefers-reduced-motion: no-preference) {
+  .fsa-btn { transition: transform 160ms var(--ease-out); }
+  .fsa-btn:active:not(:disabled, [aria-disabled='true']) { transform: scale(0.97); }
 }
 :is(.fsa-btn, .fsa-chip, .fsa-seg__opt, .fsa-tab, .fsa-select):focus-visible {
   outline: 2px solid var(--club);
